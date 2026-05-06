@@ -1,47 +1,61 @@
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const path = require('path');
-const fs = require('fs');
 
-// When running inside Electron, DATA_DIR is set to the user's app data folder.
-// On Render.com, the persistent disk is mounted at /data.
-// Otherwise use local ./data folder.
-const dataDir = process.env.DATA_DIR ||
-                (process.env.NODE_ENV === 'production' ? '/data' : path.join(__dirname, '..', 'data'));
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wedding-checkin';
+
+// ── Connect ───────────────────────────────────────────────────
+async function connectDB() {
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log('MongoDB connected');
+    await seedDefaults();
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
 }
 
-const adapter = new FileSync(path.join(dataDir, 'wedding.json'));
-const db = low(adapter);
+// ── Schemas ───────────────────────────────────────────────────
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  role:     { type: String, enum: ['admin', 'scanner'], required: true }
+}, { timestamps: true });
 
-// Set defaults
-db.defaults({
-  users: [],
-  guests: []
-}).write();
+const guestSchema = new mongoose.Schema({
+  name:          { type: String, required: true },
+  phone:         { type: String, default: null },
+  unique_id:     { type: String, unique: true, required: true },
+  qr_token:      { type: String, unique: true, required: true },
+  status:        { type: String, enum: ['unused', 'used'], default: 'unused' },
+  checked_in_at: { type: Date, default: null },
+  checked_in_by: { type: String, default: null }
+}, { timestamps: true });
 
-// Seed default admin
-if (!db.get('users').find({ username: 'admin' }).value()) {
-  db.get('users').push({
-    id: 1,
-    username: 'admin',
-    password: bcrypt.hashSync('admin123', 10),
-    role: 'admin'
-  }).write();
-  console.log('Default admin created: admin / admin123');
+const User  = mongoose.model('User',  userSchema);
+const Guest = mongoose.model('Guest', guestSchema);
+
+// ── Seed default users ────────────────────────────────────────
+async function seedDefaults() {
+  const adminExists = await User.findOne({ username: 'admin' });
+  if (!adminExists) {
+    await User.create({
+      username: 'admin',
+      password: bcrypt.hashSync('admin123', 10),
+      role: 'admin'
+    });
+    console.log('Default admin created: admin / admin123');
+  }
+
+  const scannerExists = await User.findOne({ username: 'scanner' });
+  if (!scannerExists) {
+    await User.create({
+      username: 'scanner',
+      password: bcrypt.hashSync('scanner123', 10),
+      role: 'scanner'
+    });
+    console.log('Default scanner created: scanner / scanner123');
+  }
 }
 
-// Seed default scanner
-if (!db.get('users').find({ username: 'scanner' }).value()) {
-  db.get('users').push({
-    id: 2,
-    username: 'scanner',
-    password: bcrypt.hashSync('scanner123', 10),
-    role: 'scanner'
-  }).write();
-  console.log('Default scanner created: scanner / scanner123');
-}
-
-module.exports = db;
+module.exports = { connectDB, User, Guest };

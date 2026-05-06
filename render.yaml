@@ -9,7 +9,5 @@ services:
         value: production
       - key: SESSION_SECRET
         generateValue: true
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
+      - key: MONGO_URI
+        sync: false
