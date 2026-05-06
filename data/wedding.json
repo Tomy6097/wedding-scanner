@@ -1,0 +1,216 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2a$10$2xM9pTlz/rapPfT9AfJwj.xNyP9L.8s0rKtLgTOVdd6fwSkjnaUSC",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "username": "scanner",
+      "password": "$2a$10$PPowjCi8i3t6QJ8nlmY5KeVQupt81ABZv9bzY7sxSdXItdUCXt036",
+      "role": "scanner"
+    }
+  ],
+  "guests": [
+    {
+      "id": 1778075588325.1555,
+      "name": "ANTHON IBRAHIM",
+      "phone": "767536637",
+      "unique_id": "606625b6-fd45-44b0-80a5-8242a0777d2d",
+      "qr_token": "cbaf925f-c38a-4907-948e-5018365bbdf2",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.326Z"
+    },
+    {
+      "id": 1778075588328.8743,
+      "name": "GOODLUCK EZRA",
+      "phone": "765889977",
+      "unique_id": "a54362f6-7b8c-4553-8342-b556ac4b79b3",
+      "qr_token": "eb796d33-1620-4988-bf98-baa943ec15fa",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.328Z"
+    },
+    {
+      "id": 1778075588329.2659,
+      "name": "RODRICK KILUMILE",
+      "phone": "78823424",
+      "unique_id": "37a996ba-d1d1-493a-a368-89d99c29f2a3",
+      "qr_token": "bf01649e-292a-454d-b375-e29b611bf5ed",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.329Z"
+    },
+    {
+      "id": 1778075588331.64,
+      "name": "FRANK SANGA",
+      "phone": "766533",
+      "unique_id": "ce41212d-fdf7-4193-9e66-ce907be3d57f",
+      "qr_token": "d720548d-a5ee-4d3e-b4f3-e443f2d70483",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.331Z"
+    },
+    {
+      "id": 1778075588332.8289,
+      "name": "JAMES SANGA",
+      "phone": "6685754546",
+      "unique_id": "4c7403b8-fb77-4e99-b4f3-ae389c6b32e0",
+      "qr_token": "76948688-1142-48e5-9fed-515868673be4",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.332Z"
+    },
+    {
+      "id": 1778075588333.6138,
+      "name": "RAMADHAN ISMAIL",
+      "phone": "2465768",
+      "unique_id": "59e7989d-756f-4dfa-8bbb-096299f3771a",
+      "qr_token": "41fa4453-58ae-4ae7-9c56-4f107f699362",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.333Z"
+    },
+    {
+      "id": 1778075588335.3452,
+      "name": "MKAMA PAUL",
+      "phone": "7454646569",
+      "unique_id": "b81de720-b419-40a6-b7ae-328a8263ff1f",
+      "qr_token": "7e4af79f-0c70-47db-8fbb-e44529222f68",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.335Z"
+    },
+    {
+      "id": 1778075588336.2717,
+      "name": "THOMAS LUCAS",
+      "phone": "744624924",
+      "unique_id": "78c96c0e-ba38-456e-9841-66662e636887",
+      "qr_token": "58d0e449-e8e2-4083-bf34-57018e986430",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.336Z"
+    },
+    {
+      "id": 1778075588338.9841,
+      "name": "PARTRICK PART",
+      "phone": "768846866",
+      "unique_id": "16e5a025-ebe3-4296-a05c-6eb6acfeb407",
+      "qr_token": "dc0777d7-2f86-4e00-a6ec-5cac6f5945e2",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.338Z"
+    },
+    {
+      "id": 1778075588342.9744,
+      "name": "ANTHON IBRAHIM",
+      "phone": "767536637",
+      "unique_id": "d3d1bf54-6a82-40e8-b38f-6d2151b9bbdf",
+      "qr_token": "5295eab7-2666-4d8e-9726-7da0d35518d1",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.342Z"
+    },
+    {
+      "id": 1778075588343.2932,
+      "name": "GOODLUCK EZRA",
+      "phone": "765889977",
+      "unique_id": "9bfce451-1419-40a0-9dc0-bb9f51f8289a",
+      "qr_token": "134d6893-f319-4168-8a62-5663de0cf11a",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.344Z"
+    },
+    {
+      "id": 1778075588345.1536,
+      "name": "RODRICK KILUMILE",
+      "phone": "78823424",
+      "unique_id": "abea485a-065c-4962-952f-6c67b2ca86a0",
+      "qr_token": "10fdc055-b4da-48c1-ac4a-cd9f78e061f4",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.345Z"
+    },
+    {
+      "id": 1778075588347.7158,
+      "name": "FRANK SANGA",
+      "phone": "766533",
+      "unique_id": "b7b74cec-c080-4e52-a7d5-e0a35743bc5b",
+      "qr_token": "c23f79a1-e311-4411-b0c8-258ca411fb65",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.347Z"
+    },
+    {
+      "id": 1778075588348.8076,
+      "name": "JAMES SANGA",
+      "phone": "6685754546",
+      "unique_id": "2c1e40d9-468d-4afa-b2c0-f549ad0ddd36",
+      "qr_token": "f9584b4d-7ef8-4e00-810d-b9af723ef68f",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.348Z"
+    },
+    {
+      "id": 1778075588349.2207,
+      "name": "RAMADHAN ISMAIL",
+      "phone": "2465768",
+      "unique_id": "3b85d260-9a0c-473d-96e4-881f423b30b4",
+      "qr_token": "16e5b7b1-0fc5-418a-96fd-7c1cea96ec1e",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.349Z"
+    },
+    {
+      "id": 1778075588350.2495,
+      "name": "MKAMA PAUL",
+      "phone": "7454646569",
+      "unique_id": "d1747fca-a58c-45c8-8c23-6821dc2cbb27",
+      "qr_token": "f70b2546-ec4f-4f00-bbae-ad4594d09af1",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.350Z"
+    },
+    {
+      "id": 1778075588352.79,
+      "name": "THOMAS LUCAS",
+      "phone": "744624924",
+      "unique_id": "b3381d3f-17a4-4844-bc80-df8ad5bcd9f5",
+      "qr_token": "c457338f-8045-4df4-b6a1-a972d586f80a",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.352Z"
+    },
+    {
+      "id": 1778075588353.7507,
+      "name": "PARTRICK PART",
+      "phone": "768846866",
+      "unique_id": "bed3dfc6-5a3e-48e3-8367-1ec1a40e1662",
+      "qr_token": "5654c6f4-185d-41d3-8b2d-58854aefaad0",
+      "status": "unused",
+      "checked_in_at": null,
+      "checked_in_by": null,
+      "created_at": "2026-05-06T13:53:08.353Z"
+    }
+  ]
+}

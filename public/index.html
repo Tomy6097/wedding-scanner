@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wedding Check-in System</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="WeddingQR" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- html5-qrcode for camera scanning -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <!-- ===== LOGIN PAGE ===== -->
+  <div id="page-login" class="page active">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-logo">
+          <span class="logo-icon">💍</span>
+          <h1>Wedding Check-in</h1>
+          <p>Event Management System</p>
+        </div>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter username" autocomplete="username" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required />
+          </div>
+          <div id="login-error" class="alert alert-error hidden"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+            <span class="btn-text">Sign In</span>
+            <span class="btn-loader hidden">⏳</span>
+          </button>
+        </form>
+        <div class="login-hint">
+          <small>Admin: admin / admin123 &nbsp;|&nbsp; Scanner: scanner / scanner123</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN DASHBOARD ===== -->
+  <div id="page-admin" class="page hidden">
+    <!-- Top Nav -->
+    <nav class="navbar">
+      <div class="nav-brand">💍 Wedding Check-in</div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="tab-overview">Overview</button>
+        <button class="nav-tab" data-tab="tab-guests">Guests</button>
+        <button class="nav-tab" data-tab="tab-add">Add Guest</button>
+      </div>
+      <div class="nav-right">
+        <span id="admin-username" class="nav-user"></span>
+        <button class="btn btn-outline btn-sm" id="admin-logout">Logout</button>
+      </div>
+    </nav>
+
+    <!-- Overview Tab -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="container">
+        <h2 class="section-title">Live Overview</h2>
+        <div class="stats-grid">
+          <div class="stat-card stat-total">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Total Guests</div>
+          </div>
+          <div class="stat-card stat-checkedin">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="stat-checkedin">0</div>
+            <div class="stat-label">Checked In</div>
+          </div>
+          <div class="stat-card stat-remaining">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value" id="stat-remaining">0</div>
+            <div class="stat-label">Remaining</div>
+          </div>
+          <div class="stat-card stat-percent">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value" id="stat-percent">0%</div>
+            <div class="stat-label">Attendance</div>
+          </div>
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>Check-in Progress</span>
+            <span id="progress-text">0 / 0</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <h3 class="section-subtitle">Recent Check-ins</h3>
+        <div id="recent-checkins" class="recent-list">
+          <div class="empty-state">No check-ins yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guests Tab -->
+    <div id="tab-guests" class="tab-content hidden">
+      <div class="container">
+        <div class="guests-header">
+          <h2 class="section-title">Guest List</h2>
+          <div class="guests-controls">
+            <input type="text" id="guest-search" placeholder="🔍 Search guests..." class="search-input" />
+            <button class="btn btn-outline btn-sm" id="export-btn">📥 Export CSV</button>
+          </div>
+        </div>
+        <div id="guests-table-wrap">
+          <table class="guests-table" id="guests-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Checked In At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="guests-tbody">
+              <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Guest Tab -->
+    <div id="tab-add" class="tab-content hidden">
+      <div class="container">
+        <h2 class="section-title">Add Guest</h2>
+        <div class="add-grid">
+          <!-- Single Guest Form -->
+          <div class="card">
+            <h3>Add Single Guest</h3>
+            <form id="add-guest-form">
+              <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="guest-name" placeholder="e.g. John Smith" required />
+              </div>
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="guest-phone" placeholder="e.g. +1 555 0100" />
+              </div>
+              <div id="add-guest-error" class="alert alert-error hidden"></div>
+              <div id="add-guest-success" class="alert alert-success hidden"></div>
+              <button type="submit" class="btn btn-primary btn-full">Add Guest & Generate QR</button>
+            </form>
+          </div>
+
+          <!-- Bulk Import -->
+          <div class="card">
+            <h3>Bulk Import (CSV)</h3>
+            <p class="hint-text">Upload a CSV file with columns: <code>name,phone</code></p>
+            <div class="file-drop-zone" id="csv-drop-zone">
+              <span>📂 Drop CSV here or click to browse</span>
+              <input type="file" id="csv-file" accept=".csv" class="file-input" />
+            </div>
+            <div id="csv-preview" class="csv-preview hidden"></div>
+            <div id="bulk-error" class="alert alert-error hidden"></div>
+            <div id="bulk-success" class="alert alert-success hidden"></div>
+            <button class="btn btn-secondary btn-full mt-1" id="bulk-import-btn" disabled>Import Guests</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QR MODAL (shown after adding guest) ===== -->
+  <div id="qr-modal" class="modal hidden">
+    <div class="modal-overlay" id="qr-modal-overlay"></div>
+    <div class="modal-content">
+      <button class="modal-close" id="qr-modal-close">✕</button>
+      <h2>QR Code Generated</h2>
+      <div id="qr-guest-info" class="qr-guest-info"></div>
+      <div id="qr-image-wrap" class="qr-image-wrap">
+        <img id="qr-image" src="" alt="QR Code" />
+      </div>
+      <div class="qr-actions">
+        <button class="btn btn-primary" id="qr-download-btn">⬇ Download QR</button>
+        <button class="btn btn-outline" id="qr-print-btn">🖨 Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GUEST QR VIEW MODAL (from guest list) ===== -->
+  <div id="view-qr-modal" class="modal hidden">
+    <div class="modal-overlay" id="view-qr-modal-overlay"></div>
+    <div class="modal-content">
+      <button class="modal-close" id="view-qr-modal-close">✕</button>
+      <h2 id="view-qr-title">Guest QR Code</h2>
+      <div id="view-qr-image-wrap" class="qr-image-wrap">
+        <img id="view-qr-image" src="" alt="QR Code" />
+      </div>
+      <div class="qr-actions">
+        <button class="btn btn-primary" id="view-qr-download-btn">⬇ Download QR</button>
+        <button class="btn btn-outline" id="view-qr-print-btn">🖨 Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCANNER PAGE ===== -->
+  <div id="page-scanner" class="page hidden">
+    <nav class="navbar navbar-scanner">
+      <div class="nav-brand">💍 Check-in Scanner</div>
+      <div class="nav-right">
+        <span id="scanner-username" class="nav-user"></span>
+        <button class="btn btn-outline btn-sm" id="scanner-logout">Logout</button>
+      </div>
+    </nav>
+
+    <div class="scanner-container">
+      <!-- Stats bar -->
+      <div class="scanner-stats">
+        <div class="scanner-stat">
+          <span class="scanner-stat-value" id="sc-checkedin">0</span>
+          <span class="scanner-stat-label">Checked In</span>
+        </div>
+        <div class="scanner-stat">
+          <span class="scanner-stat-value" id="sc-total">0</span>
+          <span class="scanner-stat-label">Total</span>
+        </div>
+        <div class="scanner-stat">
+          <span class="scanner-stat-value" id="sc-remaining">0</span>
+          <span class="scanner-stat-label">Remaining</span>
+        </div>
+      </div>
+
+      <!-- Result display -->
+      <div id="scan-result" class="scan-result scan-idle">
+        <div class="scan-result-icon" id="scan-icon">📷</div>
+        <div class="scan-result-message" id="scan-message">Ready to Scan</div>
+        <div class="scan-result-name" id="scan-name"></div>
+        <div class="scan-result-time" id="scan-time"></div>
+      </div>
+
+      <!-- Camera viewer -->
+      <div class="camera-section">
+        <div id="qr-reader" class="qr-reader"></div>
+        <div class="camera-controls">
+          <button class="btn btn-primary btn-lg" id="start-scan-btn">📷 Start Camera</button>
+          <button class="btn btn-outline btn-lg hidden" id="stop-scan-btn">⏹ Stop Camera</button>
+        </div>
+      </div>
+
+      <!-- Manual search fallback -->
+      <div class="manual-section">
+        <h3>Manual Search</h3>
+        <p class="hint-text">Use this if the QR code can't be scanned</p>
+        <div class="manual-search-row">
+          <input type="text" id="manual-search-input" placeholder="Search by name or phone..." class="search-input" />
+          <button class="btn btn-secondary" id="manual-search-btn">Search</button>
+        </div>
+        <div id="manual-results" class="manual-results hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA Install Banner -->
+  <div id="pwa-banner" class="pwa-banner hidden">
+    <div class="pwa-banner-content">
+      <span class="pwa-icon">💍</span>
+      <div class="pwa-text">
+        <strong>Install App</strong>
+        <span>Add to home screen for quick access</span>
+      </div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button class="btn btn-primary btn-sm" id="pwa-install-btn">Install</button>
+      <button class="btn btn-outline btn-sm" id="pwa-dismiss-btn">✕</button>
+    </div>
+  </div>
+
+  <!-- Audio elements for scan feedback -->
+  <audio id="audio-success" preload="auto">
+    <source src="/audio/success.mp3" type="audio/mpeg" />
+  </audio>
+  <audio id="audio-error" preload="auto">
+    <source src="/audio/error.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
