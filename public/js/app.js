@@ -10,17 +10,20 @@ const state = {
   guests: [],
   stats: { total: 0, checkedIn: 0, remaining: 0 },
   recentCheckins: [],
-  scanner: null,
   scanCooldown: false,
-  csvData: []
+  csvData: [],
+  initialized: false   // prevent double-init
 };
 
 // ── Socket.io ────────────────────────────────────────────────
 const socket = io();
 
 // ── Helpers ──────────────────────────────────────────────────
-const $ = (sel, ctx = document) => ctx.querySelector(sel);
+const $  = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+// MongoDB returns _id — normalise so we always use gid(guest)
+const gid = (g) => g._id || g.id;
 
 function showPage(id) {
   $$('.page').forEach(p => { p.classList.add('hidden'); p.classList.remove('active'); });
@@ -46,29 +49,25 @@ function formatDateTime(iso) {
 
 // ── Audio Feedback ───────────────────────────────────────────
 function playSound(type) {
-  // Use Web Audio API to generate tones (no external files needed)
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-
     if (type === 'success') {
-      osc.frequency.setValueAtTime(523, ctx.currentTime);       // C5
-      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1); // E5
-      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2); // G5
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
     } else {
       osc.frequency.setValueAtTime(300, ctx.currentTime);
       osc.frequency.setValueAtTime(200, ctx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
     }
   } catch (e) { /* audio not supported */ }
 }
@@ -81,7 +80,7 @@ async function api(method, path, body) {
     credentials: 'include'
   };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(`/api${path}`, opts);
+  const res  = await fetch(`/api${path}`, opts);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
@@ -93,9 +92,7 @@ async function checkAuth() {
     const user = await api('GET', '/auth/me');
     state.user = user;
     return user;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function login(username, password) {
@@ -107,6 +104,7 @@ async function login(username, password) {
 async function logout() {
   await api('POST', '/auth/logout');
   state.user = null;
+  state.initialized = false;
   stopScanner();
   showPage('page-login');
 }
@@ -122,19 +120,18 @@ async function fetchStats() {
 
 function updateStatsUI({ total, checkedIn, remaining }) {
   const pct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
-  // Admin stats
-  const elTotal = $('#stat-total');
-  const elChecked = $('#stat-checkedin');
+  const elTotal     = $('#stat-total');
+  const elChecked   = $('#stat-checkedin');
   const elRemaining = $('#stat-remaining');
-  const elPct = $('#stat-percent');
-  const elFill = $('#progress-fill');
-  const elPText = $('#progress-text');
-  if (elTotal) elTotal.textContent = total;
-  if (elChecked) elChecked.textContent = checkedIn;
+  const elPct       = $('#stat-percent');
+  const elFill      = $('#progress-fill');
+  const elPText     = $('#progress-text');
+  if (elTotal)     elTotal.textContent     = total;
+  if (elChecked)   elChecked.textContent   = checkedIn;
   if (elRemaining) elRemaining.textContent = remaining;
-  if (elPct) elPct.textContent = `${pct}%`;
-  if (elFill) elFill.style.width = `${pct}%`;
-  if (elPText) elPText.textContent = `${checkedIn} / ${total}`;
+  if (elPct)       elPct.textContent       = `${pct}%`;
+  if (elFill)      elFill.style.width      = `${pct}%`;
+  if (elPText)     elPText.textContent     = `${checkedIn} / ${total}`;
 }
 
 async function fetchScannerStats() {
@@ -142,17 +139,17 @@ async function fetchScannerStats() {
     const stats = await api('GET', '/guests/stats');
     state.stats = stats;
     const elCI = $('#sc-checkedin');
-    const elT = $('#sc-total');
-    const elR = $('#sc-remaining');
+    const elT  = $('#sc-total');
+    const elR  = $('#sc-remaining');
     if (elCI) elCI.textContent = stats.checkedIn;
-    if (elT) elT.textContent = stats.total;
-    if (elR) elR.textContent = stats.remaining;
+    if (elT)  elT.textContent  = stats.total;
+    if (elR)  elR.textContent  = stats.remaining;
   } catch (e) { console.error('Scanner stats error:', e); }
 }
 
 // ── Admin: Guests ────────────────────────────────────────────
 async function fetchGuests(search = '') {
-  const path = search ? `/guests?search=${encodeURIComponent(search)}` : '/guests';
+  const path   = search ? `/guests?search=${encodeURIComponent(search)}` : '/guests';
   const guests = await api('GET', path);
   state.guests = guests;
   renderGuestsTable(guests);
@@ -161,14 +158,12 @@ async function fetchGuests(search = '') {
 function renderGuestsTable(guests) {
   const tbody = $('#guests-tbody');
   if (!tbody) return;
-
   if (guests.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No guests found</td></tr>';
     return;
   }
-
   tbody.innerHTML = guests.map((g, i) => `
-    <tr id="guest-row-${g.id}">
+    <tr id="guest-row-${gid(g)}">
       <td>${i + 1}</td>
       <td><strong>${escHtml(g.name)}</strong></td>
       <td>${g.phone ? escHtml(g.phone) : '<span style="color:var(--gray-400)">—</span>'}</td>
@@ -180,8 +175,8 @@ function renderGuestsTable(guests) {
       <td>${g.status === 'used' ? formatDateTime(g.checked_in_at) : '—'}</td>
       <td>
         <div class="table-actions">
-          <button class="btn btn-outline btn-sm" onclick="viewGuestQR(${g.id})">🔲 QR</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteGuest(${g.id}, '${escHtml(g.name)}')">🗑</button>
+          <button class="btn btn-outline btn-sm" onclick="viewGuestQR('${gid(g)}')">🔲 QR</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteGuest('${gid(g)}', '${escHtml(g.name)}')">🗑</button>
         </div>
       </td>
     </tr>
@@ -189,15 +184,17 @@ function renderGuestsTable(guests) {
 }
 
 function refreshGuestRow(guest) {
-  const row = $(`#guest-row-${guest.id}`);
+  const row = $(`#guest-row-${gid(guest)}`);
   if (!row) return;
-  // Update status cell and time cell
   const cells = row.querySelectorAll('td');
   if (cells[3]) cells[3].innerHTML = `<span class="badge badge-used">✅ Checked In</span>`;
   if (cells[4]) cells[4].textContent = formatDateTime(guest.checked_in_at);
 }
 
 function addRecentCheckin(guest) {
+  // Avoid duplicates in recent list
+  const exists = state.recentCheckins.some(g => gid(g) === gid(guest));
+  if (exists) return;
   state.recentCheckins.unshift(guest);
   if (state.recentCheckins.length > 10) state.recentCheckins.pop();
   renderRecentCheckins();
@@ -238,7 +235,7 @@ async function viewGuestQR(id) {
     $('#view-qr-title').textContent = guest.name;
     $('#view-qr-image').src = qrDataUrl;
     $('#view-qr-download-btn').onclick = () => downloadQR(qrDataUrl, guest.name);
-    $('#view-qr-print-btn').onclick = () => printQR(qrDataUrl, guest.name);
+    $('#view-qr-print-btn').onclick    = () => printQR(qrDataUrl, guest.name);
     $('#view-qr-modal').classList.remove('hidden');
   } catch (e) {
     alert('Failed to load QR: ' + e.message);
@@ -247,19 +244,18 @@ async function viewGuestQR(id) {
 
 // ── Add Guest ────────────────────────────────────────────────
 async function addGuest(name, phone) {
-  const guest = await api('POST', '/guests', { name, phone });
-  return guest;
+  return await api('POST', '/guests', { name, phone });
 }
 
 async function showNewGuestQR(guest) {
-  const { qrDataUrl } = await api('GET', `/guests/${guest.id}/qr`);
+  const { qrDataUrl } = await api('GET', `/guests/${gid(guest)}/qr`);
   $('#qr-guest-info').innerHTML = `
     <div class="guest-name">${escHtml(guest.name)}</div>
     ${guest.phone ? `<div class="guest-phone">${escHtml(guest.phone)}</div>` : ''}
   `;
   $('#qr-image').src = qrDataUrl;
   $('#qr-download-btn').onclick = () => downloadQR(qrDataUrl, guest.name);
-  $('#qr-print-btn').onclick = () => printQR(qrDataUrl, guest.name);
+  $('#qr-print-btn').onclick    = () => printQR(qrDataUrl, guest.name);
   $('#qr-modal').classList.remove('hidden');
 }
 
@@ -294,7 +290,6 @@ function printQR(dataUrl, name) {
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   const results = [];
-  // Skip header if it looks like one
   const start = lines[0].toLowerCase().includes('name') ? 1 : 0;
   for (let i = start; i < lines.length; i++) {
     const parts = lines[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
@@ -308,18 +303,14 @@ let html5QrCode = null;
 
 async function startScanner() {
   if (html5QrCode) return;
-
   try {
     html5QrCode = new Html5Qrcode('qr-reader');
-    const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-
     await html5QrCode.start(
       { facingMode: 'environment' },
-      config,
+      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
       onScanSuccess,
-      () => {} // ignore decode errors (continuous scanning)
+      () => {}
     );
-
     $('#start-scan-btn').classList.add('hidden');
     $('#stop-scan-btn').classList.remove('hidden');
   } catch (err) {
@@ -330,21 +321,18 @@ async function startScanner() {
 
 function stopScanner() {
   if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      html5QrCode.clear();
-      html5QrCode = null;
-    }).catch(() => { html5QrCode = null; });
+    html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; })
+                      .catch(() => { html5QrCode = null; });
   }
   const startBtn = $('#start-scan-btn');
-  const stopBtn = $('#stop-scan-btn');
+  const stopBtn  = $('#stop-scan-btn');
   if (startBtn) startBtn.classList.remove('hidden');
-  if (stopBtn) stopBtn.classList.add('hidden');
+  if (stopBtn)  stopBtn.classList.add('hidden');
 }
 
 async function onScanSuccess(token) {
   if (state.scanCooldown) return;
   state.scanCooldown = true;
-
   try {
     const result = await api('POST', '/guests/scan', { token });
     handleScanResult(result);
@@ -352,8 +340,6 @@ async function onScanSuccess(token) {
     setScanResult('invalid', '❌', 'Error', e.message);
     playSound('error');
   }
-
-  // Cooldown to prevent rapid re-scans
   setTimeout(() => { state.scanCooldown = false; }, 2500);
 }
 
@@ -372,49 +358,42 @@ function handleScanResult(result) {
 }
 
 function setScanResult(type, icon, message, name = '', time = '') {
-  const el = $('#scan-result');
+  const el     = $('#scan-result');
   const iconEl = $('#scan-icon');
-  const msgEl = $('#scan-message');
+  const msgEl  = $('#scan-message');
   const nameEl = $('#scan-name');
   const timeEl = $('#scan-time');
-
-  el.className = `scan-result scan-${type}`;
+  el.className       = `scan-result scan-${type}`;
   iconEl.textContent = icon;
-  msgEl.textContent = message;
+  msgEl.textContent  = message;
   nameEl.textContent = name;
   timeEl.textContent = time ? `at ${formatDateTime(time)}` : '';
-
-  // Auto-reset to idle after 3 seconds
   setTimeout(() => {
-    el.className = 'scan-result scan-idle';
+    el.className       = 'scan-result scan-idle';
     iconEl.textContent = '📷';
-    msgEl.textContent = 'Ready to Scan';
+    msgEl.textContent  = 'Ready to Scan';
     nameEl.textContent = '';
     timeEl.textContent = '';
   }, 3000);
 }
 
-// ── Manual Search (Scanner) ──────────────────────────────────
+// ── Manual Search ────────────────────────────────────────────
 async function manualSearch(query) {
   if (!query.trim()) return;
   try {
     const guests = await api('GET', `/guests?search=${encodeURIComponent(query)}`);
     renderManualResults(guests);
-  } catch (e) {
-    console.error('Manual search error:', e);
-  }
+  } catch (e) { console.error('Manual search error:', e); }
 }
 
 function renderManualResults(guests) {
   const el = $('#manual-results');
   if (!el) return;
-
   if (guests.length === 0) {
     el.innerHTML = '<div class="empty-state">No guests found</div>';
     el.classList.remove('hidden');
     return;
   }
-
   el.innerHTML = guests.slice(0, 5).map(g => `
     <div class="manual-result-item">
       <div class="manual-result-info">
@@ -436,7 +415,6 @@ async function manualCheckIn(token) {
   try {
     const result = await api('POST', '/guests/scan', { token });
     handleScanResult(result);
-    // Refresh manual results
     const query = $('#manual-search-input')?.value;
     if (query) await manualSearch(query);
   } catch (e) {
@@ -454,10 +432,10 @@ function exportCSV() {
     g.checked_in_at ? new Date(g.checked_in_at).toLocaleString() : '',
     g.checked_in_by || ''
   ]));
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
   a.download = 'wedding-guests.csv';
   a.click();
 }
@@ -465,11 +443,8 @@ function exportCSV() {
 // ── Security ─────────────────────────────────────────────────
 function escHtml(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // ── Tab Navigation ───────────────────────────────────────────
@@ -478,16 +453,13 @@ function switchTab(tabId) {
   $$('.tab-content').forEach(t => t.classList.add('hidden'));
   $(`[data-tab="${tabId}"]`)?.classList.add('active');
   $(`#${tabId}`)?.classList.remove('hidden');
-
-  // Load data when switching tabs
-  if (tabId === 'tab-guests') fetchGuests();
+  if (tabId === 'tab-guests')   fetchGuests();
   if (tabId === 'tab-overview') { fetchStats(); renderRecentCheckins(); }
 }
 
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
   const user = await checkAuth();
-
   if (user) {
     state.user = user;
     if (user.role === 'admin') initAdmin();
@@ -496,15 +468,13 @@ async function init() {
     showPage('page-login');
   }
 
-  // ── Login Form ──
   $('#login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = $('#login-btn');
+    const btn   = $('#login-btn');
     const errEl = $('#login-error');
     hideAlert(errEl);
     btn.disabled = true;
     btn.querySelector('.btn-text').textContent = 'Signing in…';
-
     try {
       const user = await login($('#username').value, $('#password').value);
       state.user = user;
@@ -520,40 +490,35 @@ async function init() {
 }
 
 function initAdmin() {
+  // Guard: only run once
+  if (state.initialized) return;
+  state.initialized = true;
+
   showPage('page-admin');
   $('#admin-username').textContent = `👤 ${state.user.username}`;
-
-  // Load initial data
   fetchStats();
 
-  // Tab navigation
   $$('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchTab(tab.dataset.tab));
   });
 
-  // Logout
   $('#admin-logout').addEventListener('click', logout);
 
-  // Guest search
   let searchTimer;
   $('#guest-search').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => fetchGuests(e.target.value), 300);
   });
 
-  // Export
   $('#export-btn').addEventListener('click', exportCSV);
 
-  // Add guest form
   $('#add-guest-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errEl = $('#add-guest-error');
     const sucEl = $('#add-guest-success');
     hideAlert(errEl); hideAlert(sucEl);
-
-    const name = $('#guest-name').value.trim();
+    const name  = $('#guest-name').value.trim();
     const phone = $('#guest-phone').value.trim();
-
     try {
       const guest = await addGuest(name, phone);
       showAlert(sucEl, `Guest "${guest.name}" added successfully!`, 'success');
@@ -565,21 +530,18 @@ function initAdmin() {
     }
   });
 
-  // QR Modal close
-  $('#qr-modal-close').addEventListener('click', () => $('#qr-modal').classList.add('hidden'));
-  $('#qr-modal-overlay').addEventListener('click', () => $('#qr-modal').classList.add('hidden'));
+  $('#qr-modal-close').addEventListener('click',      () => $('#qr-modal').classList.add('hidden'));
+  $('#qr-modal-overlay').addEventListener('click',    () => $('#qr-modal').classList.add('hidden'));
   $('#view-qr-modal-close').addEventListener('click', () => $('#view-qr-modal').classList.add('hidden'));
-  $('#view-qr-modal-overlay').addEventListener('click', () => $('#view-qr-modal').classList.add('hidden'));
+  $('#view-qr-modal-overlay').addEventListener('click',() => $('#view-qr-modal').classList.add('hidden'));
 
-  // CSV file input
-  const csvFile = $('#csv-file');
+  const csvFile    = $('#csv-file');
   const csvDropZone = $('#csv-drop-zone');
-  const bulkBtn = $('#bulk-import-btn');
+  const bulkBtn    = $('#bulk-import-btn');
 
   csvFile.addEventListener('change', (e) => handleCSVFile(e.target.files[0]));
-
-  csvDropZone.addEventListener('dragover', (e) => { e.preventDefault(); csvDropZone.classList.add('drag-over'); });
-  csvDropZone.addEventListener('dragleave', () => csvDropZone.classList.remove('drag-over'));
+  csvDropZone.addEventListener('dragover',  (e) => { e.preventDefault(); csvDropZone.classList.add('drag-over'); });
+  csvDropZone.addEventListener('dragleave', ()  => csvDropZone.classList.remove('drag-over'));
   csvDropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     csvDropZone.classList.remove('drag-over');
@@ -611,7 +573,6 @@ function initAdmin() {
     hideAlert(errEl); hideAlert(sucEl);
     bulkBtn.disabled = true;
     bulkBtn.textContent = 'Importing…';
-
     try {
       const created = await api('POST', '/guests/bulk', { guests: state.csvData });
       showAlert(sucEl, `Successfully imported ${created.length} guests!`, 'success');
@@ -627,7 +588,7 @@ function initAdmin() {
     }
   });
 
-  // Real-time: update recent checkins list
+  // Real-time check-in updates
   socket.on('guest_checked_in', (guest) => {
     addRecentCheckin(guest);
     refreshGuestRow(guest);
@@ -636,29 +597,22 @@ function initAdmin() {
 }
 
 function initScanner() {
+  if (state.initialized) return;
+  state.initialized = true;
+
   showPage('page-scanner');
   $('#scanner-username').textContent = `👤 ${state.user.username}`;
   fetchScannerStats();
 
-  // Logout
-  $('#scanner-logout').addEventListener('click', () => {
-    stopScanner();
-    logout();
-  });
-
-  // Camera controls
+  $('#scanner-logout').addEventListener('click', () => { stopScanner(); logout(); });
   $('#start-scan-btn').addEventListener('click', startScanner);
-  $('#stop-scan-btn').addEventListener('click', stopScanner);
+  $('#stop-scan-btn').addEventListener('click',  stopScanner);
 
-  // Manual search
-  $('#manual-search-btn').addEventListener('click', () => {
-    manualSearch($('#manual-search-input').value);
-  });
+  $('#manual-search-btn').addEventListener('click', () => manualSearch($('#manual-search-input').value));
   $('#manual-search-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') manualSearch(e.target.value);
   });
 
-  // Real-time stats update
   socket.on('guest_checked_in', () => fetchScannerStats());
 }
 
@@ -666,55 +620,35 @@ function initScanner() {
 let deferredInstallPrompt = null;
 
 function initPWA() {
-  // Register service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then(reg => console.log('SW registered:', reg.scope))
-      .catch(err => console.warn('SW registration failed:', err));
+      .catch(err => console.warn('SW failed:', err));
   }
 
-  // Capture the install prompt
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
-
-    // Don't show if user already dismissed
     if (sessionStorage.getItem('pwa-dismissed')) return;
-
-    // Show install banner after a short delay
-    setTimeout(() => {
-      const banner = $('#pwa-banner');
-      if (banner) banner.classList.remove('hidden');
-    }, 3000);
+    setTimeout(() => { const b = $('#pwa-banner'); if (b) b.classList.remove('hidden'); }, 3000);
   });
 
-  // Install button
-  const installBtn = $('#pwa-install-btn');
-  if (installBtn) {
-    installBtn.addEventListener('click', async () => {
-      if (!deferredInstallPrompt) return;
-      deferredInstallPrompt.prompt();
-      const { outcome } = await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
-      $('#pwa-banner').classList.add('hidden');
-    });
-  }
-
-  // Dismiss button
-  const dismissBtn = $('#pwa-dismiss-btn');
-  if (dismissBtn) {
-    dismissBtn.addEventListener('click', () => {
-      $('#pwa-banner').classList.add('hidden');
-      sessionStorage.setItem('pwa-dismissed', '1');
-    });
-  }
-
-  // Hide banner once installed
-  window.addEventListener('appinstalled', () => {
-    const banner = $('#pwa-banner');
-    if (banner) banner.classList.add('hidden');
+  $('#pwa-install-btn')?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
-    console.log('PWA installed');
+    $('#pwa-banner').classList.add('hidden');
+  });
+
+  $('#pwa-dismiss-btn')?.addEventListener('click', () => {
+    $('#pwa-banner').classList.add('hidden');
+    sessionStorage.setItem('pwa-dismissed', '1');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    $('#pwa-banner')?.classList.add('hidden');
+    deferredInstallPrompt = null;
   });
 }
 
