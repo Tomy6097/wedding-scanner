@@ -123,12 +123,27 @@ router.get('/:id/qr', requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE ALL guests
+router.delete('/all', requireAdmin, async (req, res) => {
+  try {
+    await Guest.deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete all error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// DELETE single guest
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    const guest = await Guest.findByIdAndDelete(req.params.id);
+    const guest = await Guest.findOneAndDelete({ _id: req.params.id });
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
 });
 
 module.exports = router;

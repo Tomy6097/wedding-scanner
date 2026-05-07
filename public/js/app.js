@@ -512,6 +512,20 @@ function initAdmin() {
 
   $('#export-btn').addEventListener('click', exportCSV);
 
+  $('#delete-all-btn').addEventListener('click', async () => {
+    const total = state.guests.length;
+    if (total === 0) return alert('No guests to delete.');
+    if (!confirm(`Delete ALL ${total} guests? This cannot be undone.`)) return;
+    if (!confirm(`Are you sure? This will permanently delete all ${total} guests and their QR codes.`)) return;
+    try {
+      await api('DELETE', '/guests/all');
+      await fetchGuests();
+      await fetchStats();
+    } catch (e) {
+      alert('Failed to delete all guests: ' + e.message);
+    }
+  });
+
   $('#add-guest-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errEl = $('#add-guest-error');
