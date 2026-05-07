@@ -19,13 +19,9 @@ const io     = new Server(server, {
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wedding-checkin';
 const PORT      = process.env.PORT || 3000;
 
-// Make io accessible in routes
 app.set('io', io);
-
-// Trust proxy (required for secure cookies on Render)
 app.set('trust proxy', 1);
 
-// Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -37,29 +33,23 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 8 * 60 * 60 * 1000 // 8 hours
+    maxAge: 8 * 60 * 60 * 1000
   }
 }));
 
-// Serve static frontend
 app.use(express.static(path.join(__dirname, '..', 'public')));
-
-// API Routes
 app.use('/api/auth',   authRoutes);
 app.use('/api/guests', guestRoutes);
 
-// Socket.io
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
   socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
 });
 
-// Catch-all: serve frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Connect to MongoDB then start server
 connectDB().then(() => {
   server.listen(PORT, () => {
     console.log(`\n🎊 Wedding Check-in System running at http://localhost:${PORT}`);

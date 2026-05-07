@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wedding-checkin';
 
-// ── Connect ───────────────────────────────────────────────────
 async function connectDB() {
   try {
     await mongoose.connect(MONGO_URI);
@@ -15,7 +14,6 @@ async function connectDB() {
   }
 }
 
-// ── Schemas ───────────────────────────────────────────────────
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
@@ -35,7 +33,6 @@ const guestSchema = new mongoose.Schema({
 const User  = mongoose.model('User',  userSchema);
 const Guest = mongoose.model('Guest', guestSchema);
 
-// ── Seed default users ────────────────────────────────────────
 async function seedDefaults() {
   const adminExists = await User.findOne({ username: 'admin' });
   if (!adminExists) {
@@ -46,7 +43,6 @@ async function seedDefaults() {
     });
     console.log('Default admin created: admin / admin123');
   }
-
   const scannerExists = await User.findOne({ username: 'scanner' });
   if (!scannerExists) {
     await User.create({
