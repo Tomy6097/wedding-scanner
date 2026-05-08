@@ -194,6 +194,7 @@
               <option value="invalid">❓ Invalid</option>
               <option value="reset">↩ Reset</option>
             </select>
+            <input type="text" id="activity-scanner-filter" placeholder="Filter by scanner..." class="search-input" style="width:160px" />
             <button class="btn btn-outline btn-sm" id="refresh-activity-btn">🔄 Refresh</button>
             <button class="btn btn-danger btn-sm" id="clear-activity-btn">🗑 Clear Log</button>
           </div>
@@ -259,12 +260,30 @@
             <button class="btn btn-primary btn-full" id="change-scanner-pw-btn">Change Scanner Password</button>
           </div>
 
+          <!-- Scanner Accounts -->
+          <div class="card" style="grid-column: 1 / -1">
+            <h3>Scanner Accounts</h3>
+            <p class="hint-text">Create individual accounts for each person scanning at the entrance. Each scan will be recorded with their name in the activity log.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
+              <div class="form-group" style="margin:0">
+                <label>Username</label>
+                <input type="text" id="new-scanner-username" placeholder="e.g. john_entrance" />
+              </div>
+              <div class="form-group" style="margin:0">
+                <label>Password</label>
+                <input type="password" id="new-scanner-password" placeholder="Min 6 characters" />
+              </div>
+            </div>
+            <div id="new-scanner-error" class="alert alert-error hidden"></div>
+            <div id="new-scanner-success" class="alert alert-success hidden"></div>
+            <button class="btn btn-primary" id="add-scanner-btn">➕ Add Scanner Account</button>
+            <div id="scanners-list" style="margin-top:1.25rem"></div>
+          </div>
+
         </div>
       </div>
     </div>
   </div>
-
-  <!-- ===== QR CARD MODAL ===== -->
   <div id="qr-modal" class="modal hidden">
     <div class="modal-overlay" id="qr-modal-overlay"></div>
     <div class="modal-content">

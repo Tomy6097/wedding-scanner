@@ -826,12 +826,56 @@ function switchTab(tabId) {
   if (tabId === 'tab-activity') fetchActivityLog();
 }
 
+// ── Scanner Accounts ─────────────────────────────────────────
+async function fetchScannerAccounts() {
+  const el = $('#scanners-list');
+  if (!el) return;
+  try {
+    const users = await api('GET', '/users');
+    if (!users.length) {
+      el.innerHTML = '<p class="hint-text">No scanner accounts yet. Add one above.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="guests-table">
+        <thead><tr><th>Username</th><th>Role</th><th>Created</th><th>Action</th></tr></thead>
+        <tbody>
+          ${users.map(u => `
+            <tr>
+              <td><strong>${escHtml(u.username)}</strong></td>
+              <td><span class="badge badge-unused">Scanner</span></td>
+              <td>${formatDateTime(u.createdAt)}</td>
+              <td>
+                <button class="btn btn-danger btn-sm"
+                  onclick="deleteScanner('${u._id}','${escHtml(u.username)}')">🗑 Remove</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) { console.error('Fetch scanners error:', e); }
+}
+
+async function deleteScanner(id, username) {
+  if (!confirm(`Remove scanner account "${username}"? They will no longer be able to log in.`)) return;
+  try {
+    await api('DELETE', `/users/${id}`);
+    fetchScannerAccounts();
+  } catch (e) { alert('Failed to remove: ' + e.message); }
+}
+
 // ── Activity Log ─────────────────────────────────────────────
 async function fetchActivityLog() {
-  const filter = $('#activity-filter') ? $('#activity-filter').value : '';
-  const url    = filter ? `/activity?action=${filter}&limit=200` : '/activity?limit=200';
+  const filter        = $('#activity-filter') ? $('#activity-filter').value : '';
+  const scannerFilter = $('#activity-scanner-filter') ? $('#activity-scanner-filter').value.trim() : '';
+  let url = '/activity?limit=200';
+  if (filter) url += `&action=${filter}`;
   try {
-    const logs = await api('GET', url);
+    let logs = await api('GET', url);
+    // Client-side filter by scanner name
+    if (scannerFilter) {
+      logs = logs.filter(l => l.scanned_by && l.scanned_by.toLowerCase().includes(scannerFilter.toLowerCase()));
+    }
     renderActivityLog(logs);
   } catch (e) { console.error('Activity log error:', e); }
 }
@@ -1107,6 +1151,14 @@ function initAdmin() {
   const activityFilter     = $('#activity-filter');
   if (refreshActivityBtn) refreshActivityBtn.addEventListener('click', fetchActivityLog);
   if (activityFilter)     activityFilter.addEventListener('change', fetchActivityLog);
+  const activityScannerFilter = $('#activity-scanner-filter');
+  if (activityScannerFilter) {
+    let scannerFilterTimer;
+    activityScannerFilter.addEventListener('input', () => {
+      clearTimeout(scannerFilterTimer);
+      scannerFilterTimer = setTimeout(fetchActivityLog, 300);
+    });
+  }
   if (clearActivityBtn) {
     clearActivityBtn.addEventListener('click', async () => {
       if (!confirm('Clear all activity logs? This cannot be undone.')) return;
@@ -1116,6 +1168,29 @@ function initAdmin() {
       } catch (e) { alert('Failed to clear logs: ' + e.message); }
     });
   }
+
+  // Scanner accounts
+  const addScannerBtn = $('#add-scanner-btn');
+  if (addScannerBtn) {
+    addScannerBtn.addEventListener('click', async () => {
+      const username = $('#new-scanner-username').value.trim();
+      const password = $('#new-scanner-password').value;
+      const errEl    = $('#new-scanner-error');
+      const sucEl    = $('#new-scanner-success');
+      hideAlert(errEl); hideAlert(sucEl);
+      if (!username) { showAlert(errEl, 'Username is required'); return; }
+      if (!password || password.length < 6) { showAlert(errEl, 'Password must be at least 6 characters'); return; }
+      try {
+        await api('POST', '/users', { username, password });
+        showAlert(sucEl, `Scanner account "${username}" created!`, 'success');
+        $('#new-scanner-username').value = '';
+        $('#new-scanner-password').value = '';
+        fetchScannerAccounts();
+      } catch (e) { showAlert(errEl, e.message); }
+    });
+  }
+
+  fetchScannerAccounts();
 
   // Change admin password
   const changeAdminPwBtn = $('#change-admin-pw-btn');
