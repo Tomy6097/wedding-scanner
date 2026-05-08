@@ -241,7 +241,7 @@
     function shareWhatsApp() {
       const d = window._guestData;
       if (!d) return;
-      const msg = `Dear ${d.name}, you are invited to ${d.eventName || 'our wedding'}. Your check-in code is: ${window._lookupCode}. Open your invitation: ${window.location.href}`;
+      const msg = `💍 Dear ${d.name},\n\nYou are invited to ${d.eventName || 'our wedding'}!\n\nHere is your personal QR code invitation:\n${window.location.href}\n\nOpen the link and show the QR code at the entrance to check in.\nYour code: ${window._lookupCode}`;
       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     }
 

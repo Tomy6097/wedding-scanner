@@ -265,10 +265,18 @@ function copyGuestLink(token) {
 
 function shareGuestWhatsApp(token, name, phone) {
   const link = `${window.location.origin}/guest/${token}`;
-  const msg  = `Dear ${name}, you are invited! Open your personal invitation and QR code here: ${link}`;
+  const msg  = `💍 Dear ${name},\n\nYou are invited! Here is your personal QR code invitation:\n\n${link}\n\nOpen the link, show the QR code at the entrance to check in.`;
   const ph   = (phone || '').replace(/\D/g, '');
-  const url  = ph ? `https://wa.me/${ph}?text=${encodeURIComponent(msg)}`
-                  : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+  if (!ph) {
+    // No phone — just copy the message
+    navigator.clipboard.writeText(msg)
+      .then(() => alert(`No phone number for ${name}.\n\nMessage copied to clipboard — paste it in WhatsApp manually.`))
+      .catch(() => prompt(`No phone number for ${name}. Copy this message:`, msg));
+    return;
+  }
+
+  const url = `https://wa.me/${ph}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
 }
 
