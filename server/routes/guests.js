@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
-const { Guest } = require('../db');
+const { Guest, Settings } = require('../db');
 
 const router = express.Router();
 
@@ -15,8 +15,9 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ── IMPORTANT: fixed routes must come BEFORE /:id routes ─────
+// ── Fixed routes BEFORE /:id ──────────────────────────────────
 
+// Stats — any logged in user
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const total     = await Guest.countDocuments();
@@ -25,6 +26,23 @@ router.get('/stats', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Search — available to BOTH admin and scanner
+router.get('/search', requireAuth, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || !q.trim()) return res.json([]);
+    const guests = await Guest.find({
+      $or: [
+        { name:      { $regex: q.trim(), $options: 'i' } },
+        { phone:     { $regex: q.trim(), $options: 'i' } },
+        { unique_id: { $regex: q.trim(), $options: 'i' } }
+      ]
+    }).sort({ name: 1 }).limit(10);
+    res.json(guests);
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// List all — admin only
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { search } = req.query;
@@ -40,6 +58,7 @@ router.get('/', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Add single guest
 router.post('/', requireAdmin, async (req, res) => {
   const { name, phone } = req.body;
   if (!name || !name.trim())
@@ -55,6 +74,7 @@ router.post('/', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Bulk add
 router.post('/bulk', requireAdmin, async (req, res) => {
   const { guests } = req.body;
   if (!Array.isArray(guests) || guests.length === 0)
@@ -73,6 +93,7 @@ router.post('/bulk', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Scan QR token
 router.post('/scan', requireAuth, async (req, res) => {
   const { token } = req.body;
   if (!token)
@@ -86,19 +107,16 @@ router.post('/scan', requireAuth, async (req, res) => {
         result: 'used', message: 'Already Checked In',
         guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at }
       });
-
     guest.status        = 'used';
     guest.checked_in_at = new Date();
     guest.checked_in_by = req.session.user.username;
     await guest.save();
-
     const io = req.app.get('io');
     if (io) io.emit('guest_checked_in', {
       id: guest._id, name: guest.name, phone: guest.phone,
       status: guest.status, checked_in_at: guest.checked_in_at,
       checked_in_by: guest.checked_in_by
     });
-
     res.json({
       result: 'granted', message: 'Access Granted',
       guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at }
@@ -106,24 +124,51 @@ router.post('/scan', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ── /:id routes last ──────────────────────────────────────────
+// Bulk QR data — returns all guests with their QR data URLs
+router.get('/allqr', requireAdmin, async (req, res) => {
+  try {
+    const guests = await Guest.find().sort({ name: 1 });
+    const eventSetting = await Settings.findOne({ key: 'event_name' });
+    const eventName = eventSetting ? eventSetting.value : 'Our Wedding';
 
+    const results = await Promise.all(guests.map(async (g) => {
+      const qrDataUrl = await QRCode.toDataURL(g.qr_token, {
+        width: 300, margin: 2,
+        color: { dark: '#1a1a2e', light: '#ffffff' }
+      });
+      return {
+        id: g._id, name: g.name, phone: g.phone,
+        qr_token: g.qr_token, status: g.status, qrDataUrl, eventName
+      };
+    }));
+    res.json(results);
+  } catch (err) {
+    console.error('Bulk QR error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// ── /:id routes LAST ──────────────────────────────────────────
+
+// Get single guest QR
 router.get('/:id/qr', requireAdmin, async (req, res) => {
   try {
     const guest = await Guest.findById(req.params.id);
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
+    const eventSetting = await Settings.findOne({ key: 'event_name' });
+    const eventName = eventSetting ? eventSetting.value : 'Our Wedding';
     const qrDataUrl = await QRCode.toDataURL(guest.qr_token, {
       width: 300, margin: 2,
       color: { dark: '#1a1a2e', light: '#ffffff' }
     });
-    res.json({ qrDataUrl, guest });
+    res.json({ qrDataUrl, guest, eventName });
   } catch (err) {
-    console.error('QR generation error:', err);
+    console.error('QR error:', err);
     res.status(500).json({ error: 'Failed to generate QR code: ' + err.message });
   }
 });
 
-// DELETE ALL guests
+// Delete all
 router.delete('/all', requireAdmin, async (req, res) => {
   try {
     await Guest.deleteMany({});
@@ -134,7 +179,7 @@ router.delete('/all', requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE single guest
+// Delete single
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const guest = await Guest.findOneAndDelete({ _id: req.params.id });

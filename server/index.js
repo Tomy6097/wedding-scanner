@@ -7,8 +7,9 @@ const cors = require('cors');
 const path = require('path');
 const { connectDB } = require('./db');
 
-const authRoutes  = require('./routes/auth');
-const guestRoutes = require('./routes/guests');
+const authRoutes     = require('./routes/auth');
+const guestRoutes    = require('./routes/guests');
+const settingsRoutes = require('./routes/settings');
 
 const app    = express();
 const server = http.createServer(app);
@@ -38,8 +39,9 @@ app.use(session({
 }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
-app.use('/api/auth',   authRoutes);
-app.use('/api/guests', guestRoutes);
+app.use('/api/auth',     authRoutes);
+app.use('/api/guests',  guestRoutes);
+app.use('/api/settings', settingsRoutes);
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

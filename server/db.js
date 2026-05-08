@@ -30,28 +30,32 @@ const guestSchema = new mongoose.Schema({
   checked_in_by: { type: String, default: null }
 }, { timestamps: true });
 
-const User  = mongoose.model('User',  userSchema);
-const Guest = mongoose.model('Guest', guestSchema);
+// Settings: stores event name etc.
+const settingsSchema = new mongoose.Schema({
+  key:   { type: String, unique: true, required: true },
+  value: { type: String, default: '' }
+});
+
+const User     = mongoose.model('User',     userSchema);
+const Guest    = mongoose.model('Guest',    guestSchema);
+const Settings = mongoose.model('Settings', settingsSchema);
 
 async function seedDefaults() {
   const adminExists = await User.findOne({ username: 'admin' });
   if (!adminExists) {
-    await User.create({
-      username: 'admin',
-      password: bcrypt.hashSync('admin123', 10),
-      role: 'admin'
-    });
+    await User.create({ username: 'admin', password: bcrypt.hashSync('admin123', 10), role: 'admin' });
     console.log('Default admin created: admin / admin123');
   }
   const scannerExists = await User.findOne({ username: 'scanner' });
   if (!scannerExists) {
-    await User.create({
-      username: 'scanner',
-      password: bcrypt.hashSync('scanner123', 10),
-      role: 'scanner'
-    });
+    await User.create({ username: 'scanner', password: bcrypt.hashSync('scanner123', 10), role: 'scanner' });
     console.log('Default scanner created: scanner / scanner123');
+  }
+  // Default event name
+  const eventExists = await Settings.findOne({ key: 'event_name' });
+  if (!eventExists) {
+    await Settings.create({ key: 'event_name', value: 'Our Wedding' });
   }
 }
 
-module.exports = { connectDB, User, Guest };
+module.exports = { connectDB, User, Guest, Settings };
