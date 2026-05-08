@@ -42,7 +42,7 @@
           </button>
         </form>
         <div class="login-hint">
-          <small>Admin: admin / admin123 &nbsp;|&nbsp; Scanner: scanner / scanner123</small>
+          <small>Contact the event organizer for access</small>
         </div>
       </div>
     </div>
@@ -56,6 +56,7 @@
         <button class="nav-tab active" data-tab="tab-overview">Overview</button>
         <button class="nav-tab" data-tab="tab-guests">Guests</button>
         <button class="nav-tab" data-tab="tab-add">Add Guest</button>
+        <button class="nav-tab" data-tab="tab-activity">Activity</button>
         <button class="nav-tab" data-tab="tab-settings">Settings</button>
       </div>
       <div class="nav-right">
@@ -155,6 +156,10 @@
                 <label>Phone Number</label>
                 <input type="tel" id="guest-phone" placeholder="e.g. +255 712 345678" />
               </div>
+              <div class="form-group">
+                <label>Table / Seat Number <small style="color:var(--gray-400)">(optional)</small></label>
+                <input type="text" id="guest-table" placeholder="e.g. Table 5, VIP, A1" />
+              </div>
               <div id="add-guest-error" class="alert alert-error hidden"></div>
               <div id="add-guest-success" class="alert alert-success hidden"></div>
               <button type="submit" class="btn btn-primary btn-full">Add Guest & Generate QR</button>
@@ -172,6 +177,29 @@
             <div id="bulk-success" class="alert alert-success hidden"></div>
             <button class="btn btn-secondary btn-full mt-1" id="bulk-import-btn" disabled>Import Guests</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Log Tab -->
+    <div id="tab-activity" class="tab-content hidden">
+      <div class="container">
+        <div class="guests-header">
+          <h2 class="section-title">Activity Log</h2>
+          <div class="guests-controls">
+            <select id="activity-filter" class="search-input" style="width:auto">
+              <option value="">All Actions</option>
+              <option value="granted">✅ Granted</option>
+              <option value="used">🚫 Already Used</option>
+              <option value="invalid">❓ Invalid</option>
+              <option value="reset">↩ Reset</option>
+            </select>
+            <button class="btn btn-outline btn-sm" id="refresh-activity-btn">🔄 Refresh</button>
+            <button class="btn btn-danger btn-sm" id="clear-activity-btn">🗑 Clear Log</button>
+          </div>
+        </div>
+        <div id="activity-list" class="activity-list">
+          <div class="empty-state">Loading...</div>
         </div>
       </div>
     </div>

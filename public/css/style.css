@@ -426,3 +426,21 @@ code { background: var(--gray-100); padding: 0.1rem 0.4rem; border-radius: 4px; 
   border-radius: 4px;
   letter-spacing: 0.05em;
 }
+
+/* ===== ACTIVITY LOG ===== */
+.activity-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.activity-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: var(--white); border-radius: var(--radius-sm);
+  padding: 0.65rem 1rem; border: 1px solid var(--gray-200);
+  font-size: 0.875rem;
+}
+.activity-icon { font-size: 1.2rem; flex-shrink: 0; }
+.activity-info { flex: 1; min-width: 0; }
+.activity-main { font-weight: 600; color: var(--gray-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activity-sub  { font-size: 0.78rem; color: var(--gray-500); }
+.activity-time { font-size: 0.75rem; color: var(--gray-400); white-space: nowrap; flex-shrink: 0; }
+.activity-item.action-granted { border-left: 3px solid var(--success); }
+.activity-item.action-used    { border-left: 3px solid var(--error); }
+.activity-item.action-invalid { border-left: 3px solid var(--warning); }
+.activity-item.action-reset   { border-left: 3px solid var(--primary); }

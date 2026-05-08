@@ -255,21 +255,23 @@ async function resetCheckin(id, name) {
 }
 
 function copyGuestLink(token) {
-  const link = `${window.location.origin}/guest/${token}`;
-  navigator.clipboard.writeText(link).then(() => {
-    alert('Link copied! Share it with the guest:\n' + link);
+  const link       = `${window.location.origin}/guest/${token}`;
+  const lookupCode = token.substring(0, 8).toUpperCase();
+  const text       = `${link}\n\nCheck-in code: ${lookupCode}`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Copied! Share this with the guest:\n\n' + text);
   }).catch(() => {
-    prompt('Copy this link and send to the guest:', link);
+    prompt('Copy this and send to the guest:', text);
   });
 }
 
 function shareGuestWhatsApp(token, name, phone) {
-  const link = `${window.location.origin}/guest/${token}`;
-  const msg  = `💍 Dear ${name},\n\nYou are invited! Here is your personal QR code invitation:\n\n${link}\n\nOpen the link, show the QR code at the entrance to check in.`;
+  const link       = `${window.location.origin}/guest/${token}`;
+  const lookupCode = token.substring(0, 8).toUpperCase();
+  const msg  = `💍 Dear ${name},\n\nYou are invited! Here is your personal QR code invitation:\n\n${link}\n\nYour check-in code: *${lookupCode}*\n\nOpen the link and show the QR code at the entrance. If the QR can't be scanned, give your code: ${lookupCode}`;
   const ph   = (phone || '').replace(/\D/g, '');
 
   if (!ph) {
-    // No phone — just copy the message
     navigator.clipboard.writeText(msg)
       .then(() => alert(`No phone number for ${name}.\n\nMessage copied to clipboard — paste it in WhatsApp manually.`))
       .catch(() => prompt(`No phone number for ${name}. Copy this message:`, msg));
@@ -300,8 +302,8 @@ async function viewGuestQR(id) {
 }
 
 // ── Add Guest ────────────────────────────────────────────────
-async function addGuest(name, phone) {
-  return await api('POST', '/guests', { name, phone });
+async function addGuest(name, phone, table_number) {
+  return await api('POST', '/guests', { name, phone, table_number });
 }
 
 async function showNewGuestQR(guest) {
@@ -328,9 +330,12 @@ function showQRCard(data, containerSelector) {
   const container = $(containerSelector);
   if (!container) return null;
 
-  const guest      = data.guest;
-  const eventName  = data.eventName || state.eventName || 'Our Wedding';
-  const lookupCode = (guest.unique_id || '').substring(0, 8).toUpperCase();
+  const guest       = data.guest || data;
+  const eventName   = data.eventName || state.eventName || 'Our Wedding';
+  const lookupCode  = (guest.unique_id || '').substring(0, 8).toUpperCase();
+  const guestNum    = data.guest_number || null;
+  const totalGuests = data.total_guests || null;
+  const tableNum    = guest.table_number || null;
 
   const card = document.createElement('div');
   card.className = 'qr-card';
@@ -338,6 +343,8 @@ function showQRCard(data, containerSelector) {
     <div class="qr-card-event">${escHtml(eventName)}</div>
     <div class="qr-card-name">${escHtml(guest.name)}</div>
     ${guest.phone ? `<div class="qr-card-phone">${escHtml(guest.phone)}</div>` : ''}
+    ${tableNum ? `<div class="qr-card-phone">🪑 ${escHtml(tableNum)}</div>` : ''}
+    ${guestNum && totalGuests ? `<div class="qr-card-phone" style="opacity:0.5;font-size:0.7rem">Guest ${guestNum} of ${totalGuests}</div>` : ''}
     <img class="qr-card-img" src="${data.qrDataUrl}" alt="QR Code" />
     <div class="qr-card-code">${escHtml(lookupCode)}</div>
     <div class="qr-card-footer">Present this QR code at the entrance</div>
@@ -561,7 +568,9 @@ async function onScanSuccess(token) {
 
 function handleScanResult(result) {
   if (result.result === 'granted') {
-    setScanResult('granted', '✅', 'Access Granted', result.guest ? result.guest.name : '', result.guest ? result.guest.checked_in_at : '');
+    const name = result.guest ? result.guest.name : '';
+    const table = result.guest && result.guest.table_number ? ` · ${result.guest.table_number}` : '';
+    setScanResult('granted', '✅', 'Access Granted', name + table, result.guest ? result.guest.checked_in_at : '');
     playSound('success');
     fetchScannerStats();
   } else if (result.result === 'used') {
@@ -814,6 +823,46 @@ function switchTab(tabId) {
   if (activeContent) activeContent.classList.remove('hidden');
   if (tabId === 'tab-guests')   fetchGuests();
   if (tabId === 'tab-overview') { fetchStats(); renderRecentCheckins(); }
+  if (tabId === 'tab-activity') fetchActivityLog();
+}
+
+// ── Activity Log ─────────────────────────────────────────────
+async function fetchActivityLog() {
+  const filter = $('#activity-filter') ? $('#activity-filter').value : '';
+  const url    = filter ? `/activity?action=${filter}&limit=200` : '/activity?limit=200';
+  try {
+    const logs = await api('GET', url);
+    renderActivityLog(logs);
+  } catch (e) { console.error('Activity log error:', e); }
+}
+
+function renderActivityLog(logs) {
+  const el = $('#activity-list');
+  if (!el) return;
+  if (!logs.length) {
+    el.innerHTML = '<div class="empty-state">No activity recorded yet</div>';
+    return;
+  }
+  const icons = { granted: '✅', used: '🚫', invalid: '❓', reset: '↩' };
+  el.innerHTML = logs.map(log => `
+    <div class="activity-item action-${log.action}">
+      <div class="activity-icon">${icons[log.action] || '📋'}</div>
+      <div class="activity-info">
+        <div class="activity-main">
+          ${log.action === 'granted' ? 'Checked in' :
+            log.action === 'used'    ? 'Duplicate scan' :
+            log.action === 'invalid' ? 'Invalid QR scanned' :
+            log.action === 'reset'   ? 'Check-in reset' : log.action}
+          ${log.guest_name ? ` — <strong>${escHtml(log.guest_name)}</strong>` : ''}
+        </div>
+        <div class="activity-sub">
+          By: ${escHtml(log.scanned_by || '—')}
+          ${log.note ? ` · ${escHtml(log.note)}` : ''}
+        </div>
+      </div>
+      <div class="activity-time">${formatDateTime(log.createdAt)}</div>
+    </div>
+  `).join('');
 }
 
 // ── Settings ─────────────────────────────────────────────────
@@ -950,6 +999,7 @@ function initAdmin() {
       hideAlert(sucEl);
       const name  = $('#guest-name').value.trim();
       const phone = $('#guest-phone').value.trim();
+      const table = $('#guest-table') ? $('#guest-table').value.trim() : '';
 
       // Duplicate name check
       try {
@@ -958,11 +1008,10 @@ function initAdmin() {
           const proceed = confirm(`A guest named "${name}" already exists. Add anyway?`);
           if (!proceed) return;
         }
-      } catch (e) { /* ignore duplicate check errors */ }
+      } catch (e) { /* ignore */ }
 
       try {
-        const guest = await addGuest(name, phone);
-        showAlert(sucEl, `Guest "${guest.name}" added successfully!`, 'success');
+        const guest = await addGuest(name, phone, table);        showAlert(sucEl, `Guest "${guest.name}" added successfully!`, 'success');
         addGuestForm.reset();
         await showNewGuestQR(guest);
         fetchStats();
@@ -1051,6 +1100,22 @@ function initAdmin() {
   // Save settings
   const saveSettingsBtn = $('#save-settings-btn');
   if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
+
+  // Activity log controls
+  const refreshActivityBtn = $('#refresh-activity-btn');
+  const clearActivityBtn   = $('#clear-activity-btn');
+  const activityFilter     = $('#activity-filter');
+  if (refreshActivityBtn) refreshActivityBtn.addEventListener('click', fetchActivityLog);
+  if (activityFilter)     activityFilter.addEventListener('change', fetchActivityLog);
+  if (clearActivityBtn) {
+    clearActivityBtn.addEventListener('click', async () => {
+      if (!confirm('Clear all activity logs? This cannot be undone.')) return;
+      try {
+        await api('DELETE', '/activity');
+        fetchActivityLog();
+      } catch (e) { alert('Failed to clear logs: ' + e.message); }
+    });
+  }
 
   // Change admin password
   const changeAdminPwBtn = $('#change-admin-pw-btn');

@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
-const { Guest, Settings } = require('../db');
+const { Guest, Settings, Activity } = require('../db');
 
 const router = express.Router();
 
@@ -34,7 +34,6 @@ router.get('/search', requireAuth, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || !q.trim()) return res.json([]);
-    // Support lookup code search (first 8 chars of unique_id)
     const guests = await Guest.find({
       $or: [
         { name:      { $regex: q.trim(), $options: 'i' } },
@@ -51,18 +50,19 @@ router.get('/view/:token', async (req, res) => {
   try {
     const guest = await Guest.findOne({ qr_token: req.params.token });
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
-    const eventName = await getEventName();
-    const qrDataUrl = await QRCode.toDataURL(guest.qr_token, {
+    const eventName  = await getEventName();
+    const totalGuests = await Guest.countDocuments();
+    const guestNumber = await Guest.countDocuments({ createdAt: { $lte: guest.createdAt } });
+    const qrDataUrl  = await QRCode.toDataURL(guest.qr_token, {
       width: 300, margin: 2,
       color: { dark: '#1a1a2e', light: '#ffffff' }
     });
     res.json({
-      name: guest.name,
-      phone: guest.phone,
-      unique_id: guest.unique_id,
-      status: guest.status,
-      qrDataUrl,
-      eventName
+      name: guest.name, phone: guest.phone,
+      unique_id: guest.unique_id, status: guest.status,
+      table_number: guest.table_number,
+      guest_number: guestNumber, total_guests: totalGuests,
+      qrDataUrl, eventName
     });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
@@ -82,7 +82,6 @@ router.get('/', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Check for duplicate name
 router.get('/check-duplicate', requireAdmin, async (req, res) => {
   try {
     const { name } = req.query;
@@ -93,13 +92,14 @@ router.get('/check-duplicate', requireAdmin, async (req, res) => {
 });
 
 router.post('/', requireAdmin, async (req, res) => {
-  const { name, phone } = req.body;
+  const { name, phone, table_number } = req.body;
   if (!name || !name.trim())
     return res.status(400).json({ error: 'Guest name is required' });
   try {
     const guest = await Guest.create({
       name: name.trim(),
       phone: phone ? phone.trim() : null,
+      table_number: table_number ? table_number.trim() : null,
       unique_id: uuidv4(),
       qr_token: uuidv4()
     });
@@ -117,6 +117,7 @@ router.post('/bulk', requireAdmin, async (req, res) => {
       .map(g => ({
         name: g.name.trim(),
         phone: g.phone ? g.phone.trim() : null,
+        table_number: g.table_number ? g.table_number.trim() : null,
         unique_id: uuidv4(),
         qr_token: uuidv4()
       }));
@@ -131,35 +132,65 @@ router.post('/scan', requireAuth, async (req, res) => {
     return res.status(400).json({ result: 'invalid', message: 'No token provided' });
   try {
     const guest = await Guest.findOne({ qr_token: token.trim() });
-    if (!guest)
+
+    if (!guest) {
+      // Log invalid scan
+      await Activity.create({
+        action: 'invalid', scanned_by: req.session.user.username,
+        token_used: token.trim().substring(0, 20), note: 'Unknown QR token'
+      });
       return res.json({ result: 'invalid', message: 'Invalid QR Code' });
-    if (guest.status === 'used')
+    }
+
+    if (guest.status === 'used') {
+      // Log duplicate scan attempt
+      await Activity.create({
+        action: 'used', guest_name: guest.name, guest_id: guest._id,
+        scanned_by: req.session.user.username, token_used: token.trim(),
+        note: `Already checked in at ${guest.checked_in_at}`
+      });
       return res.json({
         result: 'used', message: 'Already Checked In',
         guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at }
       });
+    }
+
+    // Check in
     guest.status        = 'used';
     guest.checked_in_at = new Date();
     guest.checked_in_by = req.session.user.username;
     await guest.save();
+
+    // Log successful check-in
+    await Activity.create({
+      action: 'granted', guest_name: guest.name, guest_id: guest._id,
+      scanned_by: req.session.user.username, token_used: token.trim()
+    });
+
     const io = req.app.get('io');
     if (io) io.emit('guest_checked_in', {
       id: guest._id, name: guest.name, phone: guest.phone,
       status: guest.status, checked_in_at: guest.checked_in_at,
       checked_in_by: guest.checked_in_by
     });
+
     res.json({
       result: 'granted', message: 'Access Granted',
-      guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at }
+      guest: {
+        name: guest.name, phone: guest.phone,
+        table_number: guest.table_number,
+        checked_in_at: guest.checked_in_at
+      }
     });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
 router.get('/allqr', requireAdmin, async (req, res) => {
   try {
-    const guests    = await Guest.find().sort({ name: 1 });
-    const eventName = await getEventName();
-    const results   = await Promise.all(guests.map(async (g) => {
+    const guests      = await Guest.find().sort({ name: 1 });
+    const eventName   = await getEventName();
+    const totalGuests = guests.length;
+    const results     = await Promise.all(guests.map(async (g, idx) => {
       const qrDataUrl = await QRCode.toDataURL(g.qr_token, {
         width: 300, margin: 2,
         color: { dark: '#1a1a2e', light: '#ffffff' }
@@ -167,6 +198,8 @@ router.get('/allqr', requireAdmin, async (req, res) => {
       return {
         id: g._id, name: g.name, phone: g.phone,
         unique_id: g.unique_id, qr_token: g.qr_token,
+        table_number: g.table_number,
+        guest_number: idx + 1, total_guests: totalGuests,
         status: g.status, qrDataUrl, eventName
       };
     }));
@@ -180,14 +213,19 @@ router.get('/allqr', requireAdmin, async (req, res) => {
 
 router.get('/:id/qr', requireAdmin, async (req, res) => {
   try {
-    const guest     = await Guest.findById(req.params.id);
+    const guest       = await Guest.findById(req.params.id);
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
-    const eventName = await getEventName();
-    const qrDataUrl = await QRCode.toDataURL(guest.qr_token, {
+    const eventName   = await getEventName();
+    const totalGuests = await Guest.countDocuments();
+    const guestNumber = await Guest.countDocuments({ createdAt: { $lte: guest.createdAt } });
+    const qrDataUrl   = await QRCode.toDataURL(guest.qr_token, {
       width: 300, margin: 2,
       color: { dark: '#1a1a2e', light: '#ffffff' }
     });
-    res.json({ qrDataUrl, guest, eventName });
+    res.json({
+      qrDataUrl, guest, eventName,
+      guest_number: guestNumber, total_guests: totalGuests
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate QR code: ' + err.message });
   }
@@ -202,6 +240,13 @@ router.patch('/:id/reset', requireAdmin, async (req, res) => {
     guest.checked_in_at = null;
     guest.checked_in_by = null;
     await guest.save();
+
+    // Log reset
+    await Activity.create({
+      action: 'reset', guest_name: guest.name, guest_id: guest._id,
+      scanned_by: req.session.user.username, note: 'Check-in reset by admin'
+    });
+
     const io = req.app.get('io');
     if (io) io.emit('guest_reset', { id: guest._id, name: guest.name, status: 'unused' });
     res.json({ success: true, guest });
@@ -213,6 +258,7 @@ router.patch('/:id/reset', requireAdmin, async (req, res) => {
 router.delete('/all', requireAdmin, async (req, res) => {
   try {
     await Guest.deleteMany({});
+    await Activity.deleteMany({});
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error: ' + err.message });

@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
 const guestSchema = new mongoose.Schema({
   name:          { type: String, required: true },
   phone:         { type: String, default: null },
+  table_number:  { type: String, default: null },  // e.g. "Table 5" or "VIP"
   unique_id:     { type: String, unique: true, required: true },
   qr_token:      { type: String, unique: true, required: true },
   status:        { type: String, enum: ['unused', 'used'], default: 'unused' },
@@ -30,15 +31,25 @@ const guestSchema = new mongoose.Schema({
   checked_in_by: { type: String, default: null }
 }, { timestamps: true });
 
-// Settings: stores event name etc.
 const settingsSchema = new mongoose.Schema({
   key:   { type: String, unique: true, required: true },
   value: { type: String, default: '' }
 });
 
+// Activity log — every scan attempt is recorded
+const activitySchema = new mongoose.Schema({
+  action:     { type: String, enum: ['granted', 'used', 'invalid', 'reset'], required: true },
+  guest_name: { type: String, default: null },
+  guest_id:   { type: mongoose.Schema.Types.ObjectId, ref: 'Guest', default: null },
+  scanned_by: { type: String, default: null },
+  token_used: { type: String, default: null },
+  note:       { type: String, default: null }
+}, { timestamps: true });
+
 const User     = mongoose.model('User',     userSchema);
 const Guest    = mongoose.model('Guest',    guestSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
+const Activity = mongoose.model('Activity', activitySchema);
 
 async function seedDefaults() {
   const adminExists = await User.findOne({ username: 'admin' });
@@ -51,11 +62,10 @@ async function seedDefaults() {
     await User.create({ username: 'scanner', password: bcrypt.hashSync('scanner123', 10), role: 'scanner' });
     console.log('Default scanner created: scanner / scanner123');
   }
-  // Default event name
   const eventExists = await Settings.findOne({ key: 'event_name' });
   if (!eventExists) {
     await Settings.create({ key: 'event_name', value: 'Our Wedding' });
   }
 }
 
-module.exports = { connectDB, User, Guest, Settings };
+module.exports = { connectDB, User, Guest, Settings, Activity };
