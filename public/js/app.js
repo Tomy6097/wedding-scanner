@@ -172,6 +172,7 @@ function renderGuestsTable(guests) {
   }
   tbody.innerHTML = guests.map((g, i) => {
     const lookupCode = (g.unique_id || '').substring(0, 8).toUpperCase();
+    const guestLink  = `${window.location.origin}/guest/${g.qr_token}`;
     return `
     <tr id="guest-row-${gid(g)}">
       <td>${i + 1}</td>
@@ -187,7 +188,10 @@ function renderGuestsTable(guests) {
       <td>
         <div class="table-actions">
           <button class="btn btn-outline btn-sm" onclick="viewGuestQR('${gid(g)}')">🔲 QR</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteGuest('${gid(g)}', '${escHtml(g.name).replace(/'/g, "\\'")}')">🗑</button>
+          <button class="btn btn-outline btn-sm" onclick="copyGuestLink('${g.qr_token}')" title="Copy guest link">🔗</button>
+          <button class="btn btn-outline btn-sm" onclick="shareGuestWhatsApp('${g.qr_token}','${escHtml(g.name).replace(/'/g,"\\'")}','${g.phone||''}')" title="Share via WhatsApp">💬</button>
+          ${g.status === 'used' ? `<button class="btn btn-outline btn-sm" onclick="resetCheckin('${gid(g)}','${escHtml(g.name).replace(/'/g,"\\'")}')">↩ Reset</button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteGuest('${gid(g)}', '${escHtml(g.name).replace(/'/g,"\\'")}')">🗑</button>
         </div>
       </td>
     </tr>`;
@@ -239,6 +243,34 @@ async function deleteGuest(id, name) {
   }
 }
 
+async function resetCheckin(id, name) {
+  if (!confirm(`Reset check-in for "${name}"? They will be marked as not checked in.`)) return;
+  try {
+    await api('PATCH', `/guests/${id}/reset`);
+    await fetchGuests($('#guest-search') ? $('#guest-search').value : '');
+    await fetchStats();
+  } catch (e) {
+    alert('Failed to reset: ' + e.message);
+  }
+}
+
+function copyGuestLink(token) {
+  const link = `${window.location.origin}/guest/${token}`;
+  navigator.clipboard.writeText(link).then(() => {
+    alert('Link copied! Share it with the guest:\n' + link);
+  }).catch(() => {
+    prompt('Copy this link and send to the guest:', link);
+  });
+}
+
+function shareGuestWhatsApp(token, name, phone) {
+  const link = `${window.location.origin}/guest/${token}`;
+  const msg  = `Dear ${name}, you are invited! Open your personal invitation and QR code here: ${link}`;
+  const ph   = (phone || '').replace(/\D/g, '');
+  const url  = ph ? `https://wa.me/${ph}?text=${encodeURIComponent(msg)}`
+                  : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
 
 // ── View Guest QR ────────────────────────────────────────────
 async function viewGuestQR(id) {
@@ -591,6 +623,7 @@ function renderManualResults(guests) {
 }
 
 async function manualCheckIn(token) {
+  if (!confirm('Check in this guest?')) return;
   try {
     const result = await api('POST', '/guests/scan', { token });
     handleScanResult(result);
@@ -909,6 +942,16 @@ function initAdmin() {
       hideAlert(sucEl);
       const name  = $('#guest-name').value.trim();
       const phone = $('#guest-phone').value.trim();
+
+      // Duplicate name check
+      try {
+        const dup = await api('GET', `/guests/check-duplicate?name=${encodeURIComponent(name)}`);
+        if (dup.exists) {
+          const proceed = confirm(`A guest named "${name}" already exists. Add anyway?`);
+          if (!proceed) return;
+        }
+      } catch (e) { /* ignore duplicate check errors */ }
+
       try {
         const guest = await addGuest(name, phone);
         showAlert(sucEl, `Guest "${guest.name}" added successfully!`, 'success');
@@ -1001,10 +1044,62 @@ function initAdmin() {
   const saveSettingsBtn = $('#save-settings-btn');
   if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
 
+  // Change admin password
+  const changeAdminPwBtn = $('#change-admin-pw-btn');
+  if (changeAdminPwBtn) {
+    changeAdminPwBtn.addEventListener('click', async () => {
+      const current  = $('#admin-current-pw').value;
+      const newPw    = $('#admin-new-pw').value;
+      const confirm  = $('#admin-confirm-pw').value;
+      const errEl    = $('#admin-pw-error');
+      const sucEl    = $('#admin-pw-success');
+      hideAlert(errEl); hideAlert(sucEl);
+      if (newPw !== confirm) { showAlert(errEl, 'Passwords do not match'); return; }
+      if (newPw.length < 6)  { showAlert(errEl, 'Password must be at least 6 characters'); return; }
+      try {
+        await api('POST', '/auth/change-password', { currentPassword: current, newPassword: newPw });
+        showAlert(sucEl, 'Admin password changed successfully!', 'success');
+        $('#admin-current-pw').value = '';
+        $('#admin-new-pw').value = '';
+        $('#admin-confirm-pw').value = '';
+      } catch (e) { showAlert(errEl, e.message); }
+    });
+  }
+
+  // Change scanner password
+  const changeScannerPwBtn = $('#change-scanner-pw-btn');
+  if (changeScannerPwBtn) {
+    changeScannerPwBtn.addEventListener('click', async () => {
+      const newPw   = $('#scanner-new-pw').value;
+      const confirm = $('#scanner-confirm-pw').value;
+      const errEl   = $('#scanner-pw-error');
+      const sucEl   = $('#scanner-pw-success');
+      hideAlert(errEl); hideAlert(sucEl);
+      if (newPw !== confirm) { showAlert(errEl, 'Passwords do not match'); return; }
+      if (newPw.length < 6)  { showAlert(errEl, 'Password must be at least 6 characters'); return; }
+      try {
+        await api('POST', '/auth/change-password/scanner', { newPassword: newPw });
+        showAlert(sucEl, 'Scanner password changed successfully!', 'success');
+        $('#scanner-new-pw').value = '';
+        $('#scanner-confirm-pw').value = '';
+      } catch (e) { showAlert(errEl, e.message); }
+    });
+  }
+
+  // Keep-alive ping every 10 minutes to prevent Render sleep
+  setInterval(() => {
+    fetch('/ping').catch(() => {});
+  }, 10 * 60 * 1000);
+
   // Real-time check-in updates
   socket.on('guest_checked_in', (guest) => {
     addRecentCheckin(guest);
     refreshGuestRow(guest);
+    fetchStats();
+  });
+
+  socket.on('guest_reset', () => {
+    fetchGuests($('#guest-search') ? $('#guest-search').value : '');
     fetchStats();
   });
 }
@@ -1040,6 +1135,9 @@ function initScanner() {
 
   // Real-time stats update
   socket.on('guest_checked_in', () => fetchScannerStats());
+
+  // Keep-alive ping every 10 minutes
+  setInterval(() => { fetch('/ping').catch(() => {}); }, 10 * 60 * 1000);
 }
 
 // ── PWA ──────────────────────────────────────────────────────

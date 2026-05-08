@@ -180,15 +180,57 @@
     <div id="tab-settings" class="tab-content hidden">
       <div class="container">
         <h2 class="section-title">Settings</h2>
-        <div class="card" style="max-width:500px">
-          <h3>Event Details</h3>
-          <div class="form-group">
-            <label>Event Name</label>
-            <input type="text" id="setting-event-name" placeholder="e.g. John & Jane's Wedding" />
-            <small class="hint-text">This name appears on all QR code cards</small>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem">
+
+          <!-- Event Details -->
+          <div class="card">
+            <h3>Event Details</h3>
+            <div class="form-group">
+              <label>Event Name</label>
+              <input type="text" id="setting-event-name" placeholder="e.g. John & Jane's Wedding" />
+              <small class="hint-text">Appears on all QR cards</small>
+            </div>
+            <div id="settings-success" class="alert alert-success hidden"></div>
+            <button class="btn btn-primary btn-full" id="save-settings-btn">Save Event Name</button>
           </div>
-          <div id="settings-success" class="alert alert-success hidden"></div>
-          <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+
+          <!-- Change Admin Password -->
+          <div class="card">
+            <h3>Change Admin Password</h3>
+            <div class="form-group">
+              <label>Current Password</label>
+              <input type="password" id="admin-current-pw" placeholder="Current password" />
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" id="admin-new-pw" placeholder="Min 6 characters" />
+            </div>
+            <div class="form-group">
+              <label>Confirm New Password</label>
+              <input type="password" id="admin-confirm-pw" placeholder="Repeat new password" />
+            </div>
+            <div id="admin-pw-error" class="alert alert-error hidden"></div>
+            <div id="admin-pw-success" class="alert alert-success hidden"></div>
+            <button class="btn btn-primary btn-full" id="change-admin-pw-btn">Change Admin Password</button>
+          </div>
+
+          <!-- Change Scanner Password -->
+          <div class="card">
+            <h3>Change Scanner Password</h3>
+            <p class="hint-text">Change the password for the scanner login</p>
+            <div class="form-group">
+              <label>New Scanner Password</label>
+              <input type="password" id="scanner-new-pw" placeholder="Min 6 characters" />
+            </div>
+            <div class="form-group">
+              <label>Confirm Password</label>
+              <input type="password" id="scanner-confirm-pw" placeholder="Repeat password" />
+            </div>
+            <div id="scanner-pw-error" class="alert alert-error hidden"></div>
+            <div id="scanner-pw-success" class="alert alert-success hidden"></div>
+            <button class="btn btn-primary btn-full" id="change-scanner-pw-btn">Change Scanner Password</button>
+          </div>
+
         </div>
       </div>
     </div>

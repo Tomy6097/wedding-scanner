@@ -34,14 +34,24 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 8 * 60 * 60 * 1000
+    maxAge: 24 * 60 * 60 * 1000  // 24 hours (was 8)
   }
 }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// ── Keep-alive ping endpoint (prevents Render free tier sleep) ──
+app.get('/ping', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+
 app.use('/api/auth',     authRoutes);
-app.use('/api/guests',  guestRoutes);
+app.use('/api/guests',   guestRoutes);
 app.use('/api/settings', settingsRoutes);
+
+// ── Public guest page route ──────────────────────────────────
+// Serves the SPA for /guest/:token — frontend handles the display
+app.get('/guest/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'guest.html'));
+});
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

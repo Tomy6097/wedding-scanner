@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Invitation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: linear-gradient(160deg, #2d1b69 0%, #1a1a2e 100%);
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '💍';
+      position: absolute;
+      top: -20px; right: -20px;
+      font-size: 8rem;
+      opacity: 0.05;
+    }
+    .rings { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .event-name {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 0.5rem;
+    }
+    .guest-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #fff;
+    }
+    .guest-subtitle {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 1.25rem;
+    }
+    .qr-wrap {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      display: inline-block;
+      margin-bottom: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .qr-wrap img { width: 200px; height: 200px; display: block; }
+    .code-label {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 0.25rem;
+    }
+    .code {
+      font-family: monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #a78bfa;
+      margin-bottom: 1.25rem;
+    }
+    .instruction {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      padding: 0.75rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.75rem 1.5rem; border-radius: 10px; border: none;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      text-decoration: none; width: 100%; margin-bottom: 0.5rem;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-download { background: #7c3aed; color: white; }
+    .btn-whatsapp { background: #25D366; color: white; }
+    .status-used {
+      background: rgba(5,150,105,0.2);
+      border: 1px solid rgba(5,150,105,0.4);
+      color: #6ee7b7;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .loading { color: rgba(255,255,255,0.6); font-size: 1rem; }
+    .error-msg { color: #fca5a5; font-size: 1rem; }
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="loading">Loading your invitation... 💍</div>
+  </div>
+
+  <script>
+    const token = window.location.pathname.split('/guest/')[1];
+
+    async function load() {
+      const card = document.getElementById('card');
+      try {
+        const res  = await fetch(`/api/guests/view/${token}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          card.innerHTML = `<div class="error-msg">❌ Invitation not found.<br><small>Please contact the event organizer.</small></div>`;
+          return;
+        }
+
+        const lookupCode = (data.unique_id || '').substring(0, 8).toUpperCase();
+
+        card.innerHTML = `
+          <div class="rings">💍</div>
+          <div class="event-name">${esc(data.eventName)}</div>
+          <div class="guest-name">${esc(data.name)}</div>
+          <div class="guest-subtitle">You're invited!</div>
+
+          ${data.status === 'used' ? `<div class="status-used">✅ Already checked in</div>` : ''}
+
+          <div class="qr-wrap">
+            <img src="${data.qrDataUrl}" alt="QR Code" id="qr-img" />
+          </div>
+
+          <div class="code-label">Your check-in code</div>
+          <div class="code">${esc(lookupCode)}</div>
+
+          <div class="instruction">
+            Show the QR code above at the entrance to check in.<br>
+            If the QR can't be scanned, give your code: <strong>${esc(lookupCode)}</strong>
+          </div>
+
+          <button class="btn btn-download" onclick="downloadCard()">⬇ Save QR Card</button>
+          ${data.name ? `<button class="btn btn-whatsapp" onclick="shareWhatsApp()">💬 Share via WhatsApp</button>` : ''}
+
+          <div class="footer">Wedding Check-in System</div>
+        `;
+
+        // Store data for download/share
+        window._guestData = data;
+        window._lookupCode = lookupCode;
+
+      } catch (e) {
+        card.innerHTML = `<div class="error-msg">❌ Failed to load invitation.<br><small>${e.message}</small></div>`;
+      }
+    }
+
+    function esc(str) {
+      return String(str || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function downloadCard() {
+      const d = window._guestData;
+      if (!d) return;
+      const W = 300, H = 420;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const img = new Image();
+      img.onload = () => {
+        // Background
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#7c3aed');
+        grad.addColorStop(1, '#4c1d95');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Top strip
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(0, 0, W, 6);
+
+        // Event name
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(d.eventName || 'Our Wedding', W/2, 36);
+
+        // Guest name
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(d.name, W/2, 66);
+
+        // Phone
+        if (d.phone) {
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.font = '13px sans-serif';
+          ctx.fillText(d.phone, W/2, 86);
+        }
+
+        // QR
+        const qrSize = 180, qrX = (W-qrSize)/2, qrY = 100;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(qrX-8, qrY-8, qrSize+16, qrSize+16);
+        ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+
+        // Code
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(window._lookupCode, W/2, qrY+qrSize+32);
+
+        // Footer
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('Present this QR code at the entrance', W/2, H-16);
+
+        const a = document.createElement('a');
+        a.download = `invitation-${d.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+      };
+      img.src = d.qrDataUrl;
+    }
+
+    function shareWhatsApp() {
+      const d = window._guestData;
+      if (!d) return;
+      const msg = `Dear ${d.name}, you are invited to ${d.eventName || 'our wedding'}. Your check-in code is: ${window._lookupCode}. Open your invitation: ${window.location.href}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    load();
+  </script>
+</body>
+</html>
