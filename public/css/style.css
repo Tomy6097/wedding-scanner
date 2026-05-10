@@ -444,3 +444,28 @@ code { background: var(--gray-100); padding: 0.1rem 0.4rem; border-radius: 4px; 
 .activity-item.action-used    { border-left: 3px solid var(--error); }
 .activity-item.action-invalid { border-left: 3px solid var(--warning); }
 .activity-item.action-reset   { border-left: 3px solid var(--primary); }
+
+/* ===== LOGIN CONTACT ===== */
+.login-contact {
+  text-align: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gray-200);
+  color: var(--gray-400);
+}
+.login-contact-btns {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.btn-contact {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.4rem 1rem; border-radius: var(--radius-sm);
+  font-size: 0.85rem; font-weight: 600; text-decoration: none;
+  background: var(--gray-100); color: var(--gray-700);
+  border: 1px solid var(--gray-200); transition: all 0.15s;
+}
+.btn-contact:hover { background: var(--gray-200); }
+.btn-contact-wa { background: #25D366; color: white; border-color: #25D366; }
+.btn-contact-wa:hover { background: #1ebe5d; }
