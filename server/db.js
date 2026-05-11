@@ -28,7 +28,8 @@ const eventSchema = new mongoose.Schema({
   date:        { type: Date, default: null },
   venue:       { type: String, default: null },
   status:      { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
-  color:       { type: String, default: '#7c3aed' }    // accent color for the event
+  color:       { type: String, default: '#7c3aed' },   // accent color for the event
+  pin:         { type: String, default: null }          // 4-digit PIN for scanner access
 }, { timestamps: true });
 
 // ── Guests ────────────────────────────────────────────────────

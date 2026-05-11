@@ -275,6 +275,7 @@ function editEvent(event) {
   $('#ev-date').value   = event.date ? new Date(event.date).toISOString().split('T')[0] : '';
   $('#ev-venue').value  = event.venue       || '';
   $('#ev-color').value  = event.color       || '#7c3aed';
+  if ($('#ev-pin')) $('#ev-pin').value = event.pin || '';
   modal.dataset.editId  = gid(event);
   hideAlert($('#event-modal-error'));
   modal.classList.remove('hidden');
@@ -892,21 +893,6 @@ async function initScannerPage() {
     if (listEl) listEl.innerHTML = '<div class="empty-state">Failed to load events</div>';
   }
 
-  // Change event button
-  const changeEvBtn = $('#change-event-btn');
-  if (changeEvBtn) {
-    changeEvBtn.addEventListener('click', () => {
-      stopScanner();
-      state.scannerEventId = null;
-      if (selectorEl) selectorEl.classList.remove('hidden');
-      if (mainEl)     mainEl.classList.add('hidden');
-      const nameEl = $('#scanner-event-name');
-      if (nameEl) nameEl.textContent = 'Check-in Scanner';
-      // Refresh event list
-      api('GET', '/events').then(renderScannerEventList).catch(() => {});
-    });
-  }
-
   // Scanner logout
   const scanLogout = $('#scanner-logout');
   if (scanLogout) scanLogout.addEventListener('click', () => { stopScanner(); logout(); });
@@ -973,16 +959,72 @@ function renderScannerEventList(events) {
 }
 
 function selectScannerEvent(event) {
-  state.scannerEventId = gid(event);
+  // If event has a PIN, show PIN prompt first
+  if (event.pin !== undefined) {
+    // PIN field exists — but we don't know if it's set (hidden from scanner)
+    // Always show PIN prompt; server will validate
+    showPinPrompt(event);
+  } else {
+    proceedWithEvent(event);
+  }
+}
 
+function showPinPrompt(event) {
+  const modal    = $('#pin-modal');
+  const nameEl   = $('#pin-event-name');
+  const inputEl  = $('#pin-input');
+  const errEl    = $('#pin-error');
+  const submitBtn = $('#pin-submit-btn');
+
+  if (!modal) { proceedWithEvent(event); return; }
+
+  if (nameEl) nameEl.textContent = event.name;
+  if (inputEl) inputEl.value = '';
+  hideAlert(errEl);
+  modal.classList.remove('hidden');
+  setTimeout(() => { if (inputEl) inputEl.focus(); }, 100);
+
+  // Remove old listeners by cloning
+  const newSubmit = submitBtn.cloneNode(true);
+  submitBtn.parentNode.replaceChild(newSubmit, submitBtn);
+
+  async function tryPin() {
+    const pin = $('#pin-input') ? $('#pin-input').value.trim() : '';
+    hideAlert($('#pin-error'));
+    try {
+      await api('POST', `/events/${gid(event)}/verify-pin`, { pin });
+      modal.classList.add('hidden');
+      proceedWithEvent(event);
+    } catch (e) {
+      showAlert($('#pin-error'), e.message || 'Incorrect PIN');
+      if ($('#pin-input')) $('#pin-input').value = '';
+    }
+  }
+
+  $('#pin-submit-btn').addEventListener('click', tryPin);
+  if ($('#pin-input')) {
+    const newInput = $('#pin-input').cloneNode(true);
+    $('#pin-input').parentNode.replaceChild(newInput, $('#pin-input'));
+    $('#pin-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryPin(); });
+  }
+
+  // Close on overlay click
+  const overlay = $('#pin-modal-overlay');
+  if (overlay) {
+    const newOverlay = overlay.cloneNode(true);
+    overlay.parentNode.replaceChild(newOverlay, overlay);
+    $('#pin-modal-overlay').addEventListener('click', () => modal.classList.add('hidden'));
+  }
+}
+
+function proceedWithEvent(event) {
+  state.scannerEventId = gid(event);
   const nameEl     = $('#scanner-event-name');
   const selectorEl = $('#scanner-event-selector');
   const mainEl     = $('#scanner-main');
-
   if (nameEl)     nameEl.textContent = event.name;
   if (selectorEl) selectorEl.classList.add('hidden');
   if (mainEl)     mainEl.classList.remove('hidden');
-
   fetchScannerStats();
 }
 
@@ -1357,19 +1399,19 @@ function initAdmin() {
       const date   = $('#ev-date').value;
       const venue  = $('#ev-venue').value.trim();
       const color  = $('#ev-color').value;
+      const pin    = $('#ev-pin') ? $('#ev-pin').value.trim() : '';
       hideAlert(errEl);
       if (!name) { showAlert(errEl, 'Event name is required'); return; }
       try {
         const editId = modal.dataset.editId;
         if (editId) {
-          await api('PUT', `/events/${editId}`, { name, client_name: client, date, venue, color });
-          // Update currentEvent if it's the one being edited
+          await api('PUT', `/events/${editId}`, { name, client_name: client, date, venue, color, pin: pin || null });
           if (state.currentEvent && gid(state.currentEvent) === editId) {
             state.currentEvent = { ...state.currentEvent, name, client_name: client, date, venue, color };
             updateBreadcrumbs();
           }
         } else {
-          await createEvent({ name, client_name: client, date, venue, color });
+          await createEvent({ name, client_name: client, date, venue, color, pin: pin || null });
         }
         modal.classList.add('hidden');
         fetchEvents();

@@ -290,6 +290,11 @@
     <div class="form-group"><label>Date</label><input type="date" id="ev-date" /></div>
     <div class="form-group"><label>Venue</label><input type="text" id="ev-venue" placeholder="e.g. Serena Hotel, Dar es Salaam" /></div>
     <div class="form-group"><label>Accent Color</label><input type="color" id="ev-color" value="#7c3aed" /></div>
+    <div class="form-group">
+      <label>Scanner PIN <small style="color:var(--gray-400)">(optional — 4 digits, e.g. 1234)</small></label>
+      <input type="text" id="ev-pin" placeholder="e.g. 1234" maxlength="6" pattern="[0-9]*" inputmode="numeric" />
+      <small class="hint-text">Scanners must enter this PIN to access the event. Leave empty for no PIN.</small>
+    </div>
     <div id="event-modal-error" class="alert alert-error hidden"></div>
     <button class="btn btn-primary btn-full" id="event-modal-save">Create Event</button>
   </div>
@@ -356,12 +361,27 @@
     </div>
   </div>
 
+  <!-- PIN prompt -->
+  <div id="pin-modal" class="modal hidden">
+    <div class="modal-overlay" id="pin-modal-overlay"></div>
+    <div class="modal-content" style="max-width:320px;text-align:center">
+      <h2>🔒 Enter Event PIN</h2>
+      <p class="hint-text" style="margin:0.5rem 0 1rem" id="pin-event-name"></p>
+      <div class="form-group">
+        <input type="password" id="pin-input" placeholder="Enter PIN"
+          inputmode="numeric" pattern="[0-9]*" maxlength="6"
+          style="text-align:center;font-size:1.5rem;letter-spacing:0.3em" />
+      </div>
+      <div id="pin-error" class="alert alert-error hidden"></div>
+      <button class="btn btn-primary btn-full" id="pin-submit-btn">Confirm</button>
+    </div>
+  </div>
+
   <div id="scanner-main" class="scanner-container hidden">
     <div class="scanner-stats">
       <div class="scanner-stat"><span class="scanner-stat-value" id="sc-checkedin">0</span><span class="scanner-stat-label">Checked In</span></div>
       <div class="scanner-stat"><span class="scanner-stat-value" id="sc-total">0</span><span class="scanner-stat-label">Total</span></div>
       <div class="scanner-stat"><span class="scanner-stat-value" id="sc-remaining">0</span><span class="scanner-stat-label">Remaining</span></div>
-      <div class="scanner-stat" style="cursor:pointer" id="change-event-btn"><span class="scanner-stat-value" style="font-size:1rem">🔄</span><span class="scanner-stat-label">Change Event</span></div>
     </div>
     <div id="scan-result" class="scan-result scan-idle">
       <div class="scan-result-icon" id="scan-icon">📷</div>
