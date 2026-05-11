@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt   = require('bcryptjs');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wedding-checkin';
 
@@ -14,30 +14,47 @@ async function connectDB() {
   }
 }
 
+// ── Users ─────────────────────────────────────────────────────
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   role:     { type: String, enum: ['admin', 'scanner'], required: true }
 }, { timestamps: true });
 
+// ── Events ────────────────────────────────────────────────────
+const eventSchema = new mongoose.Schema({
+  name:        { type: String, required: true },       // e.g. "John & Jane Wedding"
+  client_name: { type: String, default: null },        // e.g. "John Smith"
+  date:        { type: Date, default: null },
+  venue:       { type: String, default: null },
+  status:      { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
+  color:       { type: String, default: '#7c3aed' }    // accent color for the event
+}, { timestamps: true });
+
+// ── Guests ────────────────────────────────────────────────────
 const guestSchema = new mongoose.Schema({
+  event_id:      { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
   name:          { type: String, required: true },
   phone:         { type: String, default: null },
-  table_number:  { type: String, default: null },  // e.g. "Table 5" or "VIP"
+  table_number:  { type: String, default: null },
   unique_id:     { type: String, unique: true, required: true },
   qr_token:      { type: String, unique: true, required: true },
   status:        { type: String, enum: ['unused', 'used'], default: 'unused' },
   checked_in_at: { type: Date, default: null },
-  checked_in_by: { type: String, default: null }
+  checked_in_by: { type: String, default: null },
+  sms_sent:      { type: Boolean, default: false },
+  sms_sent_at:   { type: Date, default: null }
 }, { timestamps: true });
 
+// ── Settings ──────────────────────────────────────────────────
 const settingsSchema = new mongoose.Schema({
   key:   { type: String, unique: true, required: true },
   value: { type: String, default: '' }
 });
 
-// Activity log — every scan attempt is recorded
+// ── Activity Log ──────────────────────────────────────────────
 const activitySchema = new mongoose.Schema({
+  event_id:   { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null },
   action:     { type: String, enum: ['granted', 'used', 'invalid', 'reset'], required: true },
   guest_name: { type: String, default: null },
   guest_id:   { type: mongoose.Schema.Types.ObjectId, ref: 'Guest', default: null },
@@ -47,6 +64,7 @@ const activitySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const User     = mongoose.model('User',     userSchema);
+const Event    = mongoose.model('Event',    eventSchema);
 const Guest    = mongoose.model('Guest',    guestSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 const Activity = mongoose.model('Activity', activitySchema);
@@ -62,10 +80,16 @@ async function seedDefaults() {
     await User.create({ username: 'scanner', password: bcrypt.hashSync('scanner123', 10), role: 'scanner' });
     console.log('Default scanner created: scanner / scanner123');
   }
-  const eventExists = await Settings.findOne({ key: 'event_name' });
-  if (!eventExists) {
-    await Settings.create({ key: 'event_name', value: 'Our Wedding' });
+  // Migrate old guests (no event_id) into a default event
+  const orphanGuests = await Guest.countDocuments({ event_id: { $exists: false } });
+  if (orphanGuests > 0) {
+    let defaultEvent = await Event.findOne({ name: 'Default Event' });
+    if (!defaultEvent) {
+      defaultEvent = await Event.create({ name: 'Default Event', client_name: 'Migrated' });
+    }
+    await Guest.updateMany({ event_id: { $exists: false } }, { $set: { event_id: defaultEvent._id } });
+    console.log(`Migrated ${orphanGuests} guests to Default Event`);
   }
 }
 
-module.exports = { connectDB, User, Guest, Settings, Activity };
+module.exports = { connectDB, User, Event, Guest, Settings, Activity };

@@ -12,10 +12,10 @@ function requireAdmin(req, res, next) {
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const limit  = parseInt(req.query.limit) || 100;
-    const filter = req.query.action ? { action: req.query.action } : {};
-    const logs   = await Activity.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit);
+    const filter = {};
+    if (req.query.action)   filter.action   = req.query.action;
+    if (req.query.event_id) filter.event_id = req.query.event_id;
+    const logs = await Activity.find(filter).sort({ createdAt: -1 }).limit(limit);
     res.json(logs);
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });

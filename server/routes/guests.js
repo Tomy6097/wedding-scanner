@@ -1,7 +1,8 @@
-const express = require('express');
+const express  = require('express');
 const { v4: uuidv4 } = require('uuid');
-const QRCode = require('qrcode');
-const { Guest, Settings, Activity } = require('../db');
+const QRCode   = require('qrcode');
+const https    = require('https');
+const { Guest, Event, Settings, Activity } = require('../db');
 
 const router = express.Router();
 
@@ -15,47 +16,102 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-async function getEventName() {
+async function getEventName(eventId) {
+  if (eventId) {
+    const ev = await Event.findById(eventId);
+    if (ev) return ev.name;
+  }
   const s = await Settings.findOne({ key: 'event_name' });
   return s ? s.value : 'Our Wedding';
 }
 
+// ── Send SMS via Beem Africa ──────────────────────────────────
+async function sendBeemSMS(phone, message) {
+  const apiKey    = (await Settings.findOne({ key: 'beem_api_key' }))?.value;
+  const secretKey = (await Settings.findOne({ key: 'beem_secret_key' }))?.value;
+  const senderId  = (await Settings.findOne({ key: 'beem_sender_id' }))?.value || 'INFO';
+
+  if (!apiKey || !secretKey) throw new Error('Beem Africa API keys not configured');
+
+  const cleanPhone = phone.replace(/\D/g, '');
+  const payload = JSON.stringify({
+    source_addr: senderId,
+    encoding:    0,
+    message:     message,
+    recipients:  [{ recipient_id: 1, dest_addr: cleanPhone }]
+  });
+
+  return new Promise((resolve, reject) => {
+    const auth = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
+    const options = {
+      hostname: 'apisms.beem.africa',
+      port: 443,
+      path: '/v1/send',
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Basic ${auth}`,
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (res.statusCode === 200 || res.statusCode === 201) resolve(parsed);
+          else reject(new Error(parsed.message || `SMS failed: ${res.statusCode}`));
+        } catch (e) { reject(new Error('Invalid SMS API response')); }
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
 // ── Fixed routes BEFORE /:id ──────────────────────────────────
 
+// Stats — scoped to event
 router.get('/stats', requireAuth, async (req, res) => {
   try {
-    const total     = await Guest.countDocuments();
-    const checkedIn = await Guest.countDocuments({ status: 'used' });
+    const { event_id } = req.query;
+    const filter = event_id ? { event_id } : {};
+    const total     = await Guest.countDocuments(filter);
+    const checkedIn = await Guest.countDocuments({ ...filter, status: 'used' });
     res.json({ total, checkedIn, remaining: total - checkedIn });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Search — scoped to event
 router.get('/search', requireAuth, async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, event_id } = req.query;
     if (!q || !q.trim()) return res.json([]);
-    const guests = await Guest.find({
+    const filter = {
+      ...(event_id ? { event_id } : {}),
       $or: [
         { name:      { $regex: q.trim(), $options: 'i' } },
         { phone:     { $regex: q.trim(), $options: 'i' } },
         { unique_id: { $regex: '^' + q.trim(), $options: 'i' } }
       ]
-    }).sort({ name: 1 }).limit(10);
+    };
+    const guests = await Guest.find(filter).sort({ name: 1 }).limit(10);
     res.json(guests);
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Public guest page — no auth needed
+// Public guest page — no auth
 router.get('/view/:token', async (req, res) => {
   try {
     const guest = await Guest.findOne({ qr_token: req.params.token });
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
-    const eventName  = await getEventName();
-    const totalGuests = await Guest.countDocuments();
-    const guestNumber = await Guest.countDocuments({ createdAt: { $lte: guest.createdAt } });
-    const qrDataUrl  = await QRCode.toDataURL(guest.qr_token, {
-      width: 300, margin: 2,
-      color: { dark: '#1a1a2e', light: '#ffffff' }
+    const eventName   = await getEventName(guest.event_id);
+    const totalGuests = await Guest.countDocuments({ event_id: guest.event_id });
+    const guestNumber = await Guest.countDocuments({ event_id: guest.event_id, createdAt: { $lte: guest.createdAt } });
+    const qrDataUrl   = await QRCode.toDataURL(guest.qr_token, {
+      width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' }
     });
     res.json({
       name: guest.name, phone: guest.phone,
@@ -67,202 +123,230 @@ router.get('/view/:token', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// List guests — scoped to event
 router.get('/', requireAdmin, async (req, res) => {
   try {
-    const { search } = req.query;
-    const query = search ? {
-      $or: [
+    const { search, event_id } = req.query;
+    const filter = event_id ? { event_id } : {};
+    if (search) {
+      filter.$or = [
         { name:      { $regex: search, $options: 'i' } },
         { phone:     { $regex: search, $options: 'i' } },
         { unique_id: { $regex: search, $options: 'i' } }
-      ]
-    } : {};
-    const guests = await Guest.find(query).sort({ createdAt: -1 });
+      ];
+    }
+    const guests = await Guest.find(filter).sort({ createdAt: -1 });
     res.json(guests);
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Check duplicate — scoped to event
 router.get('/check-duplicate', requireAdmin, async (req, res) => {
   try {
-    const { name } = req.query;
+    const { name, event_id } = req.query;
     if (!name) return res.json({ exists: false });
-    const existing = await Guest.findOne({ name: { $regex: `^${name.trim()}$`, $options: 'i' } });
-    res.json({ exists: !!existing, guest: existing });
+    const filter = {
+      name: { $regex: `^${name.trim()}$`, $options: 'i' },
+      ...(event_id ? { event_id } : {})
+    };
+    const existing = await Guest.findOne(filter);
+    res.json({ exists: !!existing });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Add single guest
 router.post('/', requireAdmin, async (req, res) => {
-  const { name, phone, table_number } = req.body;
-  if (!name || !name.trim())
-    return res.status(400).json({ error: 'Guest name is required' });
+  const { name, phone, table_number, event_id } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Guest name is required' });
+  if (!event_id) return res.status(400).json({ error: 'Event is required' });
   try {
     const guest = await Guest.create({
-      name: name.trim(),
+      event_id, name: name.trim(),
       phone: phone ? phone.trim() : null,
       table_number: table_number ? table_number.trim() : null,
-      unique_id: uuidv4(),
-      qr_token: uuidv4()
+      unique_id: uuidv4(), qr_token: uuidv4()
     });
     res.status(201).json(guest);
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Bulk add
 router.post('/bulk', requireAdmin, async (req, res) => {
-  const { guests } = req.body;
-  if (!Array.isArray(guests) || guests.length === 0)
-    return res.status(400).json({ error: 'Guests array is required' });
+  const { guests, event_id } = req.body;
+  if (!Array.isArray(guests) || !guests.length) return res.status(400).json({ error: 'Guests array required' });
+  if (!event_id) return res.status(400).json({ error: 'Event is required' });
   try {
-    const docs = guests
-      .filter(g => g.name && g.name.trim())
-      .map(g => ({
-        name: g.name.trim(),
-        phone: g.phone ? g.phone.trim() : null,
-        table_number: g.table_number ? g.table_number.trim() : null,
-        unique_id: uuidv4(),
-        qr_token: uuidv4()
-      }));
+    const docs = guests.filter(g => g.name?.trim()).map(g => ({
+      event_id, name: g.name.trim(),
+      phone: g.phone ? g.phone.trim() : null,
+      table_number: g.table_number ? g.table_number.trim() : null,
+      unique_id: uuidv4(), qr_token: uuidv4()
+    }));
     const created = await Guest.insertMany(docs);
     res.status(201).json(created);
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Scan QR
 router.post('/scan', requireAuth, async (req, res) => {
-  const { token } = req.body;
-  if (!token)
-    return res.status(400).json({ result: 'invalid', message: 'No token provided' });
+  const { token, event_id } = req.body;
+  if (!token) return res.status(400).json({ result: 'invalid', message: 'No token provided' });
   try {
-    const guest = await Guest.findOne({ qr_token: token.trim() });
+    const filter = { qr_token: token.trim(), ...(event_id ? { event_id } : {}) };
+    const guest  = await Guest.findOne(filter);
 
     if (!guest) {
-      // Log invalid scan
-      await Activity.create({
-        action: 'invalid', scanned_by: req.session.user.username,
-        token_used: token.trim().substring(0, 20), note: 'Unknown QR token'
-      });
+      await Activity.create({ action: 'invalid', scanned_by: req.session.user.username, token_used: token.trim().substring(0, 20), event_id: event_id || null });
       return res.json({ result: 'invalid', message: 'Invalid QR Code' });
     }
-
     if (guest.status === 'used') {
-      // Log duplicate scan attempt
-      await Activity.create({
-        action: 'used', guest_name: guest.name, guest_id: guest._id,
-        scanned_by: req.session.user.username, token_used: token.trim(),
-        note: `Already checked in at ${guest.checked_in_at}`
-      });
-      return res.json({
-        result: 'used', message: 'Already Checked In',
-        guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at }
-      });
+      await Activity.create({ action: 'used', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username });
+      return res.json({ result: 'used', message: 'Already Checked In', guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at } });
     }
 
-    // Check in
     guest.status        = 'used';
     guest.checked_in_at = new Date();
     guest.checked_in_by = req.session.user.username;
     await guest.save();
 
-    // Log successful check-in
-    await Activity.create({
-      action: 'granted', guest_name: guest.name, guest_id: guest._id,
-      scanned_by: req.session.user.username, token_used: token.trim()
-    });
+    await Activity.create({ action: 'granted', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username });
 
     const io = req.app.get('io');
     if (io) io.emit('guest_checked_in', {
       id: guest._id, name: guest.name, phone: guest.phone,
       status: guest.status, checked_in_at: guest.checked_in_at,
-      checked_in_by: guest.checked_in_by
+      checked_in_by: guest.checked_in_by, event_id: guest.event_id
     });
 
-    res.json({
-      result: 'granted', message: 'Access Granted',
-      guest: {
-        name: guest.name, phone: guest.phone,
-        table_number: guest.table_number,
-        checked_in_at: guest.checked_in_at
-      }
-    });
+    res.json({ result: 'granted', message: 'Access Granted', guest: { name: guest.name, phone: guest.phone, table_number: guest.table_number, checked_in_at: guest.checked_in_at } });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Send SMS to single guest
+router.post('/:id/sms', requireAdmin, async (req, res) => {
+  try {
+    const guest = await Guest.findById(req.params.id);
+    if (!guest) return res.status(404).json({ error: 'Guest not found' });
+    if (!guest.phone) return res.status(400).json({ error: 'Guest has no phone number' });
+
+    const eventName  = await getEventName(guest.event_id);
+    const lookupCode = guest.unique_id.substring(0, 8).toUpperCase();
+    const baseUrl    = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
+    const link       = `${baseUrl}/guest/${guest.qr_token}`;
+    const message    = `Dear ${guest.name}, you are invited to ${eventName}. Your QR invitation: ${link} Code: ${lookupCode}`;
+
+    await sendBeemSMS(guest.phone, message);
+    guest.sms_sent    = true;
+    guest.sms_sent_at = new Date();
+    await guest.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Send SMS to ALL guests in an event
+router.post('/sms/bulk', requireAdmin, async (req, res) => {
+  const { event_id, only_unsent } = req.body;
+  if (!event_id) return res.status(400).json({ error: 'Event ID required' });
+
+  try {
+    const filter = { event_id, phone: { $ne: null } };
+    if (only_unsent) filter.sms_sent = { $ne: true };
+    const guests = await Guest.find(filter);
+
+    if (!guests.length) return res.json({ success: true, sent: 0, failed: 0, message: 'No guests to send to' });
+
+    const eventName = await getEventName(event_id);
+    const baseUrl   = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
+    let sent = 0, failed = 0, errors = [];
+
+    for (const guest of guests) {
+      try {
+        const lookupCode = guest.unique_id.substring(0, 8).toUpperCase();
+        const link       = `${baseUrl}/guest/${guest.qr_token}`;
+        const message    = `Dear ${guest.name}, you are invited to ${eventName}. Your QR invitation: ${link} Code: ${lookupCode}`;
+        await sendBeemSMS(guest.phone, message);
+        guest.sms_sent    = true;
+        guest.sms_sent_at = new Date();
+        await guest.save();
+        sent++;
+        // Small delay to avoid rate limiting
+        await new Promise(r => setTimeout(r, 200));
+      } catch (e) {
+        failed++;
+        errors.push(`${guest.name}: ${e.message}`);
+      }
+    }
+
+    res.json({ success: true, sent, failed, errors: errors.slice(0, 5) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// All QR data for download
 router.get('/allqr', requireAdmin, async (req, res) => {
   try {
-    const guests      = await Guest.find().sort({ name: 1 });
-    const eventName   = await getEventName();
-    const totalGuests = guests.length;
-    const results     = await Promise.all(guests.map(async (g, idx) => {
+    const { event_id } = req.query;
+    const filter    = event_id ? { event_id } : {};
+    const guests    = await Guest.find(filter).sort({ name: 1 });
+    const eventName = await getEventName(event_id);
+    const total     = guests.length;
+
+    const results = await Promise.all(guests.map(async (g, idx) => {
       const qrDataUrl = await QRCode.toDataURL(g.qr_token, {
-        width: 300, margin: 2,
-        color: { dark: '#1a1a2e', light: '#ffffff' }
+        width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' }
       });
       return {
         id: g._id, name: g.name, phone: g.phone,
         unique_id: g.unique_id, qr_token: g.qr_token,
-        table_number: g.table_number,
-        guest_number: idx + 1, total_guests: totalGuests,
-        status: g.status, qrDataUrl, eventName
+        table_number: g.table_number, guest_number: idx + 1,
+        total_guests: total, status: g.status, qrDataUrl, eventName
       };
     }));
     res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error: ' + err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── /:id routes LAST ──────────────────────────────────────────
 
 router.get('/:id/qr', requireAdmin, async (req, res) => {
   try {
-    const guest       = await Guest.findById(req.params.id);
+    const guest     = await Guest.findById(req.params.id);
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
-    const eventName   = await getEventName();
-    const totalGuests = await Guest.countDocuments();
-    const guestNumber = await Guest.countDocuments({ createdAt: { $lte: guest.createdAt } });
+    const eventName   = await getEventName(guest.event_id);
+    const totalGuests = await Guest.countDocuments({ event_id: guest.event_id });
+    const guestNumber = await Guest.countDocuments({ event_id: guest.event_id, createdAt: { $lte: guest.createdAt } });
     const qrDataUrl   = await QRCode.toDataURL(guest.qr_token, {
-      width: 300, margin: 2,
-      color: { dark: '#1a1a2e', light: '#ffffff' }
+      width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' }
     });
-    res.json({
-      qrDataUrl, guest, eventName,
-      guest_number: guestNumber, total_guests: totalGuests
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to generate QR code: ' + err.message });
-  }
+    res.json({ qrDataUrl, guest, eventName, guest_number: guestNumber, total_guests: totalGuests });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Reset check-in
 router.patch('/:id/reset', requireAdmin, async (req, res) => {
   try {
     const guest = await Guest.findById(req.params.id);
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
-    guest.status        = 'unused';
-    guest.checked_in_at = null;
-    guest.checked_in_by = null;
+    guest.status = 'unused'; guest.checked_in_at = null; guest.checked_in_by = null;
     await guest.save();
-
-    // Log reset
-    await Activity.create({
-      action: 'reset', guest_name: guest.name, guest_id: guest._id,
-      scanned_by: req.session.user.username, note: 'Check-in reset by admin'
-    });
-
+    await Activity.create({ action: 'reset', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username, note: 'Reset by admin' });
     const io = req.app.get('io');
-    if (io) io.emit('guest_reset', { id: guest._id, name: guest.name, status: 'unused' });
+    if (io) io.emit('guest_reset', { id: guest._id, name: guest.name, status: 'unused', event_id: guest.event_id });
     res.json({ success: true, guest });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error: ' + err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.delete('/all', requireAdmin, async (req, res) => {
   try {
-    await Guest.deleteMany({});
-    await Activity.deleteMany({});
+    const { event_id } = req.query;
+    const filter = event_id ? { event_id } : {};
+    await Guest.deleteMany(filter);
+    await Activity.deleteMany(event_id ? { event_id } : {});
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error: ' + err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.delete('/:id', requireAdmin, async (req, res) => {
@@ -270,9 +354,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     const guest = await Guest.findOneAndDelete({ _id: req.params.id });
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error: ' + err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

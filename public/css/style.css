@@ -469,3 +469,88 @@ code { background: var(--gray-100); padding: 0.1rem 0.4rem; border-radius: 4px; 
 .btn-contact:hover { background: var(--gray-200); }
 .btn-contact-wa { background: #25D366; color: white; border-color: #25D366; }
 .btn-contact-wa:hover { background: #1ebe5d; }
+
+/* ===== EVENTS GRID ===== */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.event-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--event-color, var(--primary));
+}
+.event-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.event-card.active-event { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+.event-card-name { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.25rem; }
+.event-card-client { font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.5rem; }
+.event-card-meta { font-size: 0.8rem; color: var(--gray-400); margin-bottom: 0.75rem; }
+.event-card-stats { display: flex; gap: 0.75rem; }
+.event-stat { text-align: center; flex: 1; }
+.event-stat-value { font-size: 1.4rem; font-weight: 700; color: var(--primary); display: block; }
+.event-stat-label { font-size: 0.7rem; color: var(--gray-500); }
+.event-card-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-100); }
+
+/* ===== EVENT BREADCRUMB ===== */
+.event-breadcrumb {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 1rem; font-size: 0.85rem; color: var(--gray-500);
+}
+.event-breadcrumb .crumb-event {
+  font-weight: 600; color: var(--primary);
+  background: var(--primary-light); padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+.event-breadcrumb .crumb-back {
+  cursor: pointer; color: var(--gray-500);
+  text-decoration: underline;
+}
+.event-breadcrumb .crumb-back:hover { color: var(--primary); }
+
+/* ===== SCANNER EVENT SELECTOR ===== */
+.scanner-event-selector { background: var(--gray-50); border-bottom: 1px solid var(--gray-200); }
+.scanner-event-selector .event-card { cursor: pointer; }
+.scanner-event-selector .event-card:hover { border-color: var(--primary); }
+
+/* ===== SMS STATS ===== */
+.sms-stats {
+  display: flex; gap: 0.75rem; flex-wrap: wrap;
+  padding: 0.75rem; background: var(--gray-50);
+  border-radius: var(--radius-sm); margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+.sms-stat { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.sms-stat-value { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+.sms-stat-label { font-size: 0.7rem; color: var(--gray-500); }
+
+/* ===== SMS STAT ROW ===== */
+.sms-stat-row {
+  display: flex; justify-content: space-between;
+  padding: 0.4rem 0; border-bottom: 1px solid var(--gray-100);
+  font-size: 0.875rem; color: var(--gray-600);
+}
+.sms-stat-row:last-child { border-bottom: none; }
+
+/* ===== EVENT CARD PROGRESS ===== */
+.event-card-progress { margin-top: 0.5rem; }
+.event-card-header { margin-bottom: 0.25rem; }
+
+/* ===== BREADCRUMB ===== */
+.breadcrumb-back { color: var(--primary); text-decoration: none; }
+.breadcrumb-back:hover { text-decoration: underline; }
+.breadcrumb-sep { color: var(--gray-400); margin: 0 0.25rem; }
+.breadcrumb-event { font-weight: 600; color: var(--gray-700); }

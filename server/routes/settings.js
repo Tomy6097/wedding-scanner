@@ -12,26 +12,37 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// GET /api/settings — get all settings (any logged in user)
 router.get('/', requireAuth, async (req, res) => {
   try {
     const all = await Settings.find();
     const obj = {};
-    all.forEach(s => { obj[s.key] = s.value; });
+    all.forEach(s => {
+      // Hide secret keys from non-admin
+      if (s.key.includes('secret') && req.session.user.role !== 'admin') return;
+      obj[s.key] = s.value;
+    });
     res.json(obj);
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// POST /api/settings — update a setting (admin only)
 router.post('/', requireAdmin, async (req, res) => {
   const { key, value } = req.body;
   if (!key) return res.status(400).json({ error: 'Key is required' });
   try {
-    await Settings.findOneAndUpdate(
-      { key },
-      { value: value || '' },
-      { upsert: true, new: true }
-    );
+    await Settings.findOneAndUpdate({ key }, { value: value || '' }, { upsert: true, new: true });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// Save multiple settings at once
+router.post('/bulk', requireAdmin, async (req, res) => {
+  const { settings } = req.body;
+  if (!settings || typeof settings !== 'object')
+    return res.status(400).json({ error: 'Settings object required' });
+  try {
+    for (const [key, value] of Object.entries(settings)) {
+      await Settings.findOneAndUpdate({ key }, { value: value || '' }, { upsert: true });
+    }
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });

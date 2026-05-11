@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wedding Check-in System</title>
+  <title>Event Check-in System</title>
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#7c3aed" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="WeddingQR" />
+  <meta name="apple-mobile-web-app-title" content="EventQR" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/css/style.css" />
@@ -18,387 +17,386 @@
 </head>
 <body>
 
-  <!-- ===== LOGIN PAGE ===== -->
-  <div id="page-login" class="page active">
-    <div class="login-container">
-      <div class="login-card">
-        <div class="login-logo">
-          <span class="logo-icon">💍</span>
-          <h1>Wedding Check-in</h1>
-          <p>Event Management System</p>
+<!-- ===== LOGIN ===== -->
+<div id="page-login" class="page active">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="logo-icon">💍</span>
+        <h1>Event Check-in</h1>
+        <p>QR Code Management System</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="Enter username" autocomplete="username" required />
         </div>
-        <form id="login-form">
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" placeholder="Enter username" autocomplete="username" required />
-          </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required />
-          </div>
-          <div id="login-error" class="alert alert-error hidden"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="login-btn">
-            <span class="btn-text">Sign In</span>
-          </button>
-        </form>
-        <div class="login-hint">
-          <small>Contact the event organizer for access</small>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required />
         </div>
-        <div class="login-contact">
-          <small>Need help? Contact support:</small>
-          <div class="login-contact-btns">
-            <a href="tel:+255754696878" class="btn-contact">📞 Call</a>
-            <a href="https://wa.me/255754696878" target="_blank" class="btn-contact btn-contact-wa">💬 WhatsApp</a>
+        <div id="login-error" class="alert alert-error hidden"></div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+          <span class="btn-text">Sign In</span>
+        </button>
+      </form>
+      <div class="login-hint"><small>Contact the event organizer for access</small></div>
+      <div class="login-contact">
+        <small>Need help? Contact support:</small>
+        <div class="login-contact-btns">
+          <a href="tel:+255754696878" class="btn-contact">📞 Call</a>
+          <a href="https://wa.me/255754696878" target="_blank" class="btn-contact btn-contact-wa">💬 WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div id="page-admin" class="page hidden">
+  <nav class="navbar">
+    <div class="nav-brand">💍 Event Check-in</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="tab-events">Events</button>
+      <button class="nav-tab hidden" data-tab="tab-overview">Overview</button>
+      <button class="nav-tab hidden" data-tab="tab-guests">Guests</button>
+      <button class="nav-tab hidden" data-tab="tab-add">Add Guest</button>
+      <button class="nav-tab hidden" data-tab="tab-send">Send Invites</button>
+      <button class="nav-tab hidden" data-tab="tab-activity">Activity</button>
+      <button class="nav-tab" data-tab="tab-settings">Settings</button>
+    </div>
+    <div class="nav-right">
+      <span id="admin-username" class="nav-user"></span>
+      <button class="btn btn-outline btn-sm" id="admin-logout">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Events Tab -->
+  <div id="tab-events" class="tab-content active">
+    <div class="container">
+      <div class="guests-header">
+        <h2 class="section-title">My Events</h2>
+        <button class="btn btn-primary" id="create-event-btn">➕ New Event</button>
+      </div>
+      <div id="events-grid" class="events-grid">
+        <div class="empty-state">Loading events...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overview Tab -->
+  <div id="tab-overview" class="tab-content hidden">
+    <div class="container">
+      <div class="event-breadcrumb" id="event-breadcrumb"></div>
+      <h2 class="section-title">Live Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card stat-total"><div class="stat-icon">👥</div><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Guests</div></div>
+        <div class="stat-card stat-checkedin"><div class="stat-icon">✅</div><div class="stat-value" id="stat-checkedin">0</div><div class="stat-label">Checked In</div></div>
+        <div class="stat-card stat-remaining"><div class="stat-icon">⏳</div><div class="stat-value" id="stat-remaining">0</div><div class="stat-label">Remaining</div></div>
+        <div class="stat-card stat-percent"><div class="stat-icon">📊</div><div class="stat-value" id="stat-percent">0%</div><div class="stat-label">Attendance</div></div>
+      </div>
+      <div class="progress-section">
+        <div class="progress-label"><span>Check-in Progress</span><span id="progress-text">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <h3 class="section-subtitle">Recent Check-ins</h3>
+      <div id="recent-checkins" class="recent-list"><div class="empty-state">No check-ins yet</div></div>
+    </div>
+  </div>
+
+  <!-- Guests Tab -->
+  <div id="tab-guests" class="tab-content hidden">
+    <div class="container">
+      <div class="event-breadcrumb" id="event-breadcrumb-guests"></div>
+      <div class="guests-header">
+        <h2 class="section-title">Guest List</h2>
+        <div class="guests-controls">
+          <input type="text" id="guest-search" placeholder="🔍 Search..." class="search-input" />
+          <button class="btn btn-outline btn-sm" id="export-btn">📥 CSV</button>
+          <button class="btn btn-secondary btn-sm" id="download-all-qr-btn">🔲 All QR</button>
+          <button class="btn btn-danger btn-sm" id="delete-all-btn">🗑 Delete All</button>
+        </div>
+      </div>
+      <div id="guests-table-wrap">
+        <table class="guests-table">
+          <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th><th>Code</th><th>Status</th><th>SMS</th><th>Actions</th></tr></thead>
+          <tbody id="guests-tbody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Guest Tab -->
+  <div id="tab-add" class="tab-content hidden">
+    <div class="container">
+      <div class="event-breadcrumb" id="event-breadcrumb-add"></div>
+      <h2 class="section-title">Add Guest</h2>
+      <div class="add-grid">
+        <div class="card">
+          <h3>Add Single Guest</h3>
+          <form id="add-guest-form">
+            <div class="form-group"><label>Full Name *</label><input type="text" id="guest-name" placeholder="e.g. John Smith" required /></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="guest-phone" placeholder="e.g. +255 712 345678" /></div>
+            <div class="form-group"><label>Table / Seat <small style="color:var(--gray-400)">(optional)</small></label><input type="text" id="guest-table" placeholder="e.g. Table 5, VIP" /></div>
+            <div id="add-guest-error" class="alert alert-error hidden"></div>
+            <div id="add-guest-success" class="alert alert-success hidden"></div>
+            <button type="submit" class="btn btn-primary btn-full">Add Guest & Generate QR</button>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Bulk Import (CSV)</h3>
+          <p class="hint-text">Columns: <code>name,phone,table_number</code></p>
+          <div class="file-drop-zone" id="csv-drop-zone">
+            <span>📂 Drop CSV here or click to browse</span>
+            <input type="file" id="csv-file" accept=".csv" class="file-input" />
           </div>
+          <div id="csv-preview" class="csv-preview hidden"></div>
+          <div id="bulk-error" class="alert alert-error hidden"></div>
+          <div id="bulk-success" class="alert alert-success hidden"></div>
+          <button class="btn btn-secondary btn-full mt-1" id="bulk-import-btn" disabled>Import Guests</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ===== ADMIN DASHBOARD ===== -->
-  <div id="page-admin" class="page hidden">
-    <nav class="navbar">
-      <div class="nav-brand">💍 <span id="nav-event-name">Wedding Check-in</span></div>
-      <div class="nav-tabs">
-        <button class="nav-tab active" data-tab="tab-overview">Overview</button>
-        <button class="nav-tab" data-tab="tab-guests">Guests</button>
-        <button class="nav-tab" data-tab="tab-add">Add Guest</button>
-        <button class="nav-tab" data-tab="tab-activity">Activity</button>
-        <button class="nav-tab" data-tab="tab-settings">Settings</button>
-      </div>
-      <div class="nav-right">
-        <span id="admin-username" class="nav-user"></span>
-        <button class="btn btn-outline btn-sm" id="admin-logout">Logout</button>
-      </div>
-    </nav>
+  <!-- Send Invites Tab -->
+  <div id="tab-send" class="tab-content hidden">
+    <div class="container">
+      <div class="event-breadcrumb" id="event-breadcrumb-send"></div>
+      <h2 class="section-title">Send Invitations</h2>
+      <div class="add-grid">
 
-    <!-- Overview Tab -->
-    <div id="tab-overview" class="tab-content active">
-      <div class="container">
-        <h2 class="section-title">Live Overview</h2>
-        <div class="stats-grid">
-          <div class="stat-card stat-total">
-            <div class="stat-icon">👥</div>
-            <div class="stat-value" id="stat-total">0</div>
-            <div class="stat-label">Total Guests</div>
+        <!-- SMS Section -->
+        <div class="card">
+          <h3>📱 Send via SMS</h3>
+          <p class="hint-text">Sends invitation link + check-in code via normal text message using Beem Africa.</p>
+          <div id="sms-stats" class="sms-stats"></div>
+          <div class="form-group" style="margin-top:1rem">
+            <label>
+              <input type="checkbox" id="sms-only-unsent" checked />
+              Only send to guests who haven't received SMS yet
+            </label>
           </div>
-          <div class="stat-card stat-checkedin">
-            <div class="stat-icon">✅</div>
-            <div class="stat-value" id="stat-checkedin">0</div>
-            <div class="stat-label">Checked In</div>
-          </div>
-          <div class="stat-card stat-remaining">
-            <div class="stat-icon">⏳</div>
-            <div class="stat-value" id="stat-remaining">0</div>
-            <div class="stat-label">Remaining</div>
-          </div>
-          <div class="stat-card stat-percent">
-            <div class="stat-icon">📊</div>
-            <div class="stat-value" id="stat-percent">0%</div>
-            <div class="stat-label">Attendance</div>
-          </div>
+          <div id="sms-result" class="alert hidden" style="margin-bottom:0.75rem"></div>
+          <button class="btn btn-primary btn-full" id="send-all-sms-btn">📱 Send SMS to All Guests</button>
+          <p class="hint-text" style="margin-top:0.5rem">⚠️ Requires Beem Africa API keys in Settings</p>
         </div>
-        <div class="progress-section">
-          <div class="progress-label">
-            <span>Check-in Progress</span>
-            <span id="progress-text">0 / 0</span>
+
+        <!-- WhatsApp Section -->
+        <div class="card">
+          <h3>💬 Send via WhatsApp</h3>
+          <p class="hint-text">Opens WhatsApp for each guest one by one. You tap Send for each message. Free — no API needed.</p>
+          <div id="wa-progress" class="hidden" style="margin-bottom:1rem">
+            <div class="progress-bar"><div class="progress-fill" id="wa-progress-fill" style="width:0%"></div></div>
+            <p id="wa-progress-text" style="font-size:0.85rem;color:var(--gray-500);margin-top:0.25rem"></p>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-          </div>
+          <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn">💬 Send WhatsApp to All Guests</button>
+          <p class="hint-text" style="margin-top:0.5rem">Only guests with phone numbers will be included.</p>
         </div>
-        <h3 class="section-subtitle">Recent Check-ins</h3>
-        <div id="recent-checkins" class="recent-list">
-          <div class="empty-state">No check-ins yet</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Guests Tab -->
-    <div id="tab-guests" class="tab-content hidden">
-      <div class="container">
-        <div class="guests-header">
-          <h2 class="section-title">Guest List</h2>
-          <div class="guests-controls">
-            <input type="text" id="guest-search" placeholder="🔍 Search guests..." class="search-input" />
-            <button class="btn btn-outline btn-sm" id="export-btn">📥 Export CSV</button>
-            <button class="btn btn-secondary btn-sm" id="download-all-qr-btn">🔲 Download All QR</button>
-            <button class="btn btn-danger btn-sm" id="delete-all-btn">🗑 Delete All</button>
-          </div>
-        </div>
-        <div id="guests-table-wrap">
-          <table class="guests-table" id="guests-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Code</th>
-                <th>Status</th>
-                <th>Checked In At</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="guests-tbody">
-              <tr><td colspan="7" class="empty-state">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add Guest Tab -->
-    <div id="tab-add" class="tab-content hidden">
-      <div class="container">
-        <h2 class="section-title">Add Guest</h2>
-        <div class="add-grid">
-          <div class="card">
-            <h3>Add Single Guest</h3>
-            <form id="add-guest-form">
-              <div class="form-group">
-                <label>Full Name *</label>
-                <input type="text" id="guest-name" placeholder="e.g. John Smith" required />
-              </div>
-              <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" id="guest-phone" placeholder="e.g. +255 712 345678" />
-              </div>
-              <div class="form-group">
-                <label>Table / Seat Number <small style="color:var(--gray-400)">(optional)</small></label>
-                <input type="text" id="guest-table" placeholder="e.g. Table 5, VIP, A1" />
-              </div>
-              <div id="add-guest-error" class="alert alert-error hidden"></div>
-              <div id="add-guest-success" class="alert alert-success hidden"></div>
-              <button type="submit" class="btn btn-primary btn-full">Add Guest & Generate QR</button>
-            </form>
-          </div>
-          <div class="card">
-            <h3>Bulk Import (CSV)</h3>
-            <p class="hint-text">Upload a CSV file with columns: <code>name,phone</code></p>
-            <div class="file-drop-zone" id="csv-drop-zone">
-              <span>📂 Drop CSV here or click to browse</span>
-              <input type="file" id="csv-file" accept=".csv" class="file-input" />
-            </div>
-            <div id="csv-preview" class="csv-preview hidden"></div>
-            <div id="bulk-error" class="alert alert-error hidden"></div>
-            <div id="bulk-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-secondary btn-full mt-1" id="bulk-import-btn" disabled>Import Guests</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Activity Log Tab -->
-    <div id="tab-activity" class="tab-content hidden">
-      <div class="container">
-        <div class="guests-header">
-          <h2 class="section-title">Activity Log</h2>
-          <div class="guests-controls">
-            <select id="activity-filter" class="search-input" style="width:auto">
-              <option value="">All Actions</option>
-              <option value="granted">✅ Granted</option>
-              <option value="used">🚫 Already Used</option>
-              <option value="invalid">❓ Invalid</option>
-              <option value="reset">↩ Reset</option>
-            </select>
-            <input type="text" id="activity-scanner-filter" placeholder="Filter by scanner..." class="search-input" style="width:160px" />
-            <button class="btn btn-outline btn-sm" id="refresh-activity-btn">🔄 Refresh</button>
-            <button class="btn btn-danger btn-sm" id="clear-activity-btn">🗑 Clear Log</button>
-          </div>
-        </div>
-        <div id="activity-list" class="activity-list">
-          <div class="empty-state">Loading...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings Tab -->
-    <div id="tab-settings" class="tab-content hidden">
-      <div class="container">
-        <h2 class="section-title">Settings</h2>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem">
-
-          <!-- Event Details -->
-          <div class="card">
-            <h3>Event Details</h3>
-            <div class="form-group">
-              <label>Event Name</label>
-              <input type="text" id="setting-event-name" placeholder="e.g. John & Jane's Wedding" />
-              <small class="hint-text">Appears on all QR cards</small>
-            </div>
-            <div id="settings-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary btn-full" id="save-settings-btn">Save Event Name</button>
-          </div>
-
-          <!-- Change Admin Password -->
-          <div class="card">
-            <h3>Change Admin Password</h3>
-            <div class="form-group">
-              <label>Current Password</label>
-              <input type="password" id="admin-current-pw" placeholder="Current password" />
-            </div>
-            <div class="form-group">
-              <label>New Password</label>
-              <input type="password" id="admin-new-pw" placeholder="Min 6 characters" />
-            </div>
-            <div class="form-group">
-              <label>Confirm New Password</label>
-              <input type="password" id="admin-confirm-pw" placeholder="Repeat new password" />
-            </div>
-            <div id="admin-pw-error" class="alert alert-error hidden"></div>
-            <div id="admin-pw-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary btn-full" id="change-admin-pw-btn">Change Admin Password</button>
-          </div>
-
-          <!-- Change Scanner Password -->
-          <div class="card">
-            <h3>Change Scanner Password</h3>
-            <p class="hint-text">Change the password for the scanner login</p>
-            <div class="form-group">
-              <label>New Scanner Password</label>
-              <input type="password" id="scanner-new-pw" placeholder="Min 6 characters" />
-            </div>
-            <div class="form-group">
-              <label>Confirm Password</label>
-              <input type="password" id="scanner-confirm-pw" placeholder="Repeat password" />
-            </div>
-            <div id="scanner-pw-error" class="alert alert-error hidden"></div>
-            <div id="scanner-pw-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary btn-full" id="change-scanner-pw-btn">Change Scanner Password</button>
-          </div>
-
-          <!-- Scanner Accounts -->
-          <div class="card" style="grid-column: 1 / -1">
-            <h3>Scanner Accounts</h3>
-            <p class="hint-text">Create individual accounts for each person scanning at the entrance. Each scan will be recorded with their name in the activity log.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
-              <div class="form-group" style="margin:0">
-                <label>Username</label>
-                <input type="text" id="new-scanner-username" placeholder="e.g. john_entrance" />
-              </div>
-              <div class="form-group" style="margin:0">
-                <label>Password</label>
-                <input type="password" id="new-scanner-password" placeholder="Min 6 characters" />
-              </div>
-            </div>
-            <div id="new-scanner-error" class="alert alert-error hidden"></div>
-            <div id="new-scanner-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary" id="add-scanner-btn">➕ Add Scanner Account</button>
-            <div id="scanners-list" style="margin-top:1.25rem"></div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="qr-modal" class="modal hidden">
-    <div class="modal-overlay" id="qr-modal-overlay"></div>
-    <div class="modal-content">
-      <button class="modal-close" id="qr-modal-close">✕</button>
-      <h2>QR Code Generated</h2>
-      <div id="qr-card-preview"></div>
-      <div class="qr-actions">
-        <button class="btn btn-primary" id="qr-download-btn">⬇ Download Card</button>
-        <button class="btn btn-outline" id="qr-print-btn">🖨 Print</button>
-        <button class="btn btn-whatsapp" id="qr-whatsapp-btn">💬 WhatsApp</button>
-        <button class="btn btn-sms" id="qr-sms-btn">📱 SMS</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== VIEW QR MODAL ===== -->
-  <div id="view-qr-modal" class="modal hidden">
-    <div class="modal-overlay" id="view-qr-modal-overlay"></div>
-    <div class="modal-content">
-      <button class="modal-close" id="view-qr-modal-close">✕</button>
-      <h2 id="view-qr-title">Guest QR Code</h2>
-      <div id="view-qr-card-preview"></div>
-      <div class="qr-actions">
-        <button class="btn btn-primary" id="view-qr-download-btn">⬇ Download Card</button>
-        <button class="btn btn-outline" id="view-qr-print-btn">🖨 Print</button>
-        <button class="btn btn-whatsapp" id="view-qr-whatsapp-btn">💬 WhatsApp</button>
-        <button class="btn btn-sms" id="view-qr-sms-btn">📱 SMS</button>
+  <!-- Activity Tab -->
+  <div id="tab-activity" class="tab-content hidden">
+    <div class="container">
+      <div class="event-breadcrumb" id="event-breadcrumb-activity"></div>
+      <div class="guests-header">
+        <h2 class="section-title">Activity Log</h2>
+        <div class="guests-controls">
+          <select id="activity-filter" class="search-input" style="width:auto">
+            <option value="">All Actions</option>
+            <option value="granted">✅ Granted</option>
+            <option value="used">🚫 Already Used</option>
+            <option value="invalid">❓ Invalid</option>
+            <option value="reset">↩ Reset</option>
+          </select>
+          <input type="text" id="activity-scanner-filter" placeholder="Filter by scanner..." class="search-input" style="width:150px" />
+          <button class="btn btn-outline btn-sm" id="refresh-activity-btn">🔄 Refresh</button>
+          <button class="btn btn-danger btn-sm" id="clear-activity-btn">🗑 Clear</button>
+        </div>
       </div>
+      <div id="activity-list" class="activity-list"><div class="empty-state">Loading...</div></div>
     </div>
   </div>
 
-  <!-- ===== DOWNLOAD ALL PROGRESS MODAL ===== -->
-  <div id="download-all-modal" class="modal hidden">
-    <div class="modal-overlay"></div>
-    <div class="modal-content" style="text-align:center">
-      <h2>Generating QR Cards</h2>
-      <p class="hint-text">Please wait while all QR cards are generated...</p>
-      <div class="progress-bar" style="margin:1rem 0">
-        <div class="progress-fill" id="dl-progress-fill" style="width:0%"></div>
-      </div>
-      <p id="dl-progress-text">0 / 0</p>
-    </div>
-  </div>
+  <!-- Settings Tab -->
+  <div id="tab-settings" class="tab-content hidden">
+    <div class="container">
+      <h2 class="section-title">Settings</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem">
 
-  <!-- ===== SCANNER PAGE ===== -->
-  <div id="page-scanner" class="page hidden">
-    <nav class="navbar navbar-scanner">
-      <div class="nav-brand">💍 Check-in Scanner</div>
-      <div class="nav-right">
-        <span id="scanner-username" class="nav-user"></span>
-        <button class="btn btn-outline btn-sm" id="scanner-logout">Logout</button>
-      </div>
-    </nav>
-    <div class="scanner-container">
-      <div class="scanner-stats">
-        <div class="scanner-stat">
-          <span class="scanner-stat-value" id="sc-checkedin">0</span>
-          <span class="scanner-stat-label">Checked In</span>
+        <div class="card">
+          <h3>Change Admin Password</h3>
+          <div class="form-group"><label>Current Password</label><input type="password" id="admin-current-pw" placeholder="Current password" /></div>
+          <div class="form-group"><label>New Password</label><input type="password" id="admin-new-pw" placeholder="Min 6 characters" /></div>
+          <div class="form-group"><label>Confirm New Password</label><input type="password" id="admin-confirm-pw" placeholder="Repeat new password" /></div>
+          <div id="admin-pw-error" class="alert alert-error hidden"></div>
+          <div id="admin-pw-success" class="alert alert-success hidden"></div>
+          <button class="btn btn-primary btn-full" id="change-admin-pw-btn">Change Admin Password</button>
         </div>
-        <div class="scanner-stat">
-          <span class="scanner-stat-value" id="sc-total">0</span>
-          <span class="scanner-stat-label">Total</span>
+
+        <div class="card">
+          <h3>Change Scanner Password</h3>
+          <p class="hint-text">Changes the default "scanner" account password</p>
+          <div class="form-group"><label>New Scanner Password</label><input type="password" id="scanner-new-pw" placeholder="Min 6 characters" /></div>
+          <div class="form-group"><label>Confirm Password</label><input type="password" id="scanner-confirm-pw" placeholder="Repeat password" /></div>
+          <div id="scanner-pw-error" class="alert alert-error hidden"></div>
+          <div id="scanner-pw-success" class="alert alert-success hidden"></div>
+          <button class="btn btn-primary btn-full" id="change-scanner-pw-btn">Change Scanner Password</button>
         </div>
-        <div class="scanner-stat">
-          <span class="scanner-stat-value" id="sc-remaining">0</span>
-          <span class="scanner-stat-label">Remaining</span>
+
+        <div class="card">
+          <h3>📱 Beem Africa SMS</h3>
+          <p class="hint-text">Register at <strong>beem.africa</strong> to get your API keys. Cost: ~TZS 30 per SMS.</p>
+          <div class="form-group"><label>API Key</label><input type="text" id="beem-api-key" placeholder="Your Beem API Key" /></div>
+          <div class="form-group"><label>Secret Key</label><input type="password" id="beem-secret-key" placeholder="Your Beem Secret Key" /></div>
+          <div class="form-group"><label>Sender ID</label><input type="text" id="beem-sender-id" placeholder="e.g. WEDDING (max 11 chars)" /></div>
+          <div class="form-group"><label>App URL (for SMS links)</label><input type="text" id="app-url" placeholder="https://wedding-scanner.onrender.com" /></div>
+          <div id="beem-success" class="alert alert-success hidden"></div>
+          <button class="btn btn-primary btn-full" id="save-beem-btn">Save SMS Settings</button>
         </div>
-      </div>
-      <div id="scan-result" class="scan-result scan-idle">
-        <div class="scan-result-icon" id="scan-icon">📷</div>
-        <div class="scan-result-message" id="scan-message">Ready to Scan</div>
-        <div class="scan-result-name" id="scan-name"></div>
-        <div class="scan-result-time" id="scan-time"></div>
-      </div>
-      <div class="camera-section">
-        <div id="qr-reader" class="qr-reader"></div>
-        <div class="camera-controls">
-          <button class="btn btn-primary btn-lg" id="start-scan-btn">📷 Start Camera</button>
-          <button class="btn btn-outline btn-lg hidden" id="stop-scan-btn">⏹ Stop Camera</button>
+
+        <div class="card" style="grid-column: 1 / -1">
+          <h3>Scanner Accounts</h3>
+          <p class="hint-text">Create individual accounts for each scanner. Each scan is recorded with their name.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1rem">
+            <div class="form-group" style="margin:0"><label>Username</label><input type="text" id="new-scanner-username" placeholder="e.g. john_gate1" /></div>
+            <div class="form-group" style="margin:0"><label>Password</label><input type="password" id="new-scanner-password" placeholder="Min 6 characters" /></div>
+          </div>
+          <div id="new-scanner-error" class="alert alert-error hidden"></div>
+          <div id="new-scanner-success" class="alert alert-success hidden"></div>
+          <button class="btn btn-primary" id="add-scanner-btn">➕ Add Scanner Account</button>
+          <div id="scanners-list" style="margin-top:1.25rem"></div>
         </div>
-      </div>
-      <div class="manual-section">
-        <h3>Manual Search</h3>
-        <p class="hint-text">Search by name, phone, or lookup code</p>
-        <div class="manual-search-row">
-          <input type="text" id="manual-search-input" placeholder="Type name, phone or code..." class="search-input" />
-          <button class="btn btn-secondary" id="manual-search-btn">Search</button>
-        </div>
-        <div id="manual-results" class="manual-results hidden"></div>
+
       </div>
     </div>
   </div>
+</div>
 
-  <!-- PWA Install Banner -->
-  <div id="pwa-banner" class="pwa-banner hidden">
-    <div class="pwa-banner-content">
-      <span class="pwa-icon">💍</span>
-      <div class="pwa-text">
-        <strong>Install App</strong>
-        <span>Add to home screen for quick access</span>
-      </div>
+<!-- ===== CREATE/EDIT EVENT MODAL ===== -->
+<div id="event-modal" class="modal hidden">
+  <div class="modal-overlay" id="event-modal-overlay"></div>
+  <div class="modal-content">
+    <button class="modal-close" id="event-modal-close">✕</button>
+    <h2 id="event-modal-title">Create New Event</h2>
+    <div class="form-group"><label>Event Name *</label><input type="text" id="ev-name" placeholder="e.g. John & Jane's Wedding" /></div>
+    <div class="form-group"><label>Client Name</label><input type="text" id="ev-client" placeholder="e.g. John Smith" /></div>
+    <div class="form-group"><label>Date</label><input type="date" id="ev-date" /></div>
+    <div class="form-group"><label>Venue</label><input type="text" id="ev-venue" placeholder="e.g. Serena Hotel, Dar es Salaam" /></div>
+    <div class="form-group"><label>Accent Color</label><input type="color" id="ev-color" value="#7c3aed" /></div>
+    <div id="event-modal-error" class="alert alert-error hidden"></div>
+    <button class="btn btn-primary btn-full" id="event-modal-save">Create Event</button>
+  </div>
+</div>
+
+<!-- ===== QR CARD MODAL ===== -->
+<div id="qr-modal" class="modal hidden">
+  <div class="modal-overlay" id="qr-modal-overlay"></div>
+  <div class="modal-content">
+    <button class="modal-close" id="qr-modal-close">✕</button>
+    <h2>QR Code Generated</h2>
+    <div id="qr-card-preview"></div>
+    <div class="qr-actions">
+      <button class="btn btn-primary" id="qr-download-btn">⬇ Download</button>
+      <button class="btn btn-outline" id="qr-print-btn">🖨 Print</button>
+      <button class="btn btn-whatsapp" id="qr-whatsapp-btn">💬 WhatsApp</button>
+      <button class="btn btn-sms" id="qr-sms-btn">📱 SMS</button>
     </div>
-    <div class="pwa-banner-actions">
-      <button class="btn btn-primary btn-sm" id="pwa-install-btn">Install</button>
-      <button class="btn btn-outline btn-sm" id="pwa-dismiss-btn">✕</button>
+  </div>
+</div>
+
+<!-- ===== VIEW QR MODAL ===== -->
+<div id="view-qr-modal" class="modal hidden">
+  <div class="modal-overlay" id="view-qr-modal-overlay"></div>
+  <div class="modal-content">
+    <button class="modal-close" id="view-qr-modal-close">✕</button>
+    <h2 id="view-qr-title">Guest QR Code</h2>
+    <div id="view-qr-card-preview"></div>
+    <div class="qr-actions">
+      <button class="btn btn-primary" id="view-qr-download-btn">⬇ Download</button>
+      <button class="btn btn-outline" id="view-qr-print-btn">🖨 Print</button>
+      <button class="btn btn-whatsapp" id="view-qr-whatsapp-btn">💬 WhatsApp</button>
+      <button class="btn btn-sms" id="view-qr-sms-btn">📱 SMS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DOWNLOAD ALL MODAL ===== -->
+<div id="download-all-modal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-content" style="text-align:center">
+    <h2>Generating QR Cards</h2>
+    <p class="hint-text">Please wait...</p>
+    <div class="progress-bar" style="margin:1rem 0"><div class="progress-fill" id="dl-progress-fill" style="width:0%"></div></div>
+    <p id="dl-progress-text">0 / 0</p>
+  </div>
+</div>
+
+<!-- ===== SCANNER PAGE ===== -->
+<div id="page-scanner" class="page hidden">
+  <nav class="navbar navbar-scanner">
+    <div class="nav-brand">💍 <span id="scanner-event-name">Check-in Scanner</span></div>
+    <div class="nav-right">
+      <span id="scanner-username" class="nav-user"></span>
+      <button class="btn btn-outline btn-sm" id="scanner-logout">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Event selector for scanner -->
+  <div id="scanner-event-selector" class="scanner-event-selector hidden">
+    <div class="container" style="padding:1rem">
+      <h3 style="margin-bottom:0.75rem">Select Event to Scan For:</h3>
+      <div id="scanner-event-list" class="events-grid"></div>
     </div>
   </div>
 
-  <script src="/js/app.js"></script>
+  <div id="scanner-main" class="scanner-container hidden">
+    <div class="scanner-stats">
+      <div class="scanner-stat"><span class="scanner-stat-value" id="sc-checkedin">0</span><span class="scanner-stat-label">Checked In</span></div>
+      <div class="scanner-stat"><span class="scanner-stat-value" id="sc-total">0</span><span class="scanner-stat-label">Total</span></div>
+      <div class="scanner-stat"><span class="scanner-stat-value" id="sc-remaining">0</span><span class="scanner-stat-label">Remaining</span></div>
+      <div class="scanner-stat" style="cursor:pointer" id="change-event-btn"><span class="scanner-stat-value" style="font-size:1rem">🔄</span><span class="scanner-stat-label">Change Event</span></div>
+    </div>
+    <div id="scan-result" class="scan-result scan-idle">
+      <div class="scan-result-icon" id="scan-icon">📷</div>
+      <div class="scan-result-message" id="scan-message">Ready to Scan</div>
+      <div class="scan-result-name" id="scan-name"></div>
+      <div class="scan-result-time" id="scan-time"></div>
+    </div>
+    <div class="camera-section">
+      <div id="qr-reader" class="qr-reader"></div>
+      <div class="camera-controls">
+        <button class="btn btn-primary btn-lg" id="start-scan-btn">📷 Start Camera</button>
+        <button class="btn btn-outline btn-lg hidden" id="stop-scan-btn">⏹ Stop Camera</button>
+      </div>
+    </div>
+    <div class="manual-section">
+      <h3>Manual Search</h3>
+      <p class="hint-text">Search by name, phone, or lookup code</p>
+      <div class="manual-search-row">
+        <input type="text" id="manual-search-input" placeholder="Type name, phone or code..." class="search-input" />
+        <button class="btn btn-secondary" id="manual-search-btn">Search</button>
+      </div>
+      <div id="manual-results" class="manual-results hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PWA Banner -->
+<div id="pwa-banner" class="pwa-banner hidden">
+  <div class="pwa-banner-content">
+    <span class="pwa-icon">💍</span>
+    <div class="pwa-text"><strong>Install App</strong><span>Add to home screen</span></div>
+  </div>
+  <div class="pwa-banner-actions">
+    <button class="btn btn-primary btn-sm" id="pwa-install-btn">Install</button>
+    <button class="btn btn-outline btn-sm" id="pwa-dismiss-btn">✕</button>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
 </body>
 </html>
