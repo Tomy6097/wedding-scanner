@@ -571,28 +571,21 @@ function showQRCard(data, containerSelector) {
   const container = $(containerSelector);
   if (!container) return null;
 
-  const guest       = data.guest || data;
-  const eventName   = data.eventName || (state.currentEvent ? state.currentEvent.name : 'Our Event');
-  const lookupCode  = (guest.unique_id || '').substring(0, 8).toUpperCase();
-  const guestNum    = data.guest_number  || null;
-  const totalGuests = data.total_guests  || null;
-  const tableNum    = guest.table_number || null;
+  const guest      = data.guest || data;
+  const lookupCode = (guest.unique_id || '').substring(0, 8).toUpperCase();
 
-  const card = document.createElement('div');
-  card.className = 'qr-card';
-  card.innerHTML = `
-    <div class="qr-card-event">${escHtml(eventName)}</div>
-    <div class="qr-card-name">${escHtml(guest.name)}</div>
-    ${guest.phone  ? `<div class="qr-card-phone">${escHtml(guest.phone)}</div>` : ''}
-    ${tableNum     ? `<div class="qr-card-phone">🪑 ${escHtml(tableNum)}</div>` : ''}
-    ${guestNum && totalGuests ? `<div class="qr-card-phone" style="opacity:0.5;font-size:0.7rem">Guest ${guestNum} of ${totalGuests}</div>` : ''}
-    <img class="qr-card-img" src="${data.qrDataUrl}" alt="QR Code" />
-    <div class="qr-card-code">${escHtml(lookupCode)}</div>
-    <div class="qr-card-footer">Present this QR code at the entrance</div>`;
+  // Show ONLY the QR image — no decoration, no text
+  container.innerHTML = `
+    <div style="text-align:center;padding:0.5rem">
+      <img src="${data.qrDataUrl}" alt="QR Code"
+        style="width:220px;height:220px;display:block;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px" />
+      <div style="margin-top:0.5rem;font-family:monospace;font-size:0.9rem;color:#6b7280;letter-spacing:0.1em">${escHtml(lookupCode)}</div>
+    </div>`;
 
-  container.innerHTML = '';
-  container.appendChild(card);
-  return card;
+  // Store qrDataUrl on container for download
+  container.dataset.qrDataUrl  = data.qrDataUrl;
+  container.dataset.guestName  = guest.name || '';
+  return container;
 }
 
 // ── Download QR Card (canvas) ────────────────────────────────
@@ -740,40 +733,30 @@ async function sendAllWhatsApp() {
     const eventName = state.currentEvent.name;
     const origin    = window.location.origin;
 
-    // Build a text file with all numbers + messages for WhatsApp Broadcast
-    let broadcastText = `WhatsApp Broadcast — ${eventName}\n`;
-    broadcastText += `Total: ${withPhone.length} guests\n`;
-    broadcastText += `=`.repeat(40) + `\n\n`;
-    broadcastText += `PHONE NUMBERS (add all to WhatsApp Broadcast List):\n`;
-    broadcastText += withPhone.map(g => g.phone.trim()).join('\n');
-    broadcastText += `\n\n` + `=`.repeat(40) + `\n\n`;
-    broadcastText += `BROADCAST MESSAGE (copy and send to your Broadcast List):\n\n`;
-    broadcastText += `💍 You are invited to ${eventName}!\n\nFind your personal QR code invitation below. Open your link, show the QR code at the entrance.\n\n`;
-    broadcastText += `--- INDIVIDUAL LINKS ---\n\n`;
+    // Build CSV with name, phone, personal link, code
+    const rows = [['Name', 'Phone', 'Invitation Link', 'Check-in Code']];
     withPhone.forEach(g => {
       const code = (g.unique_id || '').substring(0, 8).toUpperCase();
       const link = `${origin}/guest/${g.qr_token}`;
-      broadcastText += `${g.name}: ${link} (Code: ${code})\n`;
+      rows.push([g.name, g.phone.trim(), link, code]);
     });
-
-    // Download as .txt file
-    const blob = new Blob([broadcastText], { type: 'text/plain' });
+    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
-    a.download = `${eventName.replace(/\s+/g,'-')}-whatsapp-broadcast.txt`;
+    a.download = `${eventName.replace(/\s+/g,'-')}-invitations.csv`;
     a.click();
 
-    // Show instructions
     setTimeout(() => {
       alert(
-        `✅ File downloaded!\n\n` +
-        `HOW TO USE WHATSAPP BROADCAST:\n\n` +
-        `1. Open the downloaded .txt file\n` +
-        `2. Copy all phone numbers\n` +
-        `3. Open WhatsApp → New Broadcast\n` +
-        `4. Add all the phone numbers\n` +
-        `5. Send each guest their personal link from the file\n\n` +
-        `Each guest gets their own unique link with their QR code.`
+        `✅ CSV downloaded!\n\n` +
+        `The file contains:\n` +
+        `• Guest name\n` +
+        `• Phone number\n` +
+        `• Personal invitation link\n` +
+        `• Check-in code\n\n` +
+        `Open it in Excel or Google Sheets to see all guests.\n` +
+        `Send each guest their personal link via WhatsApp.`
       );
     }, 500);
 

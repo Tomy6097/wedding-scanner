@@ -155,7 +155,7 @@
             If the QR can't be scanned, give your code: <strong>${esc(lookupCode)}</strong>
           </div>
 
-          <button class="btn btn-download" onclick="downloadCard()">⬇ Save QR Card</button>
+          <button class="btn btn-download" onclick="downloadCard()">⬇ Save QR Code</button>
           ${data.name ? `<button class="btn btn-whatsapp" onclick="shareWhatsApp()">💬 Share via WhatsApp</button>` : ''}
 
           <div class="footer">Wedding Check-in System</div>
@@ -179,62 +179,20 @@
     function downloadCard() {
       const d = window._guestData;
       if (!d) return;
-      const W = 300, H = 420;
+
+      // QR only — plain white, just the QR image
+      const SIZE = 300;
       const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
+      canvas.width = SIZE; canvas.height = SIZE;
       const ctx = canvas.getContext('2d');
 
       const img = new Image();
       img.onload = () => {
-        // Background
-        const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, '#7c3aed');
-        grad.addColorStop(1, '#4c1d95');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-
-        // Top strip
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.fillRect(0, 0, W, 6);
-
-        // Event name
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(d.eventName || 'Our Wedding', W/2, 36);
-
-        // Guest name
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(d.name, W/2, 66);
-
-        // Phone
-        if (d.phone) {
-          ctx.fillStyle = 'rgba(255,255,255,0.7)';
-          ctx.font = '13px sans-serif';
-          ctx.fillText(d.phone, W/2, 86);
-        }
-
-        // QR
-        const qrSize = 180, qrX = (W-qrSize)/2, qrY = 100;
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(qrX-8, qrY-8, qrSize+16, qrSize+16);
-        ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
-
-        // Code
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.font = 'bold 16px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(window._lookupCode, W/2, qrY+qrSize+32);
-
-        // Footer
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.font = '11px sans-serif';
-        ctx.fillText('Present this QR code at the entrance', W/2, H-16);
-
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
         const a = document.createElement('a');
-        a.download = `invitation-${d.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+        a.download = `qr-${d.name.replace(/\s+/g,'-').toLowerCase()}.png`;
         a.href = canvas.toDataURL('image/png');
         a.click();
       };
