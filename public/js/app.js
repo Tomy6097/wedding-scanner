@@ -888,17 +888,6 @@ function generateAndDownloadCard(g) {
   });
 }
 
-      const link = document.createElement('a');
-      link.download = `qr-${g.name.replace(/\s+/g, '-').toLowerCase()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      resolve();
-    };
-    qrImg.onerror = () => resolve();
-    qrImg.src = g.qrDataUrl;
-  });
-}
-
 // ── Scanner ──────────────────────────────────────────────────
 let html5QrCode = null;
 
