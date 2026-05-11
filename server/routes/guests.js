@@ -187,18 +187,29 @@ router.post('/bulk', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Scan QR
+// Scan QR — strictly validates event_id
 router.post('/scan', requireAuth, async (req, res) => {
   const { token, event_id } = req.body;
   if (!token) return res.status(400).json({ result: 'invalid', message: 'No token provided' });
   try {
-    const filter = { qr_token: token.trim(), ...(event_id ? { event_id } : {}) };
-    const guest  = await Guest.findOne(filter);
+    // Find guest by token only first
+    const guest = await Guest.findOne({ qr_token: token.trim() });
 
     if (!guest) {
       await Activity.create({ action: 'invalid', scanned_by: req.session.user.username, token_used: token.trim().substring(0, 20), event_id: event_id || null });
       return res.json({ result: 'invalid', message: 'Invalid QR Code' });
     }
+
+    // If scanner has an event_id, enforce it — QR must belong to that event
+    if (event_id && String(guest.event_id) !== String(event_id)) {
+      await Activity.create({
+        action: 'invalid', guest_name: guest.name, guest_id: guest._id,
+        event_id: event_id, scanned_by: req.session.user.username,
+        note: `QR belongs to different event`
+      });
+      return res.json({ result: 'invalid', message: 'QR Code belongs to a different event' });
+    }
+
     if (guest.status === 'used') {
       await Activity.create({ action: 'used', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username });
       return res.json({ result: 'used', message: 'Already Checked In', guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at } });
@@ -308,6 +319,16 @@ router.get('/allqr', requireAdmin, async (req, res) => {
     }));
     res.json(results);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Guest scan history — all scan attempts for a specific guest
+router.get('/:id/history', requireAdmin, async (req, res) => {
+  try {
+    const guest = await Guest.findById(req.params.id);
+    if (!guest) return res.status(404).json({ error: 'Guest not found' });
+    const logs = await Activity.find({ guest_id: req.params.id }).sort({ createdAt: -1 });
+    res.json({ guest, logs });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
 // ── /:id routes LAST ──────────────────────────────────────────

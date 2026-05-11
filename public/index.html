@@ -58,6 +58,7 @@
     <div class="nav-brand">💍 Event Check-in</div>
     <div class="nav-tabs">
       <button class="nav-tab active" data-tab="tab-events">Events</button>
+      <button class="nav-tab" data-tab="tab-dashboard">📊 Dashboard</button>
       <button class="nav-tab hidden" data-tab="tab-overview">Overview</button>
       <button class="nav-tab hidden" data-tab="tab-guests">Guests</button>
       <button class="nav-tab hidden" data-tab="tab-add">Add Guest</button>
@@ -81,6 +82,30 @@
       <div id="events-grid" class="events-grid">
         <div class="empty-state">Loading events...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Tab -->
+  <div id="tab-dashboard" class="tab-content hidden">
+    <div class="container">
+      <h2 class="section-title">Business Dashboard</h2>
+      <div class="stats-grid" id="dash-summary-grid">
+        <div class="stat-card stat-total"><div class="stat-icon">🎪</div><div class="stat-value" id="dash-total-events">0</div><div class="stat-label">Total Events</div></div>
+        <div class="stat-card stat-checkedin"><div class="stat-icon">👥</div><div class="stat-value" id="dash-total-guests">0</div><div class="stat-label">Total Guests</div></div>
+        <div class="stat-card stat-remaining"><div class="stat-icon">✅</div><div class="stat-value" id="dash-checked-in">0</div><div class="stat-label">Checked In</div></div>
+        <div class="stat-card stat-percent"><div class="stat-icon">📊</div><div class="stat-value" id="dash-attendance">0%</div><div class="stat-label">Overall Attendance</div></div>
+        <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-value" id="dash-total-scans">0</div><div class="stat-label">Total Scans</div></div>
+        <div class="stat-card"><div class="stat-icon">❓</div><div class="stat-value" id="dash-invalid-scans">0</div><div class="stat-label">Invalid Scans</div></div>
+      </div>
+      <h3 class="section-subtitle" style="margin-top:1.5rem">Per Event Breakdown</h3>
+      <div id="dash-event-table-wrap">
+        <table class="guests-table">
+          <thead><tr><th>Event</th><th>Client</th><th>Date</th><th>Guests</th><th>Checked In</th><th>Attendance</th><th>Status</th></tr></thead>
+          <tbody id="dash-event-tbody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <h3 class="section-subtitle" style="margin-top:1.5rem">Recent Check-ins (All Events)</h3>
+      <div id="dash-recent-list" class="recent-list"><div class="empty-state">Loading...</div></div>
     </div>
   </div>
 
@@ -114,6 +139,7 @@
           <input type="text" id="guest-search" placeholder="🔍 Search..." class="search-input" />
           <button class="btn btn-outline btn-sm" id="export-btn">📥 CSV</button>
           <button class="btn btn-secondary btn-sm" id="download-all-qr-btn">🔲 All QR</button>
+          <button class="btn btn-outline btn-sm" id="print-all-qr-btn">🖨 Print All</button>
           <button class="btn btn-danger btn-sm" id="delete-all-btn">🗑 Delete All</button>
         </div>
       </div>
@@ -276,6 +302,29 @@
 
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===== GUEST HISTORY MODAL ===== -->
+<div id="history-modal" class="modal hidden">
+  <div class="modal-overlay" id="history-modal-overlay"></div>
+  <div class="modal-content" style="max-width:500px">
+    <button class="modal-close" id="history-modal-close">✕</button>
+    <h2 id="history-modal-title">Scan History</h2>
+    <div id="history-modal-body" class="activity-list" style="max-height:400px;overflow-y:auto;margin-top:1rem">
+      <div class="empty-state">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PRINT ALL MODAL ===== -->
+<div id="print-all-modal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-content" style="text-align:center">
+    <h2>Preparing QR Codes for Print</h2>
+    <p class="hint-text">Please wait...</p>
+    <div class="progress-bar" style="margin:1rem 0"><div class="progress-fill" id="print-progress-fill" style="width:0%"></div></div>
+    <p id="print-progress-text">0 / 0</p>
   </div>
 </div>
 

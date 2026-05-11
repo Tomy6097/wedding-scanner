@@ -426,6 +426,14 @@ function renderGuestsTable(guests) {
     delBtn.addEventListener('click', () => deleteGuest(gid(g), g.name));
     actionsDiv.appendChild(delBtn);
 
+    // History button
+    const histBtn = document.createElement('button');
+    histBtn.className = 'btn btn-outline btn-sm';
+    histBtn.title = 'View scan history';
+    histBtn.textContent = '📋';
+    histBtn.addEventListener('click', () => viewGuestHistory(gid(g), g.name));
+    actionsDiv.appendChild(histBtn);
+
     actionsCell.appendChild(actionsDiv);
     tbody.appendChild(tr);
   });
@@ -1293,6 +1301,188 @@ function renderActivityLog(logs) {
     </div>`).join('');
 }
 
+// ── Business Dashboard ───────────────────────────────────────
+async function fetchDashboard() {
+  try {
+    const data = await api('GET', '/dashboard');
+    const s    = data.summary;
+
+    // Summary cards
+    const set = (id, val) => { const el = $(`#${id}`); if (el) el.textContent = val; };
+    set('dash-total-events',  s.totalEvents);
+    set('dash-total-guests',  s.totalGuests);
+    set('dash-checked-in',    s.checkedIn);
+    set('dash-attendance',    `${s.overallAttendance}%`);
+    set('dash-total-scans',   s.totalScans);
+    set('dash-invalid-scans', s.invalidScans);
+
+    // Per-event table
+    const tbody = $('#dash-event-tbody');
+    if (tbody) {
+      if (!data.eventStats.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No events yet</td></tr>';
+      } else {
+        tbody.innerHTML = data.eventStats.map(e => `
+          <tr>
+            <td><strong>${escHtml(e.name)}</strong></td>
+            <td>${e.client ? escHtml(e.client) : '—'}</td>
+            <td>${e.date ? new Date(e.date).toLocaleDateString() : '—'}</td>
+            <td>${e.guests}</td>
+            <td>${e.checkedIn}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div class="progress-bar" style="flex:1;height:8px">
+                  <div class="progress-fill" style="width:${e.attendance}%;background:${e.color||'var(--primary)'}"></div>
+                </div>
+                <span style="font-size:0.8rem;color:var(--gray-500)">${e.attendance}%</span>
+              </div>
+            </td>
+            <td><span class="badge ${e.status==='active'?'badge-unused':'badge-used'}">${escHtml(e.status)}</span></td>
+          </tr>`).join('');
+      }
+    }
+
+    // Recent check-ins
+    const recentEl = $('#dash-recent-list');
+    if (recentEl) {
+      if (!data.recentActivity.length) {
+        recentEl.innerHTML = '<div class="empty-state">No check-ins yet</div>';
+      } else {
+        recentEl.innerHTML = data.recentActivity.map(a => `
+          <div class="recent-item">
+            <div class="recent-item-icon">✅</div>
+            <div class="recent-item-info">
+              <div class="recent-item-name">${escHtml(a.guest_name || '—')}</div>
+              <div class="recent-item-time">${formatDateTime(a.createdAt)} · by ${escHtml(a.scanned_by || '—')}</div>
+            </div>
+          </div>`).join('');
+      }
+    }
+  } catch (e) { console.error('Dashboard error:', e); }
+}
+
+// ── Guest Scan History ───────────────────────────────────────
+async function viewGuestHistory(id, name) {
+  const modal   = $('#history-modal');
+  const titleEl = $('#history-modal-title');
+  const bodyEl  = $('#history-modal-body');
+  if (!modal) return;
+
+  if (titleEl) titleEl.textContent = `Scan History — ${name}`;
+  if (bodyEl)  bodyEl.innerHTML = '<div class="empty-state">Loading...</div>';
+  modal.classList.remove('hidden');
+
+  try {
+    const { logs } = await api('GET', `/guests/${id}/history`);
+    if (!logs.length) {
+      bodyEl.innerHTML = '<div class="empty-state">No scan attempts recorded</div>';
+      return;
+    }
+    const icons = { granted: '✅', used: '🚫', invalid: '❓', reset: '↩' };
+    bodyEl.innerHTML = logs.map(log => `
+      <div class="activity-item action-${log.action}">
+        <div class="activity-icon">${icons[log.action] || '📋'}</div>
+        <div class="activity-info">
+          <div class="activity-main">
+            ${log.action === 'granted' ? 'Checked in' :
+              log.action === 'used'    ? 'Duplicate scan attempt' :
+              log.action === 'reset'   ? 'Check-in reset' : 'Invalid scan'}
+          </div>
+          <div class="activity-sub">By: ${escHtml(log.scanned_by || '—')}${log.note ? ' · ' + escHtml(log.note) : ''}</div>
+        </div>
+        <div class="activity-time">${formatDateTime(log.createdAt)}</div>
+      </div>`).join('');
+  } catch (e) {
+    if (bodyEl) bodyEl.innerHTML = `<div class="empty-state">Failed to load: ${e.message}</div>`;
+  }
+}
+
+// ── Print All QR Codes ───────────────────────────────────────
+async function printAllQR() {
+  if (!state.currentEvent) { alert('Please open an event first.'); return; }
+  const eventId = gid(state.currentEvent);
+  const modal   = $('#print-all-modal');
+  const fillEl  = $('#print-progress-fill');
+  const textEl  = $('#print-progress-text');
+  if (modal) modal.classList.remove('hidden');
+
+  try {
+    const guests = await api('GET', `/guests/allqr?event_id=${eventId}`);
+    const total  = guests.length;
+    if (!total) { if (modal) modal.classList.add('hidden'); alert('No guests found.'); return; }
+
+    // Build all QR images as data URLs on canvases
+    const qrImages = [];
+    for (let i = 0; i < total; i++) {
+      const g = guests[i];
+      const dataUrl = await new Promise((resolve) => {
+        const SIZE = 250;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.onload = () => {
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, SIZE, SIZE);
+          ctx.drawImage(img, 0, 0, SIZE, SIZE);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(g.qrDataUrl);
+        img.src = g.qrDataUrl;
+      });
+      qrImages.push({ name: g.name, dataUrl });
+      const pct = Math.round(((i + 1) / total) * 100);
+      if (fillEl) fillEl.style.width = `${pct}%`;
+      if (textEl) textEl.textContent = `${i + 1} / ${total}`;
+      await new Promise(r => setTimeout(r, 30));
+    }
+
+    if (modal) modal.classList.add('hidden');
+
+    // Open print window with all QR codes in a grid
+    const eventName = state.currentEvent.name;
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Codes — ${escHtml(eventName)}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; padding: 1rem; }
+    h1 { font-size: 1.2rem; margin-bottom: 1rem; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    .item { text-align: center; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.5rem; }
+    .item img { width: 100%; max-width: 150px; height: auto; display: block; margin: 0 auto; }
+    .item .name { font-size: 0.7rem; margin-top: 0.25rem; color: #374151; word-break: break-word; }
+    @media print {
+      @page { margin: 0.5cm; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>💍 ${escHtml(eventName)} — QR Codes</h1>
+  <div class="grid">
+    ${qrImages.map(q => `
+      <div class="item">
+        <img src="${q.dataUrl}" alt="${escHtml(q.name)}" />
+        <div class="name">${escHtml(q.name)}</div>
+      </div>`).join('')}
+  </div>
+  <script>window.onload = function() { window.print(); };<\/script>
+</body>
+</html>`);
+    win.document.close();
+
+  } catch (e) {
+    if (modal) modal.classList.add('hidden');
+    alert('Failed: ' + e.message);
+  } finally {
+    if (fillEl) fillEl.style.width = '0%';
+    if (textEl) textEl.textContent = '0 / 0';
+  }
+}
+
 // ── Tab Navigation ───────────────────────────────────────────
 function switchTab(tabId) {
   $$('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1303,12 +1493,13 @@ function switchTab(tabId) {
   const activeContent = $(`#${tabId}`);
   if (activeContent) activeContent.classList.remove('hidden');
 
-  if (tabId === 'tab-events')   fetchEvents();
-  if (tabId === 'tab-overview') { fetchStats(); renderRecentCheckins(); }
-  if (tabId === 'tab-guests')   fetchGuests();
-  if (tabId === 'tab-send')     loadSendTab();
-  if (tabId === 'tab-activity') fetchActivityLog();
-  if (tabId === 'tab-settings') { fetchSettings(); fetchScannerAccounts(); }
+  if (tabId === 'tab-events')    fetchEvents();
+  if (tabId === 'tab-dashboard') fetchDashboard();
+  if (tabId === 'tab-overview')  { fetchStats(); renderRecentCheckins(); }
+  if (tabId === 'tab-guests')    fetchGuests();
+  if (tabId === 'tab-send')      loadSendTab();
+  if (tabId === 'tab-activity')  fetchActivityLog();
+  if (tabId === 'tab-settings')  { fetchSettings(); fetchScannerAccounts(); }
 }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -1445,6 +1636,15 @@ function initAdmin() {
     if (!state.currentEvent) { alert('Please open an event first.'); return; }
     downloadAllQR();
   });
+
+  const printAllBtn = $('#print-all-qr-btn');
+  if (printAllBtn) printAllBtn.addEventListener('click', printAllQR);
+
+  // History modal close
+  const histClose   = $('#history-modal-close');
+  const histOverlay = $('#history-modal-overlay');
+  if (histClose)   histClose.addEventListener('click',   () => $('#history-modal').classList.add('hidden'));
+  if (histOverlay) histOverlay.addEventListener('click', () => $('#history-modal').classList.add('hidden'));
 
   const deleteAllBtn = $('#delete-all-btn');
   if (deleteAllBtn) {
