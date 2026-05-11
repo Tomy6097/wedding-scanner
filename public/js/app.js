@@ -959,7 +959,7 @@ function renderScannerEventList(events) {
         <div class="event-stat"><span class="event-stat-value">${ev.remaining || 0}</span><span class="event-stat-label">Remaining</span></div>
       </div>
       <div style="text-align:center;margin-top:0.5rem">
-        <span class="btn btn-primary btn-sm">Scan for this event →</span>
+        <span class="btn btn-primary btn-sm">${ev.has_pin ? '🔒 Enter PIN →' : 'Scan for this event →'}</span>
       </div>`;
     card.addEventListener('click', () => selectScannerEvent(ev));
     listEl.appendChild(card);
@@ -967,10 +967,8 @@ function renderScannerEventList(events) {
 }
 
 function selectScannerEvent(event) {
-  // If event has a PIN, show PIN prompt first
-  if (event.pin !== undefined) {
-    // PIN field exists — but we don't know if it's set (hidden from scanner)
-    // Always show PIN prompt; server will validate
+  // Show PIN prompt only if event has a PIN set
+  if (event.has_pin) {
     showPinPrompt(event);
   } else {
     proceedWithEvent(event);

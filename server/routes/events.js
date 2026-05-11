@@ -23,8 +23,11 @@ router.get('/', requireAuth, async (req, res) => {
       const total     = await Guest.countDocuments({ event_id: e._id });
       const checkedIn = await Guest.countDocuments({ event_id: e._id, status: 'used' });
       const obj       = e.toObject();
-      // Hide PIN from scanners
-      if (!isAdmin) delete obj.pin;
+      // Hide PIN value from scanners but tell them if a PIN exists
+      if (!isAdmin) {
+        obj.has_pin = !!e.pin;
+        delete obj.pin;
+      }
       return { ...obj, total, checkedIn, remaining: total - checkedIn };
     }));
     res.json(result);
