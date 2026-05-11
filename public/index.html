@@ -184,14 +184,17 @@
 
         <!-- WhatsApp Section -->
         <div class="card">
-          <h3>💬 Send via WhatsApp</h3>
-          <p class="hint-text">Opens WhatsApp for each guest one by one. You tap Send for each message. Free — no API needed.</p>
-          <div id="wa-progress" class="hidden" style="margin-bottom:1rem">
-            <div class="progress-bar"><div class="progress-fill" id="wa-progress-fill" style="width:0%"></div></div>
-            <p id="wa-progress-text" style="font-size:0.85rem;color:var(--gray-500);margin-top:0.25rem"></p>
+          <h3>💬 WhatsApp Broadcast</h3>
+          <p class="hint-text">Downloads a file with all phone numbers and individual invitation links. Use it to set up a WhatsApp Broadcast List.</p>
+          <div class="form-group" style="background:var(--gray-50);padding:0.75rem;border-radius:var(--radius-sm);font-size:0.85rem;color:var(--gray-600)">
+            <strong>How it works:</strong><br>
+            1. Click the button below — a .txt file downloads<br>
+            2. Open the file — copy all phone numbers<br>
+            3. Open WhatsApp → New Broadcast → add numbers<br>
+            4. Send each guest their personal link from the file<br>
+            5. Each guest gets their own unique QR code link
           </div>
-          <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn">💬 Send WhatsApp to All Guests</button>
-          <p class="hint-text" style="margin-top:0.5rem">Only guests with phone numbers will be included.</p>
+          <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn" style="margin-top:0.75rem">💬 Download Broadcast File</button>
         </div>
 
       </div>

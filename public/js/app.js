@@ -602,83 +602,24 @@ function downloadQRCard(guestName, containerSelector) {
   const imgEl = container.querySelector('.qr-card-img');
   if (!imgEl) return;
 
-  const W = 300, H = 420;
+  // QR only — plain white, just the QR image
+  const SIZE = 300;
   const canvas = document.createElement('canvas');
-  canvas.width  = W;
-  canvas.height = H;
+  canvas.width  = SIZE;
+  canvas.height = SIZE;
   const ctx = canvas.getContext('2d');
 
-  function drawCard(qrImg) {
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#7c3aed');
-    grad.addColorStop(1, '#4c1d95');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.fillRect(0, 0, W, 6);
-
-    const eventNameEl = container.querySelector('.qr-card-event');
-    const eventName   = eventNameEl ? eventNameEl.textContent : (state.currentEvent ? state.currentEvent.name : 'Our Event');
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(eventName, W / 2, 36);
-
-    const nameEl = container.querySelector('.qr-card-name');
-    const name   = nameEl ? nameEl.textContent : guestName;
+  const qrImg = new Image();
+  qrImg.crossOrigin = 'anonymous';
+  qrImg.onload = () => {
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.textAlign = 'center';
-    let displayName = name;
-    while (ctx.measureText(displayName).width > W - 24 && displayName.length > 4) {
-      displayName = displayName.slice(0, -1);
-    }
-    if (displayName !== name) displayName += '…';
-    ctx.fillText(displayName, W / 2, 66);
-
-    const phoneEl = container.querySelector('.qr-card-phone');
-    if (phoneEl) {
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.font = '13px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(phoneEl.textContent, W / 2, 86);
-    }
-
-    const qrSize = 180;
-    const qrX    = (W - qrSize) / 2;
-    const qrY    = 100;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 10);
-    } else {
-      ctx.rect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16);
-    }
-    ctx.fill();
-    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-
-    const codeEl = container.querySelector('.qr-card-code');
-    const code   = codeEl ? codeEl.textContent : '';
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold 16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(code, W / 2, qrY + qrSize + 32);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Present this QR code at the entrance', W / 2, H - 16);
-
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.drawImage(qrImg, 0, 0, SIZE, SIZE);
     const link = document.createElement('a');
     link.download = `qr-${guestName.replace(/\s+/g, '-').toLowerCase()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-  }
-
-  const qrImg = new Image();
-  qrImg.crossOrigin = 'anonymous';
-  qrImg.onload = () => drawCard(qrImg);
+  };
   qrImg.src = imgEl.src;
 }
 
@@ -796,45 +737,48 @@ async function sendAllWhatsApp() {
       return;
     }
 
-    if (!confirm(`This will open WhatsApp for ${withPhone.length} guests one by one. You will need to tap Send for each. Continue?`)) return;
-
-    const progressEl     = $('#wa-progress');
-    const progressFillEl = $('#wa-progress-fill');
-    const progressTextEl = $('#wa-progress-text');
-    const btn            = $('#send-all-wa-btn');
-
-    if (progressEl) progressEl.classList.remove('hidden');
-    if (btn) { btn.disabled = true; btn.textContent = '💬 Sending…'; }
-
     const eventName = state.currentEvent.name;
+    const origin    = window.location.origin;
 
-    for (let i = 0; i < withPhone.length; i++) {
-      const g          = withPhone[i];
-      const lookupCode = (g.unique_id || '').substring(0, 8).toUpperCase();
-      const link       = `${window.location.origin}/guest/${g.qr_token}`;
-      const msg        = `💍 Dear ${g.name}, you are invited to ${eventName}!\n\nYour QR invitation: ${link}\n\nCheck-in code: *${lookupCode}*\n\nShow this at the entrance.`;
-      const ph         = g.phone.replace(/\D/g, '');
-      window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
+    // Build a text file with all numbers + messages for WhatsApp Broadcast
+    let broadcastText = `WhatsApp Broadcast — ${eventName}\n`;
+    broadcastText += `Total: ${withPhone.length} guests\n`;
+    broadcastText += `=`.repeat(40) + `\n\n`;
+    broadcastText += `PHONE NUMBERS (add all to WhatsApp Broadcast List):\n`;
+    broadcastText += withPhone.map(g => g.phone.trim()).join('\n');
+    broadcastText += `\n\n` + `=`.repeat(40) + `\n\n`;
+    broadcastText += `BROADCAST MESSAGE (copy and send to your Broadcast List):\n\n`;
+    broadcastText += `💍 You are invited to ${eventName}!\n\nFind your personal QR code invitation below. Open your link, show the QR code at the entrance.\n\n`;
+    broadcastText += `--- INDIVIDUAL LINKS ---\n\n`;
+    withPhone.forEach(g => {
+      const code = (g.unique_id || '').substring(0, 8).toUpperCase();
+      const link = `${origin}/guest/${g.qr_token}`;
+      broadcastText += `${g.name}: ${link} (Code: ${code})\n`;
+    });
 
-      const pct = Math.round(((i + 1) / withPhone.length) * 100);
-      if (progressFillEl) progressFillEl.style.width = `${pct}%`;
-      if (progressTextEl) progressTextEl.textContent = `Sent ${i + 1} of ${withPhone.length}`;
+    // Download as .txt file
+    const blob = new Blob([broadcastText], { type: 'text/plain' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `${eventName.replace(/\s+/g,'-')}-whatsapp-broadcast.txt`;
+    a.click();
 
-      if (i < withPhone.length - 1) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    }
-
-    if (progressTextEl) progressTextEl.textContent = `Done! Sent to ${withPhone.length} guests.`;
-    if (btn) { btn.disabled = false; btn.textContent = '💬 Send WhatsApp to All Guests'; }
+    // Show instructions
     setTimeout(() => {
-      if (progressEl) progressEl.classList.add('hidden');
-      if (progressFillEl) progressFillEl.style.width = '0%';
-    }, 5000);
+      alert(
+        `✅ File downloaded!\n\n` +
+        `HOW TO USE WHATSAPP BROADCAST:\n\n` +
+        `1. Open the downloaded .txt file\n` +
+        `2. Copy all phone numbers\n` +
+        `3. Open WhatsApp → New Broadcast\n` +
+        `4. Add all the phone numbers\n` +
+        `5. Send each guest their personal link from the file\n\n` +
+        `Each guest gets their own unique link with their QR code.`
+      );
+    }, 500);
+
   } catch (e) {
     alert('Failed: ' + e.message);
-    const btn = $('#send-all-wa-btn');
-    if (btn) { btn.disabled = false; btn.textContent = '💬 Send WhatsApp to All Guests'; }
   }
 }
 
@@ -917,71 +861,32 @@ async function downloadAllQR() {
 
 function generateAndDownloadCard(g) {
   return new Promise((resolve) => {
-    const W = 300, H = 420;
+    // QR only — plain white background, just the QR image, no text
+    const SIZE = 300;
     const canvas = document.createElement('canvas');
-    canvas.width  = W;
-    canvas.height = H;
+    canvas.width  = SIZE;
+    canvas.height = SIZE;
     const ctx = canvas.getContext('2d');
-
-    const lookupCode = (g.unique_id || '').substring(0, 8).toUpperCase();
-    const eventName  = g.eventName || (state.currentEvent ? state.currentEvent.name : 'Our Event');
 
     const qrImg = new Image();
     qrImg.crossOrigin = 'anonymous';
     qrImg.onload = () => {
-      const grad = ctx.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, '#7c3aed');
-      grad.addColorStop(1, '#4c1d95');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.fillRect(0, 0, W, 6);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(eventName, W / 2, 36);
-
+      // White background
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.textAlign = 'center';
-      let displayName = g.name;
-      while (ctx.measureText(displayName).width > W - 24 && displayName.length > 4) {
-        displayName = displayName.slice(0, -1);
-      }
-      if (displayName !== g.name) displayName += '…';
-      ctx.fillText(displayName, W / 2, 66);
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      // Draw QR code filling the whole canvas
+      ctx.drawImage(qrImg, 0, 0, SIZE, SIZE);
 
-      if (g.phone) {
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.font = '13px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(g.phone, W / 2, 86);
-      }
-
-      const qrSize = 180;
-      const qrX    = (W - qrSize) / 2;
-      const qrY    = 100;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      if (ctx.roundRect) {
-        ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 10);
-      } else {
-        ctx.rect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16);
-      }
-      ctx.fill();
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = 'bold 16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(lookupCode, W / 2, qrY + qrSize + 32);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.font = '11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Present this QR code at the entrance', W / 2, H - 16);
+      const link = document.createElement('a');
+      link.download = `qr-${g.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      resolve();
+    };
+    qrImg.onerror = () => resolve();
+    qrImg.src = g.qrDataUrl;
+  });
+}
 
       const link = document.createElement('a');
       link.download = `qr-${g.name.replace(/\s+/g, '-').toLowerCase()}.png`;
