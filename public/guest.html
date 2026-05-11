@@ -144,12 +144,6 @@
             <img src="${data.qrDataUrl}" alt="QR Code" id="qr-img" />
           </div>
 
-          <div class="code-label">Your check-in code</div>
-          <div class="code">${esc(lookupCode)}</div>
-
-          ${data.table_number ? `<div style="color:rgba(255,255,255,0.7);font-size:0.9rem;margin-bottom:0.5rem">🪑 ${esc(data.table_number)}</div>` : ''}
-          ${data.guest_number && data.total_guests ? `<div style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-bottom:0.75rem">Guest ${data.guest_number} of ${data.total_guests}</div>` : ''}
-
           <div class="instruction">
             Show the QR code above at the entrance to check in.<br>
             If the QR can't be scanned, give your code: <strong>${esc(lookupCode)}</strong>

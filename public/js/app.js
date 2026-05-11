@@ -571,20 +571,15 @@ function showQRCard(data, containerSelector) {
   const container = $(containerSelector);
   if (!container) return null;
 
-  const guest      = data.guest || data;
-  const lookupCode = (guest.unique_id || '').substring(0, 8).toUpperCase();
-
-  // Show ONLY the QR image — no decoration, no text
+  // Show ONLY the plain QR image — no text, no code, no decoration
   container.innerHTML = `
     <div style="text-align:center;padding:0.5rem">
       <img src="${data.qrDataUrl}" alt="QR Code"
-        style="width:220px;height:220px;display:block;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px" />
-      <div style="margin-top:0.5rem;font-family:monospace;font-size:0.9rem;color:#6b7280;letter-spacing:0.1em">${escHtml(lookupCode)}</div>
+        style="width:220px;height:220px;display:block;margin:0 auto;border:1px solid #e5e7eb;border-radius:4px" />
     </div>`;
 
-  // Store qrDataUrl on container for download
-  container.dataset.qrDataUrl  = data.qrDataUrl;
-  container.dataset.guestName  = guest.name || '';
+  container.dataset.qrDataUrl = data.qrDataUrl;
+  container.dataset.guestName = (data.guest || data).name || '';
   return container;
 }
 
