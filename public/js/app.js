@@ -193,6 +193,7 @@ function renderEventsGrid(events) {
 
     const card = document.createElement('div');
     card.className = 'event-card';
+    if (ev.status === 'completed') card.style.opacity = '0.7';
     card.style.setProperty('--event-color', color);
     card.innerHTML = `
       <div class="event-card-header">
@@ -217,12 +218,17 @@ function renderEventsGrid(events) {
       <div class="event-card-actions">
         <button class="btn btn-primary btn-sm js-open-event">Open →</button>
         <button class="btn btn-outline btn-sm js-edit-event">✏️ Edit</button>
+        ${ev.status === 'active'
+          ? `<button class="btn btn-outline btn-sm js-status-event" style="color:var(--success);border-color:var(--success)">✅ Complete</button>`
+          : `<button class="btn btn-outline btn-sm js-status-event" style="color:var(--warning);border-color:var(--warning)">🔄 Reactivate</button>`}
         <button class="btn btn-danger btn-sm js-delete-event">🗑 Delete</button>
       </div>`;
 
     card.querySelector('.js-open-event').addEventListener('click', () => openEvent(ev));
     card.querySelector('.js-edit-event').addEventListener('click', () => editEvent(ev));
     card.querySelector('.js-delete-event').addEventListener('click', () => deleteEvent(gid(ev), ev.name));
+    const statusBtn = card.querySelector('.js-status-event');
+    if (statusBtn) statusBtn.addEventListener('click', () => toggleEventStatus(gid(ev), ev.status, ev.name));
     grid.appendChild(card);
   });
 }
@@ -279,6 +285,20 @@ function editEvent(event) {
   modal.dataset.editId  = gid(event);
   hideAlert($('#event-modal-error'));
   modal.classList.remove('hidden');
+}
+
+async function toggleEventStatus(id, currentStatus, name) {
+  const newStatus = currentStatus === 'active' ? 'completed' : 'active';
+  const msg = newStatus === 'completed'
+    ? `Mark "${name}" as completed? Scanners will no longer see it.`
+    : `Reactivate "${name}"? Scanners will see it again.`;
+  if (!confirm(msg)) return;
+  try {
+    await api('PUT', `/events/${id}`, { status: newStatus });
+    fetchEvents();
+  } catch (e) {
+    alert('Failed: ' + e.message);
+  }
 }
 
 async function deleteEvent(id, name) {
@@ -932,12 +952,16 @@ async function initScannerPage() {
 function renderScannerEventList(events) {
   const listEl = $('#scanner-event-list');
   if (!listEl) return;
-  if (!events.length) {
-    listEl.innerHTML = '<div class="empty-state">No events found. Ask admin to create an event.</div>';
+
+  // Scanner only sees active events
+  const activeEvents = events.filter(ev => ev.status === 'active');
+
+  if (!activeEvents.length) {
+    listEl.innerHTML = '<div class="empty-state">No active events found. Ask admin to create or activate an event.</div>';
     return;
   }
   listEl.innerHTML = '';
-  events.forEach(ev => {
+  activeEvents.forEach(ev => {
     const color   = ev.color || '#7c3aed';
     const dateStr = ev.date ? new Date(ev.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
     const card    = document.createElement('div');
