@@ -29,7 +29,9 @@ async function getEventName(eventId) {
 async function sendBeemSMS(phone, message) {
   const apiKey    = (await Settings.findOne({ key: 'beem_api_key' }))?.value;
   const secretKey = (await Settings.findOne({ key: 'beem_secret_key' }))?.value;
-  const senderId  = (await Settings.findOne({ key: 'beem_sender_id' }))?.value || 'INFO';
+  const senderId  = (await Settings.findOne({ key: 'beem_sender_id' }))?.value;
+  // Use provided sender ID or fall back to null (Beem will use account default)
+  const source = senderId && senderId.trim() ? senderId.trim() : undefined;
 
   if (!apiKey || !apiKey.trim()) throw new Error('Beem API Key not configured in Settings');
   if (!secretKey || !secretKey.trim()) throw new Error('Beem Secret Key not configured in Settings');
@@ -38,12 +40,15 @@ async function sendBeemSMS(phone, message) {
   const cleanPhone = phone.replace(/\D/g, '');
   if (!cleanPhone || cleanPhone.length < 9) throw new Error(`Invalid phone number: ${phone}`);
 
-  const payload = JSON.stringify({
-    source_addr: senderId.trim(),
-    encoding:    0,
-    message:     message,
-    recipients:  [{ recipient_id: 1, dest_addr: cleanPhone }]
-  });
+  // Build payload — only include source_addr if Sender ID is set
+  const payloadObj = {
+    encoding:   0,
+    message:    message,
+    recipients: [{ recipient_id: 1, dest_addr: cleanPhone }]
+  };
+  if (source) payloadObj.source_addr = source;
+
+  const payload = JSON.stringify(payloadObj);
 
   return new Promise((resolve, reject) => {
     const auth = Buffer.from(`${apiKey.trim()}:${secretKey.trim()}`).toString('base64');
