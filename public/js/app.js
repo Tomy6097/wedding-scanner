@@ -1806,6 +1806,28 @@ function initAdmin() {
   const saveBeemBtn = $('#save-beem-btn');
   if (saveBeemBtn) saveBeemBtn.addEventListener('click', saveBeemSettings);
 
+  // Test SMS button
+  const testSmsBtn = $('#test-sms-btn');
+  if (testSmsBtn) {
+    testSmsBtn.addEventListener('click', async () => {
+      const phone   = $('#test-sms-phone') ? $('#test-sms-phone').value.trim() : '';
+      const resultEl = $('#test-sms-result');
+      if (!phone) { showAlert(resultEl, 'Enter a phone number to test', 'error'); return; }
+      testSmsBtn.disabled = true;
+      testSmsBtn.textContent = '⏳ Sending...';
+      hideAlert(resultEl);
+      try {
+        const res = await api('POST', '/guests/sms/test', { phone });
+        showAlert(resultEl, '✅ ' + res.message, 'success');
+      } catch (e) {
+        showAlert(resultEl, '❌ ' + e.message, 'error');
+      } finally {
+        testSmsBtn.disabled = false;
+        testSmsBtn.textContent = '📱 Test';
+      }
+    });
+  }
+
   // ── Send Invites ─────────────────────────────────────────
   const sendAllSmsBtn = $('#send-all-sms-btn');
   if (sendAllSmsBtn) sendAllSmsBtn.addEventListener('click', sendAllSMS);

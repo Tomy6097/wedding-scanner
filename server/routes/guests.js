@@ -31,26 +31,30 @@ async function sendBeemSMS(phone, message) {
   const secretKey = (await Settings.findOne({ key: 'beem_secret_key' }))?.value;
   const senderId  = (await Settings.findOne({ key: 'beem_sender_id' }))?.value || 'INFO';
 
-  if (!apiKey || !secretKey) throw new Error('Beem Africa API keys not configured');
+  if (!apiKey || !apiKey.trim()) throw new Error('Beem API Key not configured in Settings');
+  if (!secretKey || !secretKey.trim()) throw new Error('Beem Secret Key not configured in Settings');
 
+  // Clean phone — must be digits only, with country code (e.g. 255712345678)
   const cleanPhone = phone.replace(/\D/g, '');
+  if (!cleanPhone || cleanPhone.length < 9) throw new Error(`Invalid phone number: ${phone}`);
+
   const payload = JSON.stringify({
-    source_addr: senderId,
+    source_addr: senderId.trim(),
     encoding:    0,
     message:     message,
     recipients:  [{ recipient_id: 1, dest_addr: cleanPhone }]
   });
 
   return new Promise((resolve, reject) => {
-    const auth = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
+    const auth = Buffer.from(`${apiKey.trim()}:${secretKey.trim()}`).toString('base64');
     const options = {
       hostname: 'apisms.beem.africa',
       port: 443,
       path: '/v1/send',
       method: 'POST',
       headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Basic ${auth}`,
+        'Content-Type':   'application/json',
+        'Authorization':  `Basic ${auth}`,
         'Content-Length': Buffer.byteLength(payload)
       }
     };
@@ -58,14 +62,22 @@ async function sendBeemSMS(phone, message) {
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
+        console.log(`Beem SMS response [${res.statusCode}]:`, data);
         try {
           const parsed = JSON.parse(data);
-          if (res.statusCode === 200 || res.statusCode === 201) resolve(parsed);
-          else reject(new Error(parsed.message || `SMS failed: ${res.statusCode}`));
-        } catch (e) { reject(new Error('Invalid SMS API response')); }
+          if (res.statusCode === 200 || res.statusCode === 201) {
+            resolve(parsed);
+          } else {
+            // Return full Beem error message
+            const errMsg = parsed.message || parsed.error || parsed.description || JSON.stringify(parsed);
+            reject(new Error(`Beem error ${res.statusCode}: ${errMsg}`));
+          }
+        } catch (e) {
+          reject(new Error(`Beem response parse error: ${data}`));
+        }
       });
     });
-    req.on('error', reject);
+    req.on('error', (e) => reject(new Error(`Network error: ${e.message}`)));
     req.write(payload);
     req.end();
   });
@@ -231,6 +243,18 @@ router.post('/scan', requireAuth, async (req, res) => {
 
     res.json({ result: 'granted', message: 'Access Granted', guest: { name: guest.name, phone: guest.phone, table_number: guest.table_number, checked_in_at: guest.checked_in_at } });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// Test SMS — send a test message to verify Beem settings
+router.post('/sms/test', requireAdmin, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number required' });
+  try {
+    await sendBeemSMS(phone, 'Test message from your Event Check-in System. SMS is working correctly!');
+    res.json({ success: true, message: 'Test SMS sent successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Send SMS to single guest

@@ -283,6 +283,14 @@
           <div class="form-group"><label>Secret Key</label><input type="password" id="beem-secret-key" placeholder="Your Beem Secret Key" /></div>
           <div class="form-group"><label>Sender ID</label><input type="text" id="beem-sender-id" placeholder="e.g. WEDDING (max 11 chars)" /></div>
           <div class="form-group"><label>App URL (for SMS links)</label><input type="text" id="app-url" placeholder="https://wedding-scanner.onrender.com" /></div>
+          <div class="form-group">
+            <label>Test SMS — send to this number</label>
+            <div style="display:flex;gap:0.5rem">
+              <input type="tel" id="test-sms-phone" placeholder="e.g. 255712345678" style="flex:1" />
+              <button class="btn btn-secondary" id="test-sms-btn">📱 Test</button>
+            </div>
+            <div id="test-sms-result" class="alert hidden" style="margin-top:0.5rem"></div>
+          </div>
           <div id="beem-success" class="alert alert-success hidden"></div>
           <button class="btn btn-primary btn-full" id="save-beem-btn">Save SMS Settings</button>
         </div>
