@@ -368,6 +368,26 @@
 
       sucEl.innerHTML = `✅ Asante! Maombi yako yamepokelewa. Tutawasiliana nawe hivi karibuni! 🎉`;
       sucEl.style.display = 'block';
+
+      // Build booking details for notification
+      const bookingDetails = [
+        `🆕 *Booking Mpya - TMJ Wedding Tech*`,
+        ``,
+        `👤 Jina: ${name}`,
+        `📞 Simu: ${phone}`,
+        date    ? `📅 Tarehe: ${date}`       : null,
+        pkg     ? `📦 Package: ${pkg}`        : null,
+        message ? `💬 Ujumbe: ${message}`     : null,
+        ``,
+        `✅ Jibu haraka!`
+      ].filter(Boolean).join('\n');
+
+      // Auto-open WhatsApp with booking details (notify admin)
+      const waUrl = `https://wa.me/255754696878?text=${encodeURIComponent(bookingDetails)}`;
+      setTimeout(() => {
+        window.open(waUrl, '_blank');
+      }, 800);
+
       document.getElementById('b-name').value    = '';
       document.getElementById('b-phone').value   = '';
       document.getElementById('b-date').value    = '';

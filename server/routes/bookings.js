@@ -67,9 +67,9 @@ router.post('/', async (req, res) => {
       message:    message ? message.trim() : null
     });
 
-    // ── Notify admin via SMS ──────────────────────────────
+    // ── Notify admin via SMS (if Beem configured) ─────────
     const adminPhone = '255754696878';
-    const smsMsg = `🆕 Booking Mpya!\nJina: ${booking.name}\nSimu: ${booking.phone}${booking.package ? '\nPackage: ' + booking.package : ''}${booking.event_date ? '\nTarehe: ' + booking.event_date : ''}\nAngalia: https://wedding-scanner.onrender.com`;
+    const smsMsg = `Booking Mpya! Jina: ${booking.name} Simu: ${booking.phone}${booking.package ? ' Package: ' + booking.package : ''}${booking.event_date ? ' Tarehe: ' + booking.event_date : ''} Angalia: https://wedding-scanner.onrender.com`;
     sendNotificationSMS(adminPhone, smsMsg).catch(() => {});
 
     res.status(201).json({
