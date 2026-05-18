@@ -1,11 +1,56 @@
 const express = require('express');
-const { Booking } = require('../db');
+const https   = require('https');
+const { Booking, Settings } = require('../db');
 const router = express.Router();
 
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== 'admin')
     return res.status(403).json({ error: 'Admin access required' });
   next();
+}
+
+// ── Send notification SMS via Beem ────────────────────────────
+async function sendNotificationSMS(phone, message) {
+  const apiKey    = (await Settings.findOne({ key: 'beem_api_key' }))?.value;
+  const secretKey = (await Settings.findOne({ key: 'beem_secret_key' }))?.value;
+  if (!apiKey || !secretKey) return; // silently skip if not configured
+
+  const cleanPhone = phone.replace(/\D/g, '');
+  const payloadObj = {
+    encoding:   0,
+    message:    message,
+    recipients: [{ recipient_id: 1, dest_addr: cleanPhone }]
+  };
+  const senderId = (await Settings.findOne({ key: 'beem_sender_id' }))?.value;
+  if (senderId && senderId.trim()) payloadObj.source_addr = senderId.trim();
+
+  const payload = JSON.stringify(payloadObj);
+  const auth    = Buffer.from(`${apiKey.trim()}:${secretKey.trim()}`).toString('base64');
+
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'apisms.beem.africa',
+      port: 443,
+      path: '/v1/send',
+      method: 'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'Authorization':  `Basic ${auth}`,
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        console.log(`Booking notification SMS [${res.statusCode}]:`, data);
+        resolve();
+      });
+    });
+    req.on('error', (e) => { console.error('Notification SMS error:', e.message); resolve(); });
+    req.write(payload);
+    req.end();
+  });
 }
 
 // POST /api/bookings — public, from landing page
@@ -21,11 +66,26 @@ router.post('/', async (req, res) => {
       package:    pkg || null,
       message:    message ? message.trim() : null
     });
-    res.status(201).json({ success: true, message: 'Booking received! We will contact you soon.' });
+
+    // ── Notify admin via SMS ──────────────────────────────
+    const adminPhone = '255754696878';
+    const smsMsg = `🆕 Booking Mpya!\nJina: ${booking.name}\nSimu: ${booking.phone}${booking.package ? '\nPackage: ' + booking.package : ''}${booking.event_date ? '\nTarehe: ' + booking.event_date : ''}\nAngalia: https://wedding-scanner.onrender.com`;
+    sendNotificationSMS(adminPhone, smsMsg).catch(() => {});
+
+    res.status(201).json({
+      success: true,
+      message: 'Booking received! We will contact you soon.',
+      whatsapp_notify_url: buildWhatsAppNotifyURL(booking)
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+function buildWhatsAppNotifyURL(booking) {
+  const msg = `🆕 *Booking Mpya!*\n\n👤 Jina: ${booking.name}\n📞 Simu: ${booking.phone}${booking.package ? '\n📦 Package: ' + booking.package : ''}${booking.event_date ? '\n📅 Tarehe: ' + booking.event_date : ''}${booking.message ? '\n💬 Ujumbe: ' + booking.message : ''}\n\n✅ Jibu haraka!`;
+  return `https://wa.me/255754696878?text=${encodeURIComponent(msg)}`;
+}
 
 // GET /api/bookings — admin only
 router.get('/', requireAdmin, async (req, res) => {
