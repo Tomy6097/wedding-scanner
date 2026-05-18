@@ -65,6 +65,7 @@
       <button class="nav-tab hidden" data-tab="tab-add">Add Guest</button>
       <button class="nav-tab hidden" data-tab="tab-send">Send Invites</button>
       <button class="nav-tab hidden" data-tab="tab-activity">Activity</button>
+      <button class="nav-tab hidden" data-tab="tab-card">🎨 Card</button>
       <button class="nav-tab" data-tab="tab-settings">Settings</button>
     </div>
     <div class="nav-right">
@@ -270,6 +271,50 @@
         </div>
       </div>
       <div id="activity-list" class="activity-list"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- Card Template Tab -->
+  <div id="tab-card" class="tab-content hidden">
+    <div class="container">
+      <div class="event-breadcrumb" id="event-breadcrumb-card"></div>
+      <h2 class="section-title">🎨 Card Template</h2>
+      <div class="add-grid">
+        <div class="card">
+          <h3>Upload Card Design</h3>
+          <p class="hint-text">Upload your card image (PNG/JPG, max 2MB). Then click on the preview to position the QR code.</p>
+          <div class="file-drop-zone" id="card-drop-zone" style="min-height:100px">
+            <span id="card-drop-label">📂 Drop card image here or click to browse</span>
+            <input type="file" id="card-file" accept="image/png,image/jpeg,image/jpg" class="file-input" />
+          </div>
+          <div class="form-group" style="margin-top:0.75rem">
+            <label>QR Code Size: <span id="qr-size-label">20%</span> of card width</label>
+            <input type="range" id="qr-size-slider" min="10" max="50" value="20" style="width:100%;accent-color:var(--primary)" />
+          </div>
+          <div id="card-upload-error" class="alert alert-error hidden"></div>
+          <div id="card-upload-success" class="alert alert-success hidden"></div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
+            <button class="btn btn-primary btn-full" id="save-card-btn" disabled>💾 Save Template</button>
+            <button class="btn btn-danger btn-sm" id="remove-card-btn" style="display:none">🗑 Remove</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Preview — Click to Position QR</h3>
+          <p class="hint-text" id="card-preview-hint">Upload a card to see preview. Then click where you want the QR code.</p>
+          <div id="card-preview-wrap" style="position:relative;display:inline-block;max-width:100%;cursor:crosshair">
+            <img id="card-preview-img" src="" alt="Card Preview"
+              style="display:none;max-width:100%;border-radius:8px;border:1px solid var(--gray-200)" />
+            <div id="qr-position-marker" style="display:none;position:absolute;border:3px dashed #7c3aed;border-radius:4px;background:rgba(124,58,237,0.15);pointer-events:none;transform:translate(-50%,-50%)">
+              <span style="font-size:0.6rem;color:#7c3aed;padding:2px;white-space:nowrap">QR here</span>
+            </div>
+          </div>
+          <div id="card-sample-wrap" style="display:none;margin-top:1rem">
+            <p class="hint-text">Sample card with QR:</p>
+            <canvas id="card-sample-canvas" style="max-width:100%;border-radius:8px;border:1px solid var(--gray-200)"></canvas>
+            <button class="btn btn-outline btn-sm" style="margin-top:0.5rem" id="download-sample-btn">⬇ Download Sample</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

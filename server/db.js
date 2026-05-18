@@ -29,7 +29,12 @@ const eventSchema = new mongoose.Schema({
   venue:       { type: String, default: null },
   status:      { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
   color:       { type: String, default: '#7c3aed' },
-  pin:         { type: String, default: null }
+  pin:         { type: String, default: null },
+  // Card template
+  card_image:  { type: String, default: null }, // base64 data URL of uploaded card
+  card_qr_x:   { type: Number, default: null }, // QR position X (percentage 0-100)
+  card_qr_y:   { type: Number, default: null }, // QR position Y (percentage 0-100)
+  card_qr_size:{ type: Number, default: 20 }    // QR size as % of card width
 }, { timestamps: true });
 
 // ── Guests ────────────────────────────────────────────────────

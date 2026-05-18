@@ -106,4 +106,54 @@ router.get('/:id/stats', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// GET /api/events/sample-qr — returns a sample QR for card preview
+router.get('/sample-qr', requireAuth, async (req, res) => {
+  try {
+    const QRCode = require('qrcode');
+    const qrDataUrl = await QRCode.toDataURL('SAMPLE-PREVIEW', {
+      width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' }
+    });
+    res.json({ qrDataUrl });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// POST /api/events/:id/card — upload card template (base64)
+router.post('/:id/card', requireAdmin, async (req, res) => {
+  try {
+    const { card_image, card_qr_x, card_qr_y, card_qr_size } = req.body;
+    if (!card_image) return res.status(400).json({ error: 'Card image is required' });
+
+    // Validate it's a valid data URL
+    if (!card_image.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Invalid image format' });
+    }
+
+    // Limit size to 2MB
+    const sizeBytes = Math.ceil((card_image.length * 3) / 4);
+    if (sizeBytes > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image too large. Maximum size is 2MB.' });
+    }
+
+    const event = await Event.findByIdAndUpdate(
+      req.params.id,
+      { $set: { card_image, card_qr_x, card_qr_y, card_qr_size: card_qr_size || 20 } },
+      { new: true }
+    );
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    res.json({ success: true, message: 'Card template saved' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// DELETE /api/events/:id/card — remove card template
+router.delete('/:id/card', requireAdmin, async (req, res) => {
+  try {
+    await Event.findByIdAndUpdate(req.params.id, {
+      $set: { card_image: null, card_qr_x: null, card_qr_y: null }
+    });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
 module.exports = router;

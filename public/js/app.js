@@ -238,7 +238,7 @@ function openEvent(event) {
   state.recentCheckins = [];
 
   // Show event-specific tabs
-  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"]')
+  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"], .nav-tab[data-tab="tab-card"]')
     .forEach(t => t.classList.remove('hidden'));
 
   updateBreadcrumbs();
@@ -262,7 +262,7 @@ function backToEvents() {
   state.currentEvent = null;
   state.recentCheckins = [];
   // Hide event-specific tabs
-  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"]')
+  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"], .nav-tab[data-tab="tab-card"]')
     .forEach(t => t.classList.add('hidden'));
   switchTab('tab-events');
 }
@@ -565,7 +565,24 @@ async function viewGuestQR(id) {
   try {
     const data  = await api('GET', `/guests/${id}/qr`);
     const guest = data.guest;
-    showQRCard(data, '#view-qr-card-preview');
+
+    // Check if event has card template
+    const ev = state.currentEvent;
+    if (ev && ev.card_image && ev.card_qr_x != null) {
+      // Show card with QR overlaid
+      const cardDataUrl = await generateGuestCard(
+        { name: guest.name },
+        data.qrDataUrl,
+        { image: ev.card_image, qr_x: ev.card_qr_x, qr_y: ev.card_qr_y, qr_size: ev.card_qr_size || 20 }
+      );
+      const container = $('#view-qr-card-preview');
+      if (container) {
+        container.innerHTML = `<div style="text-align:center"><img src="${cardDataUrl}" style="max-width:100%;border-radius:8px" /></div>`;
+        container.dataset.qrDataUrl = cardDataUrl;
+      }
+    } else {
+      showQRCard(data, '#view-qr-card-preview');
+    }
 
     $('#view-qr-download-btn').onclick = () => downloadQRCard(guest.name, '#view-qr-card-preview');
     $('#view-qr-print-btn').onclick    = () => printQRCard(guest.name, '#view-qr-card-preview');
@@ -616,10 +633,20 @@ function showQRCard(data, containerSelector) {
 function downloadQRCard(guestName, containerSelector) {
   const container = $(containerSelector);
   if (!container) return;
-  const imgEl = container.querySelector('.qr-card-img');
-  if (!imgEl) return;
 
-  // QR only — plain white, just the QR image
+  // If container has a stored qrDataUrl (card template case), download that directly
+  if (container.dataset.qrDataUrl) {
+    const link = document.createElement('a');
+    link.download = `card-${guestName.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.href = container.dataset.qrDataUrl;
+    link.click();
+    return;
+  }
+
+  // Fallback: find any img in container
+  const imgEl = container.querySelector('img');
+  if (!imgEl || !imgEl.src) return;
+
   const SIZE = 300;
   const canvas = document.createElement('canvas');
   canvas.width  = SIZE;
@@ -866,24 +893,30 @@ async function downloadAllQR() {
   }
 }
 
-function generateAndDownloadCard(g) {
+async function generateAndDownloadCard(g) {
+  // If event has a card template, use it; otherwise plain QR
+  if (g.cardTemplate && g.cardTemplate.image && g.cardTemplate.qr_x != null) {
+    const dataUrl = await generateGuestCard(g, g.qrDataUrl, g.cardTemplate);
+    const link = document.createElement('a');
+    link.download = `card-${g.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.href = dataUrl;
+    link.click();
+    return;
+  }
+
+  // Plain QR only
   return new Promise((resolve) => {
-    // QR only — plain white background, just the QR image, no text
     const SIZE = 300;
     const canvas = document.createElement('canvas');
     canvas.width  = SIZE;
     canvas.height = SIZE;
     const ctx = canvas.getContext('2d');
-
     const qrImg = new Image();
     qrImg.crossOrigin = 'anonymous';
     qrImg.onload = () => {
-      // White background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, SIZE, SIZE);
-      // Draw QR code filling the whole canvas
       ctx.drawImage(qrImg, 0, 0, SIZE, SIZE);
-
       const link = document.createElement('a');
       link.download = `qr-${g.name.replace(/\s+/g, '-').toLowerCase()}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -1591,6 +1624,233 @@ async function printAllQR() {
   }
 }
 
+// ── Card Template ─────────────────────────────────────────────
+let cardState = {
+  imageDataUrl: null,   // uploaded image
+  qrX: null,            // click position X %
+  qrY: null,            // click position Y %
+  qrSize: 20            // QR size %
+};
+
+function initCardTab() {
+  if (!state.currentEvent) return;
+  updateBreadcrumbs();
+
+  // Update breadcrumb for card tab
+  const bc = $('#event-breadcrumb-card');
+  if (bc) {
+    bc.innerHTML = `<a href="#" class="breadcrumb-back js-back-card">← Back to Events</a> <span class="breadcrumb-sep">›</span> <span class="breadcrumb-event">${escHtml(state.currentEvent.name)}</span>`;
+    bc.querySelector('.js-back-card').addEventListener('click', (e) => { e.preventDefault(); backToEvents(); });
+  }
+
+  // Load existing card if any
+  const ev = state.currentEvent;
+  if (ev.card_image) {
+    cardState.imageDataUrl = ev.card_image;
+    cardState.qrX   = ev.card_qr_x;
+    cardState.qrY   = ev.card_qr_y;
+    cardState.qrSize = ev.card_qr_size || 20;
+    showCardPreview(ev.card_image);
+    if (ev.card_qr_x != null) updateQRMarker(ev.card_qr_x, ev.card_qr_y);
+    const removeBtn = $('#remove-card-btn');
+    if (removeBtn) removeBtn.style.display = 'inline-flex';
+    const saveBtn = $('#save-card-btn');
+    if (saveBtn) saveBtn.disabled = false;
+    const slider = $('#qr-size-slider');
+    if (slider) { slider.value = cardState.qrSize; $('#qr-size-label').textContent = cardState.qrSize + '%'; }
+    renderCardSample();
+  }
+}
+
+function showCardPreview(dataUrl) {
+  const img = $('#card-preview-img');
+  const hint = $('#card-preview-hint');
+  if (!img) return;
+  img.src = dataUrl;
+  img.style.display = 'block';
+  if (hint) hint.textContent = 'Click on the card to position the QR code';
+
+  // Wire up click handler
+  const wrap = $('#card-preview-wrap');
+  if (wrap) {
+    wrap.onclick = (e) => {
+      const rect = img.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width)  * 100;
+      const y = ((e.clientY - rect.top)  / rect.height) * 100;
+      cardState.qrX = Math.round(x * 10) / 10;
+      cardState.qrY = Math.round(y * 10) / 10;
+      updateQRMarker(cardState.qrX, cardState.qrY);
+      const saveBtn = $('#save-card-btn');
+      if (saveBtn) saveBtn.disabled = false;
+      renderCardSample();
+    };
+  }
+}
+
+function updateQRMarker(xPct, yPct) {
+  const marker = $('#qr-position-marker');
+  const img    = $('#card-preview-img');
+  if (!marker || !img) return;
+  const size = cardState.qrSize || 20;
+  marker.style.display = 'block';
+  marker.style.left    = xPct + '%';
+  marker.style.top     = yPct + '%';
+  marker.style.width   = size + '%';
+  marker.style.height  = 'auto';
+  marker.style.aspectRatio = '1';
+}
+
+async function renderCardSample() {
+  if (!cardState.imageDataUrl || cardState.qrX == null) return;
+
+  const sampleWrap = $('#card-sample-wrap');
+  const canvas     = $('#card-sample-canvas');
+  if (!canvas) return;
+
+  // Get a sample QR — use a placeholder token
+  const sampleToken = 'SAMPLE-QR-PREVIEW';
+  let qrDataUrl;
+  try {
+    // Generate QR on client side using a simple approach
+    qrDataUrl = await generateQRDataUrl(sampleToken);
+  } catch (e) { return; }
+
+  const cardImg = new Image();
+  cardImg.onload = () => {
+    const W = cardImg.naturalWidth  || 800;
+    const H = cardImg.naturalHeight || 600;
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(cardImg, 0, 0, W, H);
+
+    // Draw QR
+    const qrImg = new Image();
+    qrImg.onload = () => {
+      const qrW = (cardState.qrSize / 100) * W;
+      const qrH = qrW;
+      const qrX = (cardState.qrX / 100) * W - qrW / 2;
+      const qrY = (cardState.qrY / 100) * H - qrH / 2;
+      ctx.drawImage(qrImg, qrX, qrY, qrW, qrH);
+      if (sampleWrap) sampleWrap.style.display = 'block';
+    };
+    qrImg.src = qrDataUrl;
+  };
+  cardImg.src = cardState.imageDataUrl;
+}
+
+// Generate QR code data URL client-side using the server
+async function generateQRDataUrl(token) {
+  // Use a tiny 1x1 placeholder — real QR comes from server per guest
+  // For preview, fetch a sample from server
+  try {
+    const res = await fetch('/api/events/sample-qr');
+    if (res.ok) {
+      const data = await res.json();
+      return data.qrDataUrl;
+    }
+  } catch (e) { /* ignore */ }
+  // Fallback: return a simple colored square
+  const c = document.createElement('canvas');
+  c.width = c.height = 100;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, 100, 100);
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 10; i++) {
+    for (let j = 0; j < 10; j++) {
+      if ((i + j) % 2 === 0) ctx.fillRect(i * 10, j * 10, 10, 10);
+    }
+  }
+  return c.toDataURL();
+}
+
+async function saveCardTemplate() {
+  if (!state.currentEvent) return;
+  if (!cardState.imageDataUrl) { alert('Please upload a card image first'); return; }
+  if (cardState.qrX == null)   { alert('Please click on the card to set QR position'); return; }
+
+  const errEl = $('#card-upload-error');
+  const sucEl = $('#card-upload-success');
+  hideAlert(errEl); hideAlert(sucEl);
+  const saveBtn = $('#save-card-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving...'; }
+
+  try {
+    await api('POST', `/events/${gid(state.currentEvent)}/card`, {
+      card_image:   cardState.imageDataUrl,
+      card_qr_x:    cardState.qrX,
+      card_qr_y:    cardState.qrY,
+      card_qr_size: cardState.qrSize
+    });
+    // Update local state
+    state.currentEvent.card_image  = cardState.imageDataUrl;
+    state.currentEvent.card_qr_x   = cardState.qrX;
+    state.currentEvent.card_qr_y   = cardState.qrY;
+    state.currentEvent.card_qr_size = cardState.qrSize;
+    showAlert(sucEl, '✅ Card template saved! QR codes will now use this card.', 'success');
+    const removeBtn = $('#remove-card-btn');
+    if (removeBtn) removeBtn.style.display = 'inline-flex';
+  } catch (e) {
+    showAlert(errEl, e.message);
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Template'; }
+  }
+}
+
+async function removeCardTemplate() {
+  if (!state.currentEvent) return;
+  if (!confirm('Remove card template? QR codes will go back to plain QR images.')) return;
+  try {
+    await api('DELETE', `/events/${gid(state.currentEvent)}/card`);
+    cardState = { imageDataUrl: null, qrX: null, qrY: null, qrSize: 20 };
+    state.currentEvent.card_image = null;
+    const img = $('#card-preview-img');
+    if (img) { img.src = ''; img.style.display = 'none'; }
+    const marker = $('#qr-position-marker');
+    if (marker) marker.style.display = 'none';
+    const sampleWrap = $('#card-sample-wrap');
+    if (sampleWrap) sampleWrap.style.display = 'none';
+    const removeBtn = $('#remove-card-btn');
+    if (removeBtn) removeBtn.style.display = 'none';
+    const hint = $('#card-preview-hint');
+    if (hint) hint.textContent = 'Upload a card to see preview. Then click where you want the QR code.';
+    const label = $('#card-drop-label');
+    if (label) label.textContent = '📂 Drop card image here or click to browse';
+    showAlert($('#card-upload-success'), 'Card template removed', 'success');
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+// Generate card with QR for a specific guest (used in download)
+function generateGuestCard(guest, qrDataUrl, cardTemplate) {
+  return new Promise((resolve) => {
+    const cardImg = new Image();
+    cardImg.onload = () => {
+      const W = cardImg.naturalWidth  || 800;
+      const H = cardImg.naturalHeight || 600;
+      const canvas = document.createElement('canvas');
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(cardImg, 0, 0, W, H);
+
+      const qrImg = new Image();
+      qrImg.onload = () => {
+        const qrW = (cardTemplate.qr_size / 100) * W;
+        const qrH = qrW;
+        const qrX = (cardTemplate.qr_x / 100) * W - qrW / 2;
+        const qrY = (cardTemplate.qr_y / 100) * H - qrH / 2;
+        ctx.drawImage(qrImg, qrX, qrY, qrW, qrH);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      qrImg.onerror = () => resolve(qrDataUrl); // fallback to plain QR
+      qrImg.src = qrDataUrl;
+    };
+    cardImg.onerror = () => resolve(qrDataUrl);
+    cardImg.src = cardTemplate.image;
+  });
+}
+
 // ── Tab Navigation ───────────────────────────────────────────
 function switchTab(tabId) {
   $$('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1608,6 +1868,7 @@ function switchTab(tabId) {
   if (tabId === 'tab-guests')    fetchGuests();
   if (tabId === 'tab-send')      loadSendTab();
   if (tabId === 'tab-activity')  fetchActivityLog();
+  if (tabId === 'tab-card')      initCardTab();
   if (tabId === 'tab-settings')  { fetchSettings(); fetchScannerAccounts(); }
 }
 
@@ -1656,7 +1917,7 @@ function initAdmin() {
   if (adminUser) adminUser.textContent = `👤 ${state.user.username}`;
 
   // Hide event-specific tabs until an event is opened
-  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"]')
+  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"], .nav-tab[data-tab="tab-card"]')
     .forEach(t => t.classList.add('hidden'));
 
   fetchEvents();
@@ -1748,6 +2009,76 @@ function initAdmin() {
 
   const printAllBtn = $('#print-all-qr-btn');
   if (printAllBtn) printAllBtn.addEventListener('click', printAllQR);
+
+  // Card template controls
+  const cardFile    = $('#card-file');
+  const cardDrop    = $('#card-drop-zone');
+  const saveCardBtn = $('#save-card-btn');
+  const removeCardBtn = $('#remove-card-btn');
+  const qrSlider    = $('#qr-size-slider');
+  const downloadSampleBtn = $('#download-sample-btn');
+
+  if (cardFile) {
+    cardFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        showAlert($('#card-upload-error'), 'Image too large. Maximum 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        cardState.imageDataUrl = ev.target.result;
+        cardState.qrX = null; cardState.qrY = null;
+        showCardPreview(ev.target.result);
+        const label = $('#card-drop-label');
+        if (label) label.textContent = '✅ ' + file.name;
+        const marker = $('#qr-position-marker');
+        if (marker) marker.style.display = 'none';
+        const sampleWrap = $('#card-sample-wrap');
+        if (sampleWrap) sampleWrap.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (cardDrop) {
+    cardDrop.addEventListener('click', () => cardFile && cardFile.click());
+    cardDrop.addEventListener('dragover', (e) => { e.preventDefault(); cardDrop.classList.add('drag-over'); });
+    cardDrop.addEventListener('dragleave', () => cardDrop.classList.remove('drag-over'));
+    cardDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      cardDrop.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) { cardFile.files = e.dataTransfer.files; cardFile.dispatchEvent(new Event('change')); }
+    });
+  }
+
+  if (qrSlider) {
+    qrSlider.addEventListener('input', (e) => {
+      cardState.qrSize = parseInt(e.target.value);
+      const label = $('#qr-size-label');
+      if (label) label.textContent = cardState.qrSize + '%';
+      if (cardState.qrX != null) {
+        updateQRMarker(cardState.qrX, cardState.qrY);
+        renderCardSample();
+      }
+    });
+  }
+
+  if (saveCardBtn)   saveCardBtn.addEventListener('click', saveCardTemplate);
+  if (removeCardBtn) removeCardBtn.addEventListener('click', removeCardTemplate);
+
+  if (downloadSampleBtn) {
+    downloadSampleBtn.addEventListener('click', () => {
+      const canvas = $('#card-sample-canvas');
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = 'card-sample.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  }
 
   // History modal close
   const histClose   = $('#history-modal-close');
