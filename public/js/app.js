@@ -1323,6 +1323,92 @@ function renderActivityLog(logs) {
     </div>`).join('');
 }
 
+// ── Bookings ─────────────────────────────────────────────────
+async function fetchBookings() {
+  const filter  = $('#booking-filter') ? $('#booking-filter').value : '';
+  const listEl  = $('#bookings-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="empty-state">Loading...</div>';
+  try {
+    let bookings = await api('GET', '/bookings');
+    if (filter) bookings = bookings.filter(b => b.status === filter);
+    renderBookings(bookings);
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty-state">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function renderBookings(bookings) {
+  const listEl = $('#bookings-list');
+  if (!listEl) return;
+  if (!bookings.length) {
+    listEl.innerHTML = '<div class="empty-state">No bookings yet. Share your landing page to get bookings!</div>';
+    return;
+  }
+
+  const statusLabels = { new: '🆕 New', contacted: '📞 Contacted', confirmed: '✅ Confirmed', cancelled: '❌ Cancelled' };
+  const statusBadge  = { new: 'badge-new', contacted: 'badge-contacted', confirmed: 'badge-confirmed', cancelled: 'badge-cancelled' };
+
+  listEl.innerHTML = '';
+  bookings.forEach(b => {
+    const card = document.createElement('div');
+    card.className = `booking-card status-${b.status}`;
+    card.innerHTML = `
+      <div class="booking-info">
+        <div class="booking-name">${escHtml(b.name)}</div>
+        <div class="booking-phone">📞 <a href="tel:${escHtml(b.phone)}">${escHtml(b.phone)}</a>
+          &nbsp;
+          <a href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" style="color:#25D366">💬 WhatsApp</a>
+        </div>
+        <div class="booking-meta">
+          ${b.event_date ? `📅 ${new Date(b.event_date).toLocaleDateString()}` : ''}
+          ${b.package    ? ` &nbsp;·&nbsp; 📦 ${escHtml(b.package)}` : ''}
+          &nbsp;·&nbsp; 🕐 ${formatDateTime(b.createdAt)}
+        </div>
+        ${b.message ? `<div class="booking-message">"${escHtml(b.message)}"</div>` : ''}
+        ${b.notes   ? `<div class="booking-message" style="color:var(--primary)">📝 ${escHtml(b.notes)}</div>` : ''}
+      </div>
+      <div class="booking-actions">
+        <span class="badge ${statusBadge[b.status]}">${statusLabels[b.status]}</span>
+        <select class="search-input" style="width:auto;font-size:0.8rem" data-id="${b._id}" onchange="updateBookingStatus(this)">
+          <option value="new"       ${b.status==='new'       ?'selected':''}>🆕 New</option>
+          <option value="contacted" ${b.status==='contacted' ?'selected':''}>📞 Contacted</option>
+          <option value="confirmed" ${b.status==='confirmed' ?'selected':''}>✅ Confirmed</option>
+          <option value="cancelled" ${b.status==='cancelled' ?'selected':''}>❌ Cancelled</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="addBookingNote('${b._id}')">📝 Note</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBooking('${b._id}','${escHtml(b.name).replace(/'/g,"\\'")}')">🗑</button>
+      </div>`;
+    listEl.appendChild(card);
+  });
+}
+
+async function updateBookingStatus(selectEl) {
+  const id     = selectEl.dataset.id;
+  const status = selectEl.value;
+  try {
+    await api('PATCH', `/bookings/${id}`, { status });
+    fetchBookings();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+async function addBookingNote(id) {
+  const note = prompt('Add a note for this booking (internal only):');
+  if (note === null) return;
+  try {
+    await api('PATCH', `/bookings/${id}`, { notes: note });
+    fetchBookings();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+async function deleteBooking(id, name) {
+  if (!confirm(`Delete booking from "${name}"?`)) return;
+  try {
+    await api('DELETE', `/bookings/${id}`);
+    fetchBookings();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
 // ── Business Dashboard ───────────────────────────────────────
 async function fetchDashboard() {
   try {
@@ -1517,6 +1603,7 @@ function switchTab(tabId) {
 
   if (tabId === 'tab-events')    fetchEvents();
   if (tabId === 'tab-dashboard') fetchDashboard();
+  if (tabId === 'tab-bookings')  fetchBookings();
   if (tabId === 'tab-overview')  { fetchStats(); renderRecentCheckins(); }
   if (tabId === 'tab-guests')    fetchGuests();
   if (tabId === 'tab-send')      loadSendTab();
@@ -1805,6 +1892,12 @@ function initAdmin() {
   // ── Beem Settings ────────────────────────────────────────
   const saveBeemBtn = $('#save-beem-btn');
   if (saveBeemBtn) saveBeemBtn.addEventListener('click', saveBeemSettings);
+
+  // Bookings tab controls
+  const bookingFilter    = $('#booking-filter');
+  const refreshBookings  = $('#refresh-bookings-btn');
+  if (bookingFilter)   bookingFilter.addEventListener('change', fetchBookings);
+  if (refreshBookings) refreshBookings.addEventListener('click', fetchBookings);
 
   // Test SMS button
   const testSmsBtn = $('#test-sms-btn');

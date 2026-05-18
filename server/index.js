@@ -14,6 +14,7 @@ const activityRoutes  = require('./routes/activity');
 const userRoutes      = require('./routes/users');
 const eventRoutes     = require('./routes/events');
 const dashboardRoutes = require('./routes/dashboard');
+const bookingRoutes   = require('./routes/bookings');
 
 const app    = express();
 const server = http.createServer(app);
@@ -44,6 +45,11 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Landing page
+app.get('/landing', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'landing.html'));
+});
+
 // ── Keep-alive ping endpoint (prevents Render free tier sleep) ──
 app.get('/ping', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
@@ -54,6 +60,7 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/events',   eventRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // ── Public guest page route ──────────────────────────────────
 // Serves the SPA for /guest/:token — frontend handles the display

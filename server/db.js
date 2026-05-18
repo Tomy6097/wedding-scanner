@@ -23,13 +23,13 @@ const userSchema = new mongoose.Schema({
 
 // ── Events ────────────────────────────────────────────────────
 const eventSchema = new mongoose.Schema({
-  name:        { type: String, required: true },       // e.g. "John & Jane Wedding"
-  client_name: { type: String, default: null },        // e.g. "John Smith"
+  name:        { type: String, required: true },
+  client_name: { type: String, default: null },
   date:        { type: Date, default: null },
   venue:       { type: String, default: null },
   status:      { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
-  color:       { type: String, default: '#7c3aed' },   // accent color for the event
-  pin:         { type: String, default: null }          // 4-digit PIN for scanner access
+  color:       { type: String, default: '#7c3aed' },
+  pin:         { type: String, default: null }
 }, { timestamps: true });
 
 // ── Guests ────────────────────────────────────────────────────
@@ -64,11 +64,23 @@ const activitySchema = new mongoose.Schema({
   note:       { type: String, default: null }
 }, { timestamps: true });
 
+// ── Bookings ──────────────────────────────────────────────────
+const bookingSchema = new mongoose.Schema({
+  name:       { type: String, required: true },
+  phone:      { type: String, required: true },
+  event_date: { type: String, default: null },
+  package:    { type: String, default: null },
+  message:    { type: String, default: null },
+  status:     { type: String, enum: ['new', 'contacted', 'confirmed', 'cancelled'], default: 'new' },
+  notes:      { type: String, default: null }   // admin internal notes
+}, { timestamps: true });
+
 const User     = mongoose.model('User',     userSchema);
 const Event    = mongoose.model('Event',    eventSchema);
 const Guest    = mongoose.model('Guest',    guestSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 const Activity = mongoose.model('Activity', activitySchema);
+const Booking  = mongoose.model('Booking',  bookingSchema);
 
 async function seedDefaults() {
   const adminExists = await User.findOne({ username: 'admin' });
@@ -81,7 +93,6 @@ async function seedDefaults() {
     await User.create({ username: 'scanner', password: bcrypt.hashSync('scanner123', 10), role: 'scanner' });
     console.log('Default scanner created: scanner / scanner123');
   }
-  // Migrate old guests (no event_id) into a default event
   const orphanGuests = await Guest.countDocuments({ event_id: { $exists: false } });
   if (orphanGuests > 0) {
     let defaultEvent = await Event.findOne({ name: 'Default Event' });
@@ -93,4 +104,4 @@ async function seedDefaults() {
   }
 }
 
-module.exports = { connectDB, User, Event, Guest, Settings, Activity };
+module.exports = { connectDB, User, Event, Guest, Settings, Activity, Booking };

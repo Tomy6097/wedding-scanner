@@ -59,6 +59,7 @@
     <div class="nav-tabs">
       <button class="nav-tab active" data-tab="tab-events">Events</button>
       <button class="nav-tab" data-tab="tab-dashboard">📊 Dashboard</button>
+      <button class="nav-tab" data-tab="tab-bookings">📋 Bookings</button>
       <button class="nav-tab hidden" data-tab="tab-overview">Overview</button>
       <button class="nav-tab hidden" data-tab="tab-guests">Guests</button>
       <button class="nav-tab hidden" data-tab="tab-add">Add Guest</button>
@@ -106,6 +107,28 @@
       </div>
       <h3 class="section-subtitle" style="margin-top:1.5rem">Recent Check-ins (All Events)</h3>
       <div id="dash-recent-list" class="recent-list"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- Bookings Tab -->
+  <div id="tab-bookings" class="tab-content hidden">
+    <div class="container">
+      <div class="guests-header">
+        <h2 class="section-title">📋 Bookings</h2>
+        <div class="guests-controls">
+          <select id="booking-filter" class="search-input" style="width:auto">
+            <option value="">All Bookings</option>
+            <option value="new">🆕 New</option>
+            <option value="contacted">📞 Contacted</option>
+            <option value="confirmed">✅ Confirmed</option>
+            <option value="cancelled">❌ Cancelled</option>
+          </select>
+          <button class="btn btn-outline btn-sm" id="refresh-bookings-btn">🔄 Refresh</button>
+        </div>
+      </div>
+      <div id="bookings-list" class="bookings-list">
+        <div class="empty-state">Loading bookings...</div>
+      </div>
     </div>
   </div>
 
