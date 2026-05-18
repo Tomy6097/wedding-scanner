@@ -13,7 +13,7 @@ function requireAdmin(req, res, next) {
 async function sendNotificationSMS(phone, message) {
   const apiKey    = (await Settings.findOne({ key: 'beem_api_key' }))?.value;
   const secretKey = (await Settings.findOne({ key: 'beem_secret_key' }))?.value;
-  if (!apiKey || !secretKey) return; // silently skip if not configured
+  if (!apiKey || !secretKey) throw new Error('Beem API keys not configured in Settings');
 
   const cleanPhone = phone.replace(/\D/g, '');
   const payloadObj = {
@@ -114,6 +114,18 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     await Booking.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// GET /api/bookings/test-notify — test SMS notification to admin
+router.get('/test-notify', requireAdmin, async (req, res) => {
+  const adminPhone = '255754696878';
+  const testMsg = `Test notification from TMJ Wedding Tech system. Time: ${new Date().toLocaleString()}`;
+  try {
+    await sendNotificationSMS(adminPhone, testMsg);
+    res.json({ success: true, message: 'Test SMS sent to ' + adminPhone });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
