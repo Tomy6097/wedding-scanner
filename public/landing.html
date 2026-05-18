@@ -385,17 +385,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Imeshindwa kutuma');
 
-      // Show success with M-Pesa payment instructions
-      sucEl.innerHTML = `
-        ✅ Asante! Maombi yako yamepokelewa.<br><br>
-        <strong>💰 Hatua Inayofuata — Lipa Deposit:</strong><br>
-        Tuma deposit ya <strong>20,000 Tsh</strong> kupitia M-Pesa:<br>
-        📱 <strong>Namba: 0754 696 878</strong><br>
-        Jina: <strong>TMJ Wedding Tech</strong><br><br>
-        Baada ya kulipa, tuma screenshot ya malipo WhatsApp:<br>
-        <a href="https://wa.me/255754696878" target="_blank" style="color:#25D366;font-weight:bold">💬 0754 696 878</a><br><br>
-        Tutawasiliana nawe hivi karibuni! 🎉
-      `;
+      sucEl.innerHTML = `✅ Asante! Maombi yako yamepokelewa. Tutawasiliana nawe hivi karibuni! 🎉`;
       sucEl.style.display = 'block';
       document.getElementById('b-name').value    = '';
       document.getElementById('b-phone').value   = '';
@@ -403,18 +393,6 @@
       document.getElementById('b-package').value = '';
       document.getElementById('b-message').value = '';
 
-      // Auto-open WhatsApp notification for admin (opens on client side)
-      if (data.whatsapp_notify_url) {
-        setTimeout(() => {
-          // Show WhatsApp button to client to notify admin
-          const waBtn = document.createElement('a');
-          waBtn.href = data.whatsapp_notify_url;
-          waBtn.target = '_blank';
-          waBtn.style.cssText = 'display:inline-block;margin-top:0.75rem;background:#25D366;color:#fff;padding:0.6rem 1.2rem;border-radius:8px;text-decoration:none;font-weight:600';
-          waBtn.textContent = '💬 Tuma WhatsApp kwa Uthibitisho';
-          sucEl.appendChild(waBtn);
-        }, 500);
-      }
 
     } catch (e) {
       errEl.textContent = '❌ ' + e.message;

@@ -1792,10 +1792,10 @@ function initAdmin() {
       try {
         const dup = await api('GET', `/guests/check-duplicate?name=${encodeURIComponent(name)}&event_id=${eventId}`);
         if (dup.exists) {
-          const proceed = confirm(`A guest named "${name}" already exists in this event. Add anyway?`);
-          if (!proceed) return;
+          showAlert(errEl, `A guest named "${name}" already exists in this event. Please use a different name or check the guest list.`);
+          return;
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) { /* ignore duplicate check errors */ }
 
       try {
         const guest = await addGuest(name, phone, table, eventId);
