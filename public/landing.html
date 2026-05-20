@@ -189,7 +189,7 @@
     }
   </style>
 </head>
-<body>
+<body id="top">
 
 <header>
   <h2>💍 TMJ Wedding Tech</h2>
@@ -404,6 +404,12 @@
       btn.textContent = '📋 Tuma Maombi';
     }
   }
+
+  // Force scroll to top — disable browser scroll restoration
+  if (history.scrollRestoration) history.scrollRestoration = 'manual';
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 
   // Allow Enter key on form
   document.addEventListener('keydown', (e) => {
