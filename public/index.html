@@ -139,13 +139,13 @@
       <!-- Dashboard Tab -->
       <div id="tab-dashboard" class="tab-content hidden">
         <div class="page-header"><h2>Dashboard</h2></div>
-        <div class="stats-grid" id="dash-summary-grid">
-          <div class="stat-card stat-total"><div class="stat-icon">🎪</div><div class="stat-value" id="dash-total-events">0</div><div class="stat-label">Total Events</div></div>
-          <div class="stat-card stat-checkedin"><div class="stat-icon">👥</div><div class="stat-value" id="dash-total-guests">0</div><div class="stat-label">Total Guests</div></div>
-          <div class="stat-card stat-remaining"><div class="stat-icon">✅</div><div class="stat-value" id="dash-checked-in">0</div><div class="stat-label">Checked In</div></div>
-          <div class="stat-card stat-percent"><div class="stat-icon">📊</div><div class="stat-value" id="dash-attendance">0%</div><div class="stat-label">Attendance</div></div>
-          <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-value" id="dash-total-scans">0</div><div class="stat-label">Total Scans</div></div>
-          <div class="stat-card"><div class="stat-icon">❓</div><div class="stat-value" id="dash-invalid-scans">0</div><div class="stat-label">Invalid Scans</div></div>
+        <div class="stats-grid">
+          <div class="stat-card stat-total"><div class="stat-icon"><i data-lucide="tent"></i></div><div class="stat-value" id="dash-total-events">0</div><div class="stat-label">Total Events</div></div>
+          <div class="stat-card stat-checkedin"><div class="stat-icon"><i data-lucide="users"></i></div><div class="stat-value" id="dash-total-guests">0</div><div class="stat-label">Total Guests</div></div>
+          <div class="stat-card stat-remaining"><div class="stat-icon"><i data-lucide="check-circle"></i></div><div class="stat-value" id="dash-checked-in">0</div><div class="stat-label">Checked In</div></div>
+          <div class="stat-card stat-percent"><div class="stat-icon"><i data-lucide="percent"></i></div><div class="stat-value" id="dash-attendance">0%</div><div class="stat-label">Attendance</div></div>
+          <div class="stat-card"><div class="stat-icon"><i data-lucide="scan-line"></i></div><div class="stat-value" id="dash-total-scans">0</div><div class="stat-label">Total Scans</div></div>
+          <div class="stat-card"><div class="stat-icon"><i data-lucide="alert-circle"></i></div><div class="stat-value" id="dash-invalid-scans">0</div><div class="stat-label">Invalid Scans</div></div>
         </div>
         <h3 class="section-subtitle">Per Event</h3>
         <div style="overflow-x:auto;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white)">
@@ -181,10 +181,10 @@
         <div class="event-breadcrumb" id="event-breadcrumb"></div>
         <div class="page-header"><h2>Overview</h2></div>
         <div class="stats-grid">
-          <div class="stat-card stat-total"><div class="stat-icon">👥</div><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Guests</div></div>
-          <div class="stat-card stat-checkedin"><div class="stat-icon">✅</div><div class="stat-value" id="stat-checkedin">0</div><div class="stat-label">Checked In</div></div>
-          <div class="stat-card stat-remaining"><div class="stat-icon">⏳</div><div class="stat-value" id="stat-remaining">0</div><div class="stat-label">Remaining</div></div>
-          <div class="stat-card stat-percent"><div class="stat-icon">📊</div><div class="stat-value" id="stat-percent">0%</div><div class="stat-label">Attendance</div></div>
+          <div class="stat-card stat-total"><div class="stat-icon"><i data-lucide="users"></i></div><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Guests</div></div>
+          <div class="stat-card stat-checkedin"><div class="stat-icon"><i data-lucide="check-circle"></i></div><div class="stat-value" id="stat-checkedin">0</div><div class="stat-label">Checked In</div></div>
+          <div class="stat-card stat-remaining"><div class="stat-icon"><i data-lucide="clock"></i></div><div class="stat-value" id="stat-remaining">0</div><div class="stat-label">Remaining</div></div>
+          <div class="stat-card stat-percent"><div class="stat-icon"><i data-lucide="percent"></i></div><div class="stat-value" id="stat-percent">0%</div><div class="stat-label">Attendance</div></div>
         </div>
         <div class="progress-section">
           <div class="progress-label"><span>Check-in Progress</span><span id="progress-text">0 / 0</span></div>

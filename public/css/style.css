@@ -375,20 +375,23 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 
 /* ===== STATS GRID ===== */
 .stats-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem; margin-bottom: 1.5rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem; margin-bottom: 1.5rem;
 }
 .stat-card {
   background: var(--white); border-radius: var(--radius);
-  padding: 1.25rem; border: 1px solid var(--gray-200);
+  padding: 1.1rem; border: 1px solid var(--gray-200);
   box-shadow: var(--shadow-sm);
 }
-.stat-icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
-.stat-value { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 0.2rem; color: var(--gray-900); }
-.stat-label { font-size: 0.78rem; color: var(--gray-400); font-weight: 500; }
-.stat-checkedin .stat-value { color: var(--success); }
-.stat-remaining .stat-value { color: var(--warning); }
-.stat-percent .stat-value { color: var(--primary); }
+.stat-icon { margin-bottom: 0.5rem; color: var(--gray-400); }
+.stat-icon svg { width: 18px; height: 18px; stroke-width: 1.75; }
+.stat-value { font-size: 1.8rem; font-weight: 800; line-height: 1; margin-bottom: 0.2rem; color: var(--gray-900); }
+.stat-label { font-size: 0.75rem; color: var(--gray-400); font-weight: 500; }
+/* Remove all colored stat variants */
+.stat-total .stat-value,
+.stat-checkedin .stat-value,
+.stat-remaining .stat-value,
+.stat-percent .stat-value { color: var(--gray-900); }
 
 /* ===== PROGRESS BAR ===== */
 .progress-section { margin-bottom: 1.5rem; }
@@ -423,7 +426,7 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 .event-card-meta { font-size: 0.72rem; color: var(--gray-400); margin-bottom: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .event-card-stats { display: flex; gap: 0; border-top: 1px solid var(--gray-100); padding: 0.5rem 0.9rem; }
 .event-stat { flex: 1; text-align: center; }
-.event-stat-value { display: block; font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+.event-stat-value { display: block; font-size: 1.2rem; font-weight: 700; color: var(--gray-900); }
 .event-stat-label { font-size: 0.65rem; color: var(--gray-400); }
 .event-card-progress { padding: 0 0.9rem 0.6rem; }
 .event-card-actions { display: none; }
@@ -483,8 +486,8 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
   padding: 0.2rem 0.55rem; border-radius: 999px;
   font-size: 0.72rem; font-weight: 600;
 }
-.badge-used   { background: var(--success-light); color: var(--success); }
-.badge-unused { background: var(--gray-100);      color: var(--gray-500); }
+.badge-used   { background: var(--gray-100); color: var(--gray-600); }
+.badge-unused { background: var(--gray-100); color: var(--gray-400); }
 .code-badge {
   display: inline-block; background: var(--gray-100); color: var(--gray-600);
   font-family: monospace; font-size: 0.72rem; padding: 0.15rem 0.4rem;
@@ -545,7 +548,7 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 .scanner-container { max-width: 560px; margin: 0 auto; padding: 1rem; }
 .scanner-stats { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
 .scanner-stat { flex: 1; background: var(--white); border-radius: var(--radius-sm); padding: 0.65rem; text-align: center; border: 1px solid var(--gray-200); }
-.scanner-stat-value { display: block; font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+.scanner-stat-value { display: block; font-size: 1.5rem; font-weight: 800; color: var(--gray-900); }
 .scanner-stat-label { font-size: 0.7rem; color: var(--gray-400); font-weight: 500; }
 
 /* ===== SCAN RESULT ===== */
@@ -623,10 +626,10 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 .booking-meta    { font-size: 0.75rem; color: var(--gray-400); margin-top: 0.25rem; }
 .booking-message { font-size: 0.8rem; color: var(--gray-600); margin-top: 0.4rem; font-style: italic; }
 .booking-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
-.badge-new       { background: #dbeafe; color: #1d4ed8; }
-.badge-contacted { background: var(--warning-light); color: #92400e; }
-.badge-confirmed { background: var(--success-light); color: var(--success); }
-.badge-cancelled { background: var(--error-light); color: var(--error); }
+.badge-new       { background: var(--gray-100); color: var(--gray-600); }
+.badge-contacted { background: var(--gray-100); color: var(--gray-600); }
+.badge-confirmed { background: var(--gray-100); color: var(--gray-700); font-weight: 700; }
+.badge-cancelled { background: var(--gray-100); color: var(--gray-400); }
 
 /* ===== SMS STATS ===== */
 .sms-stat-row { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--gray-100); font-size: 0.875rem; color: var(--gray-600); }
