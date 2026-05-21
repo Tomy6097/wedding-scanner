@@ -12,6 +12,8 @@
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/css/style.css" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -66,46 +68,46 @@
     <nav class="sidebar-nav">
       <div class="sidebar-section-label">Main</div>
       <button class="nav-item active" data-tab="tab-events">
-        <span class="nav-icon">🎪</span> Events
+        <span class="nav-icon"><i data-lucide="calendar-days"></i></span> Events
       </button>
       <button class="nav-item" data-tab="tab-dashboard">
-        <span class="nav-icon">📊</span> Dashboard
+        <span class="nav-icon"><i data-lucide="bar-chart-2"></i></span> Dashboard
       </button>
       <button class="nav-item" data-tab="tab-bookings">
-        <span class="nav-icon">📋</span> Bookings
+        <span class="nav-icon"><i data-lucide="clipboard-list"></i></span> Bookings
         <span class="nav-badge" id="bookings-badge" style="display:none">0</span>
       </button>
 
       <div class="sidebar-section-label" id="event-nav-section" style="display:none">Current Event</div>
       <button class="nav-item hidden" data-tab="tab-overview">
-        <span class="nav-icon">📈</span> Overview
+        <span class="nav-icon"><i data-lucide="activity"></i></span> Overview
       </button>
       <button class="nav-item hidden" data-tab="tab-guests">
-        <span class="nav-icon">👥</span> Guests
+        <span class="nav-icon"><i data-lucide="users"></i></span> Guests
       </button>
       <button class="nav-item hidden" data-tab="tab-add">
-        <span class="nav-icon">➕</span> Add Guest
+        <span class="nav-icon"><i data-lucide="user-plus"></i></span> Add Guest
       </button>
       <button class="nav-item hidden" data-tab="tab-send">
-        <span class="nav-icon">📨</span> Send Invites
+        <span class="nav-icon"><i data-lucide="send"></i></span> Send Invites
       </button>
       <button class="nav-item hidden" data-tab="tab-card">
-        <span class="nav-icon">🎨</span> Card Template
+        <span class="nav-icon"><i data-lucide="image"></i></span> Card Template
       </button>
       <button class="nav-item hidden" data-tab="tab-activity">
-        <span class="nav-icon">📜</span> Activity Log
+        <span class="nav-icon"><i data-lucide="scroll-text"></i></span> Activity Log
       </button>
 
       <div class="sidebar-section-label">System</div>
       <button class="nav-item" data-tab="tab-settings">
-        <span class="nav-icon">⚙️</span> Settings
+        <span class="nav-icon"><i data-lucide="settings"></i></span> Settings
       </button>
     </nav>
 
     <div class="sidebar-footer">
       <div class="sidebar-user" id="admin-username"></div>
       <button class="sidebar-logout" id="admin-logout">
-        <span>↩</span> Sign out
+        <i data-lucide="log-out" style="width:14px;height:14px"></i> Sign out
       </button>
     </div>
   </aside>

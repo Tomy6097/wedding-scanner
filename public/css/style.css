@@ -709,3 +709,10 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 ::-webkit-scrollbar-track { background: var(--gray-100); }
 ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+/* ===== LUCIDE ICONS ===== */
+.nav-icon svg, .nav-icon i svg {
+  width: 16px; height: 16px;
+  stroke-width: 1.75;
+  vertical-align: middle;
+}

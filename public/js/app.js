@@ -244,6 +244,8 @@ function renderEventsGrid(events) {
     }
     grid.appendChild(card);
   });
+  // Re-initialize Lucide icons for dynamically added content
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function openEvent(event) {
@@ -1963,7 +1965,22 @@ function initAdmin() {
   // Sidebar nav items
   $$('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-      switchTab(item.dataset.tab);
+      const tabId = item.dataset.tab;
+      switchTab(tabId);
+
+      // If clicking a Main or System tab (not a current-event tab),
+      // collapse the current event section in sidebar
+      const eventTabs = ['tab-overview','tab-guests','tab-add','tab-send','tab-card','tab-activity'];
+      if (!eventTabs.includes(tabId)) {
+        // Collapse current event nav items
+        $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
+          .forEach(t => t.classList.add('hidden'));
+        const sectionLabel = $('#event-nav-section');
+        if (sectionLabel) sectionLabel.style.display = 'none';
+        state.currentEvent = null;
+        state.recentCheckins = [];
+      }
+
       // Close sidebar on mobile
       const sidebar = $('#sidebar');
       const overlay = $('#sidebar-overlay');
@@ -2480,6 +2497,8 @@ function initPWA() {
 
 // ── Boot ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Lucide icons
+  if (typeof lucide !== 'undefined') lucide.createIcons();
   initPWA();
   init();
   // Close any open card dropdowns when clicking outside
