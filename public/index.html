@@ -45,8 +45,8 @@
     <div class="login-contact">
       <small>Need help?</small>
       <div class="login-contact-btns">
-        <a href="tel:+255754696878" class="btn-contact">📞 Call</a>
-        <a href="https://wa.me/255754696878" target="_blank" class="btn-contact btn-contact-wa">💬 WhatsApp</a>
+        <a href="tel:+255754696878" class="btn-contact"><i data-lucide="phone" style="width:14px;height:14px"></i> Call</a>
+        <a href="https://wa.me/255754696878" target="_blank" class="btn-contact btn-contact-wa"><i data-lucide="message-circle" style="width:14px;height:14px"></i> WhatsApp</a>
       </div>
     </div>
   </div>
@@ -116,7 +116,7 @@
   <div class="main-content">
     <!-- Topbar -->
     <div class="topbar">
-      <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+      <button class="sidebar-toggle" id="sidebar-toggle"><i data-lucide="menu"></i></button>
       <div class="topbar-title" id="topbar-title">Events</div>
       <div class="topbar-breadcrumb hidden" id="topbar-breadcrumb"></div>
       <div class="topbar-actions" id="topbar-actions"></div>
@@ -129,7 +129,7 @@
       <div id="tab-events" class="tab-content active">
         <div class="page-header">
           <h2>My Events</h2>
-          <button class="btn btn-primary btn-sm" id="create-event-btn">+ New Event</button>
+          <button class="btn btn-primary btn-sm" id="create-event-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> New Event</button>
         </div>
         <div id="events-grid" class="events-grid">
           <div class="empty-state">Loading events...</div>
@@ -170,7 +170,7 @@
               <option value="confirmed">Confirmed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            <button class="btn btn-outline btn-sm" id="refresh-bookings-btn">↻ Refresh</button>
+            <button class="btn btn-outline btn-sm" id="refresh-bookings-btn"><i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh</button>
           </div>
         </div>
         <div id="bookings-list" class="bookings-list"><div class="empty-state">Loading...</div></div>
@@ -201,10 +201,10 @@
           <h2 class="section-title">Guests</h2>
           <div class="guests-controls">
             <input type="text" id="guest-search" placeholder="Search..." class="search-input" />
-            <button class="btn btn-outline btn-sm" id="export-btn">↓ CSV</button>
-            <button class="btn btn-outline btn-sm" id="download-all-qr-btn">↓ All QR</button>
-            <button class="btn btn-outline btn-sm" id="print-all-qr-btn">⎙ Print All</button>
-            <button class="btn btn-ghost btn-sm" id="delete-all-btn" style="color:var(--error)">🗑 Delete All</button>
+            <button class="btn btn-outline btn-sm" id="export-btn"><i data-lucide="download" style="width:14px;height:14px"></i> CSV</button>
+            <button class="btn btn-outline btn-sm" id="download-all-qr-btn"><i data-lucide="qr-code" style="width:14px;height:14px"></i> All QR</button>
+            <button class="btn btn-outline btn-sm" id="print-all-qr-btn"><i data-lucide="printer" style="width:14px;height:14px"></i> Print All</button>
+            <button class="btn btn-ghost btn-sm" id="delete-all-btn" style="color:var(--error)"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete All</button>
           </div>
         </div>
         <div class="guests-table-wrap">
@@ -228,7 +228,7 @@
               <div class="form-group"><label>Table / Seat</label><input type="text" id="guest-table" placeholder="e.g. Table 5, VIP" /></div>
               <div id="add-guest-error" class="alert alert-error hidden"></div>
               <div id="add-guest-success" class="alert alert-success hidden"></div>
-              <button type="submit" class="btn btn-primary btn-full">Add Guest & Generate QR</button>
+              <button type="submit" class="btn btn-primary btn-full"><i data-lucide="user-plus" style="width:14px;height:14px"></i> Add Guest & Generate QR</button>
             </form>
           </div>
           <div class="card">
@@ -241,7 +241,7 @@
             <div id="csv-preview" class="csv-preview hidden"></div>
             <div id="bulk-error" class="alert alert-error hidden"></div>
             <div id="bulk-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-secondary btn-full mt-1" id="bulk-import-btn" disabled>Import Guests</button>
+            <button class="btn btn-secondary btn-full mt-1" id="bulk-import-btn" disabled><i data-lucide="upload" style="width:14px;height:14px"></i> Import Guests</button>
           </div>
         </div>
       </div>
@@ -259,7 +259,7 @@
               <label><input type="checkbox" id="sms-only-unsent" checked /> Only send to guests who haven't received SMS yet</label>
             </div>
             <div id="sms-result" class="alert hidden"></div>
-            <button class="btn btn-primary btn-full" id="send-all-sms-btn">Send SMS to All</button>
+            <button class="btn btn-primary btn-full" id="send-all-sms-btn"><i data-lucide="send" style="width:14px;height:14px"></i> Send SMS to All</button>
             <p class="hint-text" style="margin-top:0.4rem">Requires Beem Africa API keys in Settings</p>
           </div>
           <div class="card">
@@ -272,7 +272,7 @@
               3. Send each guest their personal link<br>
               4. Each guest opens their link to see their QR
             </div>
-            <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn">💬 Download Broadcast CSV</button>
+            <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Download Broadcast CSV</button>
           </div>
         </div>
       </div>
@@ -296,7 +296,7 @@
             <div id="card-upload-error" class="alert alert-error hidden"></div>
             <div id="card-upload-success" class="alert alert-success hidden"></div>
             <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
-              <button class="btn btn-primary btn-full" id="save-card-btn" disabled>Save Template</button>
+              <button class="btn btn-primary btn-full" id="save-card-btn" disabled><i data-lucide="save" style="width:14px;height:14px"></i> Save Template</button>
               <button class="btn btn-ghost btn-sm" id="remove-card-btn" style="display:none;color:var(--error)">Remove</button>
             </div>
           </div>
@@ -312,7 +312,7 @@
             <div id="card-sample-wrap" style="display:none;margin-top:1rem">
               <p class="hint-text">Sample with QR:</p>
               <canvas id="card-sample-canvas" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--gray-200)"></canvas>
-              <button class="btn btn-outline btn-sm" style="margin-top:0.5rem" id="download-sample-btn">↓ Download Sample</button>
+              <button class="btn btn-outline btn-sm" style="margin-top:0.5rem" id="download-sample-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Download Sample</button>
             </div>
           </div>
         </div>
@@ -332,8 +332,8 @@
               <option value="reset">↩ Reset</option>
             </select>
             <input type="text" id="activity-scanner-filter" placeholder="Filter by scanner..." class="search-input" style="width:140px" />
-            <button class="btn btn-outline btn-sm" id="refresh-activity-btn">↻</button>
-            <button class="btn btn-ghost btn-sm" id="clear-activity-btn" style="color:var(--error)">Clear</button>
+            <button class="btn btn-outline btn-sm" id="refresh-activity-btn"><i data-lucide="refresh-cw" style="width:14px;height:14px"></i></button>
+            <button class="btn btn-ghost btn-sm" id="clear-activity-btn" style="color:var(--error)"><i data-lucide="trash" style="width:14px;height:14px"></i> Clear</button>
           </div>
         </div>
         <div id="activity-list" class="activity-list"><div class="empty-state">Loading...</div></div>
@@ -365,7 +365,7 @@
           </div>
 
           <div class="card">
-            <h3>📱 Beem Africa SMS</h3>
+            <h3>Beem Africa SMS</h3>
             <p class="hint-text">Register at <strong>beem.africa</strong> to get API keys. ~TZS 30 per SMS.</p>
             <div class="form-group"><label>API Key</label><input type="text" id="beem-api-key" placeholder="Your Beem API Key" /></div>
             <div class="form-group"><label>Secret Key</label><input type="password" id="beem-secret-key" placeholder="Your Beem Secret Key" /></div>
@@ -392,7 +392,7 @@
             </div>
             <div id="new-scanner-error" class="alert alert-error hidden"></div>
             <div id="new-scanner-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary btn-sm" id="add-scanner-btn">+ Add Scanner Account</button>
+            <button class="btn btn-primary btn-sm" id="add-scanner-btn"><i data-lucide="user-plus" style="width:14px;height:14px"></i> Add Scanner Account</button>
             <div id="scanners-list" style="margin-top:1rem"></div>
           </div>
 
@@ -407,7 +407,7 @@
 <div id="event-modal" class="modal hidden">
   <div class="modal-overlay" id="event-modal-overlay"></div>
   <div class="modal-content">
-    <button class="modal-close" id="event-modal-close">✕</button>
+    <button class="modal-close" id="event-modal-close"><i data-lucide="x" style="width:14px;height:14px"></i></button>
     <h2 id="event-modal-title">Create New Event</h2>
     <div class="form-group"><label>Event Name *</label><input type="text" id="ev-name" placeholder="e.g. John & Jane's Wedding" /></div>
     <div class="form-group"><label>Client Name</label><input type="text" id="ev-client" placeholder="e.g. John Smith" /></div>
@@ -422,14 +422,14 @@
 <div id="qr-modal" class="modal hidden">
   <div class="modal-overlay" id="qr-modal-overlay"></div>
   <div class="modal-content">
-    <button class="modal-close" id="qr-modal-close">✕</button>
+    <button class="modal-close" id="qr-modal-close"><i data-lucide="x" style="width:14px;height:14px"></i></button>
     <h2>QR Code Generated</h2>
     <div id="qr-card-preview"></div>
     <div class="qr-actions">
-      <button class="btn btn-primary btn-sm" id="qr-download-btn">↓ Download</button>
-      <button class="btn btn-outline btn-sm" id="qr-print-btn">⎙ Print</button>
-      <button class="btn btn-whatsapp btn-sm" id="qr-whatsapp-btn">💬 WhatsApp</button>
-      <button class="btn btn-sms btn-sm" id="qr-sms-btn">📱 SMS</button>
+      <button class="btn btn-primary btn-sm" id="qr-download-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Download</button>
+      <button class="btn btn-outline btn-sm" id="qr-print-btn"><i data-lucide="printer" style="width:14px;height:14px"></i> Print</button>
+      <button class="btn btn-whatsapp btn-sm" id="qr-whatsapp-btn"><i data-lucide="message-circle" style="width:14px;height:14px"></i> WhatsApp</button>
+      <button class="btn btn-sms btn-sm" id="qr-sms-btn"><i data-lucide="smartphone" style="width:14px;height:14px"></i> SMS</button>
     </div>
   </div>
 </div>
@@ -437,14 +437,14 @@
 <div id="view-qr-modal" class="modal hidden">
   <div class="modal-overlay" id="view-qr-modal-overlay"></div>
   <div class="modal-content">
-    <button class="modal-close" id="view-qr-modal-close">✕</button>
+    <button class="modal-close" id="view-qr-modal-close"><i data-lucide="x" style="width:14px;height:14px"></i></button>
     <h2 id="view-qr-title">Guest QR Code</h2>
     <div id="view-qr-card-preview"></div>
     <div class="qr-actions">
-      <button class="btn btn-primary btn-sm" id="view-qr-download-btn">↓ Download</button>
-      <button class="btn btn-outline btn-sm" id="view-qr-print-btn">⎙ Print</button>
-      <button class="btn btn-whatsapp btn-sm" id="view-qr-whatsapp-btn">💬 WhatsApp</button>
-      <button class="btn btn-sms btn-sm" id="view-qr-sms-btn">📱 SMS</button>
+      <button class="btn btn-primary btn-sm" id="view-qr-download-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Download</button>
+      <button class="btn btn-outline btn-sm" id="view-qr-print-btn"><i data-lucide="printer" style="width:14px;height:14px"></i> Print</button>
+      <button class="btn btn-whatsapp btn-sm" id="view-qr-whatsapp-btn"><i data-lucide="message-circle" style="width:14px;height:14px"></i> WhatsApp</button>
+      <button class="btn btn-sms btn-sm" id="view-qr-sms-btn"><i data-lucide="smartphone" style="width:14px;height:14px"></i> SMS</button>
     </div>
   </div>
 </div>
@@ -472,7 +472,7 @@
 <div id="history-modal" class="modal hidden">
   <div class="modal-overlay" id="history-modal-overlay"></div>
   <div class="modal-content" style="max-width:500px">
-    <button class="modal-close" id="history-modal-close">✕</button>
+    <button class="modal-close" id="history-modal-close"><i data-lucide="x" style="width:14px;height:14px"></i></button>
     <h2 id="history-modal-title">Scan History</h2>
     <div id="history-modal-body" class="activity-list" style="margin-top:1rem"></div>
   </div>
@@ -497,7 +497,7 @@
     <div class="scanner-topbar-brand">💍 <span id="scanner-event-name">Check-in Scanner</span></div>
     <div class="scanner-topbar-right">
       <span class="scanner-topbar-user" id="scanner-username"></span>
-      <button class="btn btn-outline btn-sm" id="scanner-logout" style="color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.2)">Sign out</button>
+      <button class="btn btn-outline btn-sm" id="scanner-logout" style="color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.2)"><i data-lucide="log-out" style="width:14px;height:14px"></i> Sign out</button>
     </div>
   </div>
 
@@ -513,7 +513,7 @@
       <div class="scanner-stat"><span class="scanner-stat-value" id="sc-remaining">0</span><span class="scanner-stat-label">Remaining</span></div>
     </div>
     <div id="scan-result" class="scan-result scan-idle">
-      <div class="scan-result-icon" id="scan-icon">📷</div>
+      <div class="scan-result-icon" id="scan-icon"><i data-lucide="scan-line"></i></div>
       <div class="scan-result-message" id="scan-message">Ready to Scan</div>
       <div class="scan-result-name" id="scan-name"></div>
       <div class="scan-result-time" id="scan-time"></div>
@@ -521,8 +521,8 @@
     <div class="camera-section">
       <div id="qr-reader" class="qr-reader"></div>
       <div class="camera-controls">
-        <button class="btn btn-primary btn-lg" id="start-scan-btn">📷 Start Camera</button>
-        <button class="btn btn-outline btn-lg hidden" id="stop-scan-btn">⏹ Stop</button>
+        <button class="btn btn-primary btn-lg" id="start-scan-btn"><i data-lucide="camera" style="width:18px;height:18px"></i> Start Camera</button>
+        <button class="btn btn-outline btn-lg hidden" id="stop-scan-btn"><i data-lucide="square" style="width:18px;height:18px"></i> Stop</button>
       </div>
     </div>
     <div class="manual-section">
@@ -544,8 +544,8 @@
     <div class="pwa-text"><strong>Install App</strong><span>Add to home screen</span></div>
   </div>
   <div class="pwa-banner-actions">
-    <button class="btn btn-primary btn-sm" id="pwa-install-btn">Install</button>
-    <button class="btn btn-ghost btn-sm" id="pwa-dismiss-btn">✕</button>
+    <button class="btn btn-primary btn-sm" id="pwa-install-btn"><i data-lucide="download" style="width:13px;height:13px"></i> Install</button>
+    <button class="btn btn-ghost btn-sm" id="pwa-dismiss-btn"><i data-lucide="x" style="width:13px;height:13px"></i></button>
   </div>
 </div>
 

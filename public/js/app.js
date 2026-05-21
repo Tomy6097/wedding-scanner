@@ -199,10 +199,10 @@ function renderEventsGrid(events) {
         <div class="event-card-name">${escHtml(ev.name)}</div>
         ${ev.client_name ? `<div class="event-card-client">${escHtml(ev.client_name)}</div>` : ''}
         <div class="event-card-meta">
-          ${ev.date  ? `<span>📅 ${escHtml(new Date(ev.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}</span>` : ''}
-          ${ev.venue ? `<span>📍 ${escHtml(ev.venue)}</span>` : ''}
-          ${ev.has_pin ? `<span>🔒</span>` : ''}
-          ${ev.status === 'completed' ? `<span style="color:var(--success)">✓ Done</span>` : ''}
+          ${ev.date  ? `<span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> ${escHtml(new Date(ev.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}</span>` : ''}
+          ${ev.venue ? `<span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> ${escHtml(ev.venue)}</span>` : ''}
+          ${ev.has_pin ? `<span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>` : ''}
+          ${ev.status === 'completed' ? `<span style="color:var(--gray-400)">Completed</span>` : ''}
         </div>
       </div>
       <div class="event-card-stats">
@@ -1128,12 +1128,12 @@ function startScanner() {
     }).catch(err => {
       console.error('Camera error:', err);
       html5QrCode = null;
-      setScanResult('invalid', '📵', 'Camera Error', 'Please allow camera access and try again');
+      setScanResult('invalid', '<i data-lucide="camera-off"></i>', 'Camera Error', 'Please allow camera access and try again');
     });
   } catch (err) {
     console.error('Camera init error:', err);
     html5QrCode = null;
-    setScanResult('invalid', '📵', 'Camera Error', 'Please allow camera access and try again');
+    setScanResult('invalid', '<i data-lucide="camera-off"></i>', 'Camera Error', 'Please allow camera access and try again');
   }
 }
 
@@ -1158,7 +1158,7 @@ async function onScanSuccess(token) {
     const result = await api('POST', '/guests/scan', body);
     handleScanResult(result);
   } catch (e) {
-    setScanResult('invalid', '❌', 'Error', e.message);
+    setScanResult('invalid', '<i data-lucide="alert-triangle"></i>', 'Error', e.message);
     playSound('error');
   }
   setTimeout(() => { state.scanCooldown = false; }, 2500);
@@ -1168,14 +1168,14 @@ function handleScanResult(result) {
   if (result.result === 'granted') {
     const name  = result.guest ? result.guest.name : '';
     const table = result.guest && result.guest.table_number ? ` · ${result.guest.table_number}` : '';
-    setScanResult('granted', '✅', 'Access Granted', name + table, result.guest ? result.guest.checked_in_at : '');
+    setScanResult('granted', '<i data-lucide="check-circle"></i>', 'Access Granted', name + table, result.guest ? result.guest.checked_in_at : '');
     playSound('success');
     fetchScannerStats();
   } else if (result.result === 'used') {
-    setScanResult('used', '🚫', 'Already Checked In', result.guest ? result.guest.name : '', result.guest ? result.guest.checked_in_at : '');
+    setScanResult('used', '<i data-lucide="x-circle"></i>', 'Already Checked In', result.guest ? result.guest.name : '', result.guest ? result.guest.checked_in_at : '');
     playSound('error');
   } else {
-    setScanResult('invalid', '❓', 'Invalid QR Code', 'This QR code is not recognized');
+    setScanResult('invalid', '<i data-lucide="alert-circle"></i>', 'Invalid QR Code', 'This QR code is not recognized');
     playSound('error');
   }
 }
@@ -1190,13 +1190,15 @@ function setScanResult(type, icon, message, name, time) {
   const timeEl = $('#scan-time');
   if (!el) return;
   el.className       = `scan-result scan-${type}`;
-  iconEl.textContent = icon;
+  iconEl.innerHTML = icon;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
   msgEl.textContent  = message;
   nameEl.textContent = name;
   timeEl.textContent = time ? `at ${formatDateTime(time)}` : '';
   setTimeout(() => {
     el.className       = 'scan-result scan-idle';
-    iconEl.textContent = '📷';
+    iconEl.innerHTML = '<i data-lucide="scan-line"></i>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
     msgEl.textContent  = 'Ready to Scan';
     nameEl.textContent = '';
     timeEl.textContent = '';
@@ -1258,7 +1260,7 @@ async function manualCheckIn(token) {
     const query = $('#manual-search-input') ? $('#manual-search-input').value : '';
     if (query) await manualSearch(query);
   } catch (e) {
-    setScanResult('invalid', '❌', 'Error', e.message);
+    setScanResult('invalid', '<i data-lucide="alert-triangle"></i>', 'Error', e.message);
   }
 }
 
@@ -1355,7 +1357,7 @@ function renderActivityLog(logs) {
     el.innerHTML = '<div class="empty-state">No activity recorded yet</div>';
     return;
   }
-  const icons = { granted: '✅', used: '🚫', invalid: '❓', reset: '↩' };
+  const icons = { granted: '<i data-lucide="check-circle" style="width:16px;height:16px;color:var(--success)"></i>', used: '<i data-lucide="x-circle" style="width:16px;height:16px;color:var(--error)"></i>', invalid: '<i data-lucide="alert-circle" style="width:16px;height:16px;color:var(--warning)"></i>', reset: '<i data-lucide="rotate-ccw" style="width:16px;height:16px;color:var(--primary)"></i>' };
   el.innerHTML = logs.map(log => `
     <div class="activity-item action-${log.action}">
       <div class="activity-icon">${icons[log.action] || '📋'}</div>
@@ -1374,6 +1376,7 @@ function renderActivityLog(logs) {
       </div>
       <div class="activity-time">${formatDateTime(log.createdAt)}</div>
     </div>`).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ── Bookings ─────────────────────────────────────────────────
@@ -1409,12 +1412,12 @@ function renderBookings(bookings) {
     card.innerHTML = `
       <div class="booking-info">
         <div class="booking-name">${escHtml(b.name)}</div>
-        <div class="booking-phone">📞 <a href="tel:${escHtml(b.phone)}">${escHtml(b.phone)}</a>
+        <div class="booking-phone">📞<a href="tel:${escHtml(b.phone)}">${escHtml(b.phone)}</a>
           &nbsp;
-          <a href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" style="color:#25D366">💬 WhatsApp</a>
+         <a href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" style="color:#25D366">💬 WhatsApp</a>
         </div>
         <div class="booking-meta">
-          ${b.event_date ? `📅 ${new Date(b.event_date).toLocaleDateString()}` : ''}
+          ${b.event_date ? `${new Date(b.event_date).toLocaleDateString()}` : ''}
           ${b.package    ? ` &nbsp;·&nbsp; 📦 ${escHtml(b.package)}` : ''}
           &nbsp;·&nbsp; 🕐 ${formatDateTime(b.createdAt)}
         </div>
@@ -1539,10 +1542,10 @@ async function viewGuestHistory(id, name) {
       bodyEl.innerHTML = '<div class="empty-state">No scan attempts recorded</div>';
       return;
     }
-    const icons = { granted: '✅', used: '🚫', invalid: '❓', reset: '↩' };
+    const icons = { granted: '<i data-lucide="check-circle" style="width:16px;height:16px;color:var(--success)"></i>', used: '<i data-lucide="x-circle" style="width:16px;height:16px;color:var(--error)"></i>', invalid: '<i data-lucide="alert-circle" style="width:16px;height:16px;color:var(--warning)"></i>', reset: '<i data-lucide="rotate-ccw" style="width:16px;height:16px;color:var(--primary)"></i>' };
     bodyEl.innerHTML = logs.map(log => `
       <div class="activity-item action-${log.action}">
-        <div class="activity-icon">${icons[log.action] || '📋'}</div>
+        <div class="activity-icon">${icons[log.action] || '<i data-lucide="file-text" style="width:16px;height:16px"></i>'}</div>
         <div class="activity-info">
           <div class="activity-main">
             ${log.action === 'granted' ? 'Checked in' :
@@ -1553,6 +1556,7 @@ async function viewGuestHistory(id, name) {
         </div>
         <div class="activity-time">${formatDateTime(log.createdAt)}</div>
       </div>`).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   } catch (e) {
     if (bodyEl) bodyEl.innerHTML = `<div class="empty-state">Failed to load: ${e.message}</div>`;
   }

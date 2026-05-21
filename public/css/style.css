@@ -719,3 +719,23 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
   stroke-width: 1.75;
   vertical-align: middle;
 }
+
+/* ===== SCAN RESULT ICON ===== */
+.scan-result-icon { margin-bottom: 0.5rem; display: flex; justify-content: center; }
+.scan-result-icon svg { width: 48px; height: 48px; stroke-width: 1.5; }
+.scan-idle .scan-result-icon svg    { color: var(--gray-300); }
+.scan-granted .scan-result-icon svg { color: var(--success); }
+.scan-used .scan-result-icon svg    { color: var(--error); }
+.scan-invalid .scan-result-icon svg { color: var(--warning); }
+
+/* ===== RECENT ITEM ICON ===== */
+.recent-item-icon { display: flex; align-items: center; }
+.recent-item-icon svg { width: 18px; height: 18px; color: var(--gray-400); }
+
+/* ===== ACTIVITY ICON ===== */
+.activity-icon { display: flex; align-items: center; flex-shrink: 0; }
+.activity-icon svg { width: 16px; height: 16px; }
+.action-granted .activity-icon svg { color: var(--success); }
+.action-used    .activity-icon svg { color: var(--error); }
+.action-invalid .activity-icon svg { color: var(--warning); }
+.action-reset   .activity-icon svg { color: var(--primary); }
