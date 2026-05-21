@@ -193,35 +193,33 @@ function renderEventsGrid(events) {
 
     const card = document.createElement('div');
     card.className = 'event-card';
-    if (ev.status === 'completed') card.style.opacity = '0.7';
-    card.style.setProperty('--event-color', color);
+    if (ev.status === 'completed') card.style.opacity = '0.65';
     card.innerHTML = `
-      <div class="event-card-header">
+      <div class="event-card-top"></div>
+      <div class="event-card-body">
         <div class="event-card-name">${escHtml(ev.name)}</div>
         ${ev.client_name ? `<div class="event-card-client">${escHtml(ev.client_name)}</div>` : ''}
-      </div>
-      <div class="event-card-meta">
-        ${ev.date  ? `<span>📅 ${escHtml(dateStr)}</span>` : ''}
-        ${ev.venue ? `<span>📍 ${escHtml(ev.venue)}</span>` : ''}
+        <div class="event-card-meta">
+          ${ev.date  ? `<span>📅 ${escHtml(new Date(ev.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}</span>` : ''}
+          ${ev.venue ? `<span>📍 ${escHtml(ev.venue)}</span>` : ''}
+          ${ev.has_pin ? `<span>🔒 PIN</span>` : ''}
+        </div>
       </div>
       <div class="event-card-stats">
         <div class="event-stat"><span class="event-stat-value">${total}</span><span class="event-stat-label">Total</span></div>
-        <div class="event-stat"><span class="event-stat-value">${checkedIn}</span><span class="event-stat-label">Checked In</span></div>
-        <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Remaining</span></div>
+        <div class="event-stat"><span class="event-stat-value">${checkedIn}</span><span class="event-stat-label">In</span></div>
+        <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Left</span></div>
       </div>
       <div class="event-card-progress">
-        <div class="progress-bar" style="height:6px">
-          <div class="progress-fill" style="width:${pct}%;background:var(--event-color)"></div>
+        <div class="progress-bar" style="height:4px">
+          <div class="progress-fill" style="width:${pct}%"></div>
         </div>
-        <small style="color:var(--gray-400)">${pct}% attendance</small>
       </div>
       <div class="event-card-actions">
-        <button class="btn btn-primary btn-sm js-open-event">Open →</button>
-        <button class="btn btn-outline btn-sm js-edit-event">✏️ Edit</button>
-        ${ev.status === 'active'
-          ? `<button class="btn btn-outline btn-sm js-status-event" style="color:var(--success);border-color:var(--success)">✅ Complete</button>`
-          : `<button class="btn btn-outline btn-sm js-status-event" style="color:var(--warning);border-color:var(--warning)">🔄 Reactivate</button>`}
-        <button class="btn btn-danger btn-sm js-delete-event">🗑 Delete</button>
+        <button class="action-link primary js-open-event">→ Open event</button>
+        <button class="action-link js-edit-event">✎ Edit details</button>
+        <button class="action-link js-status-event">${ev.status === 'active' ? '✓ Mark complete' : '↺ Reactivate'}</button>
+        <button class="action-link danger js-delete-event">✕ Delete event</button>
       </div>`;
 
     card.querySelector('.js-open-event').addEventListener('click', () => openEvent(ev));
@@ -237,9 +235,13 @@ function openEvent(event) {
   state.currentEvent = event;
   state.recentCheckins = [];
 
-  // Show event-specific tabs
-  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"], .nav-tab[data-tab="tab-card"]')
+  // Show event-specific nav items
+  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
     .forEach(t => t.classList.remove('hidden'));
+
+  // Show the event nav section label
+  const sectionLabel = $('#event-nav-section');
+  if (sectionLabel) sectionLabel.style.display = '';
 
   updateBreadcrumbs();
   switchTab('tab-overview');
@@ -261,9 +263,11 @@ function updateBreadcrumbs() {
 function backToEvents() {
   state.currentEvent = null;
   state.recentCheckins = [];
-  // Hide event-specific tabs
-  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"], .nav-tab[data-tab="tab-card"]')
+  // Hide event-specific nav items
+  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
     .forEach(t => t.classList.add('hidden'));
+  const sectionLabel = $('#event-nav-section');
+  if (sectionLabel) sectionLabel.style.display = 'none';
   switchTab('tab-events');
 }
 
@@ -280,7 +284,6 @@ function editEvent(event) {
   $('#ev-client').value = event.client_name || '';
   $('#ev-date').value   = event.date ? new Date(event.date).toISOString().split('T')[0] : '';
   $('#ev-venue').value  = event.venue       || '';
-  $('#ev-color').value  = event.color       || '#7c3aed';
   if ($('#ev-pin')) $('#ev-pin').value = event.pin || '';
   modal.dataset.editId  = gid(event);
   hideAlert($('#event-modal-error'));
@@ -1853,13 +1856,31 @@ function generateGuestCard(guest, qrDataUrl, cardTemplate) {
 
 // ── Tab Navigation ───────────────────────────────────────────
 function switchTab(tabId) {
-  $$('.nav-tab').forEach(t => t.classList.remove('active'));
-  $$('.tab-content').forEach(t => t.classList.add('hidden'));
+  // Update sidebar nav items
+  $$('.nav-item').forEach(t => t.classList.remove('active'));
+  const activeNavItem = $(`.nav-item[data-tab="${tabId}"]`);
+  if (activeNavItem) activeNavItem.classList.add('active');
 
-  const activeTab = $(`[data-tab="${tabId}"]`);
-  if (activeTab) activeTab.classList.add('active');
+  // Show/hide tab content
+  $$('.tab-content').forEach(t => t.classList.add('hidden'));
   const activeContent = $(`#${tabId}`);
   if (activeContent) activeContent.classList.remove('hidden');
+
+  // Update topbar title
+  const titles = {
+    'tab-events':   'Events',
+    'tab-dashboard':'Dashboard',
+    'tab-bookings': 'Bookings',
+    'tab-overview': 'Overview',
+    'tab-guests':   'Guests',
+    'tab-add':      'Add Guest',
+    'tab-send':     'Send Invitations',
+    'tab-card':     'Card Template',
+    'tab-activity': 'Activity Log',
+    'tab-settings': 'Settings'
+  };
+  const titleEl = $('#topbar-title');
+  if (titleEl) titleEl.textContent = titles[tabId] || '';
 
   if (tabId === 'tab-events')    fetchEvents();
   if (tabId === 'tab-dashboard') fetchDashboard();
@@ -1916,16 +1937,42 @@ function initAdmin() {
   const adminUser = $('#admin-username');
   if (adminUser) adminUser.textContent = `👤 ${state.user.username}`;
 
-  // Hide event-specific tabs until an event is opened
-  $$('.nav-tab[data-tab="tab-overview"], .nav-tab[data-tab="tab-guests"], .nav-tab[data-tab="tab-add"], .nav-tab[data-tab="tab-send"], .nav-tab[data-tab="tab-activity"], .nav-tab[data-tab="tab-card"]')
+  // Hide event-specific nav items until an event is opened
+  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
     .forEach(t => t.classList.add('hidden'));
+  const sectionLabel = $('#event-nav-section');
+  if (sectionLabel) sectionLabel.style.display = 'none';
 
   fetchEvents();
 
-  // Nav tabs
-  $$('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  // Sidebar nav items
+  $$('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      switchTab(item.dataset.tab);
+      // Close sidebar on mobile
+      const sidebar = $('#sidebar');
+      const overlay = $('#sidebar-overlay');
+      if (sidebar) sidebar.classList.remove('open');
+      if (overlay) overlay.classList.remove('show');
+    });
   });
+
+  // Mobile sidebar toggle
+  const sidebarToggle = $('#sidebar-toggle');
+  const sidebar = $('#sidebar');
+  const overlay = $('#sidebar-overlay');
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+    });
+  }
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+    });
+  }
 
   // Logout
   const logoutBtn = $('#admin-logout');
@@ -1943,7 +1990,7 @@ function initAdmin() {
       $('#ev-client').value = '';
       $('#ev-date').value   = '';
       $('#ev-venue').value  = '';
-      $('#ev-color').value  = '#7c3aed';
+      if ($('#ev-pin')) $('#ev-pin').value = '';
       delete modal.dataset.editId;
       hideAlert($('#event-modal-error'));
       modal.classList.remove('hidden');
@@ -1959,20 +2006,19 @@ function initAdmin() {
       const client = $('#ev-client').value.trim();
       const date   = $('#ev-date').value;
       const venue  = $('#ev-venue').value.trim();
-      const color  = $('#ev-color').value;
       const pin    = $('#ev-pin') ? $('#ev-pin').value.trim() : '';
       hideAlert(errEl);
       if (!name) { showAlert(errEl, 'Event name is required'); return; }
       try {
         const editId = modal.dataset.editId;
         if (editId) {
-          await api('PUT', `/events/${editId}`, { name, client_name: client, date, venue, color, pin: pin || null });
+          await api('PUT', `/events/${editId}`, { name, client_name: client, date, venue, pin: pin || null });
           if (state.currentEvent && gid(state.currentEvent) === editId) {
-            state.currentEvent = { ...state.currentEvent, name, client_name: client, date, venue, color };
+            state.currentEvent = { ...state.currentEvent, name, client_name: client, date, venue };
             updateBreadcrumbs();
           }
         } else {
-          await createEvent({ name, client_name: client, date, venue, color, pin: pin || null });
+          await createEvent({ name, client_name: client, date, venue, pin: pin || null });
         }
         modal.classList.add('hidden');
         fetchEvents();
