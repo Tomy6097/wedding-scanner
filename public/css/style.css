@@ -409,35 +409,54 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 
 /* ===== EVENTS GRID ===== */
 .events-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem;
 }
 .event-card {
   background: var(--white); border-radius: var(--radius);
   border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);
-  overflow: hidden; transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s; position: relative;
 }
 .event-card:hover { box-shadow: var(--shadow); }
-.event-card-top {
-  height: 4px; background: var(--primary);
-}
-.event-card-body { padding: 1.1rem 1.1rem 0.75rem; }
-.event-card-name { font-size: 1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.15rem; }
-.event-card-client { font-size: 0.8rem; color: var(--gray-400); margin-bottom: 0.5rem; }
-.event-card-meta { font-size: 0.78rem; color: var(--gray-400); margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.event-card-stats { display: flex; gap: 0; border-top: 1px solid var(--gray-100); border-bottom: 1px solid var(--gray-100); margin: 0 -1.1rem; padding: 0.6rem 1.1rem; }
+.event-card-body { padding: 0.9rem 0.9rem 0.6rem; }
+.event-card-name { font-size: 0.95rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.1rem; padding-right: 1.5rem; }
+.event-card-client { font-size: 0.75rem; color: var(--gray-400); margin-bottom: 0.4rem; }
+.event-card-meta { font-size: 0.72rem; color: var(--gray-400); margin-bottom: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.event-card-stats { display: flex; gap: 0; border-top: 1px solid var(--gray-100); padding: 0.5rem 0.9rem; }
 .event-stat { flex: 1; text-align: center; }
-.event-stat-value { display: block; font-size: 1.3rem; font-weight: 700; color: var(--primary); }
-.event-stat-label { font-size: 0.68rem; color: var(--gray-400); }
-.event-card-progress { padding: 0.6rem 1.1rem 0; }
-.event-card-actions {
-  padding: 0.5rem 1.1rem 0.75rem;
-  display: flex; flex-direction: column; gap: 0.1rem;
+.event-stat-value { display: block; font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+.event-stat-label { font-size: 0.65rem; color: var(--gray-400); }
+.event-card-progress { padding: 0 0.9rem 0.6rem; }
+.event-card-actions { display: none; }
+
+/* Three-dots menu */
+.card-menu-btn {
+  position: absolute; top: 0.6rem; right: 0.6rem;
+  background: none; border: none; cursor: pointer;
+  color: var(--gray-400); font-size: 1rem; padding: 0.2rem 0.35rem;
+  border-radius: var(--radius-sm); line-height: 1;
+  transition: background 0.15s, color 0.15s;
 }
-.event-card-actions .action-link {
-  justify-content: flex-start;
-  padding: 0.3rem 0.4rem;
-  font-size: 0.8rem;
+.card-menu-btn:hover { background: var(--gray-100); color: var(--gray-700); }
+
+.card-dropdown {
+  position: absolute; top: 2rem; right: 0.5rem;
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  z-index: 50; min-width: 160px; overflow: hidden;
+  display: none;
 }
+.card-dropdown.open { display: block; }
+.card-dropdown-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 0.9rem; font-size: 0.82rem; font-weight: 500;
+  color: var(--gray-700); cursor: pointer; background: none; border: none;
+  width: 100%; text-align: left; transition: background 0.1s;
+  font-family: var(--font);
+}
+.card-dropdown-item:hover { background: var(--gray-50); }
+.card-dropdown-item.danger { color: var(--error); }
+.card-dropdown-item.danger:hover { background: var(--error-light); }
+.card-dropdown-divider { height: 1px; background: var(--gray-100); margin: 0.2rem 0; }
 
 /* ===== GUESTS TABLE ===== */
 .guests-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }

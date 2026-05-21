@@ -195,14 +195,14 @@ function renderEventsGrid(events) {
     card.className = 'event-card';
     if (ev.status === 'completed') card.style.opacity = '0.65';
     card.innerHTML = `
-      <div class="event-card-top"></div>
       <div class="event-card-body">
         <div class="event-card-name">${escHtml(ev.name)}</div>
         ${ev.client_name ? `<div class="event-card-client">${escHtml(ev.client_name)}</div>` : ''}
         <div class="event-card-meta">
           ${ev.date  ? `<span>📅 ${escHtml(new Date(ev.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}</span>` : ''}
           ${ev.venue ? `<span>📍 ${escHtml(ev.venue)}</span>` : ''}
-          ${ev.has_pin ? `<span>🔒 PIN</span>` : ''}
+          ${ev.has_pin ? `<span>🔒</span>` : ''}
+          ${ev.status === 'completed' ? `<span style="color:var(--success)">✓ Done</span>` : ''}
         </div>
       </div>
       <div class="event-card-stats">
@@ -211,15 +211,18 @@ function renderEventsGrid(events) {
         <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Left</span></div>
       </div>
       <div class="event-card-progress">
-        <div class="progress-bar" style="height:4px">
+        <div class="progress-bar" style="height:3px">
           <div class="progress-fill" style="width:${pct}%"></div>
         </div>
       </div>
-      <div class="event-card-actions">
-        <button class="action-link primary js-open-event">→ Open event</button>
-        <button class="action-link js-edit-event">✎ Edit details</button>
-        <button class="action-link js-status-event">${ev.status === 'active' ? '✓ Mark complete' : '↺ Reactivate'}</button>
-        <button class="action-link danger js-delete-event">✕ Delete event</button>
+      <button class="card-menu-btn js-menu-btn" title="Options">⋯</button>
+      <div class="card-dropdown js-dropdown">
+        <button class="card-dropdown-item js-open-event">→ Open</button>
+        <button class="card-dropdown-item js-edit-event">✎ Edit</button>
+        <div class="card-dropdown-divider"></div>
+        <button class="card-dropdown-item js-status-event">${ev.status === 'active' ? '✓ Mark complete' : '↺ Reactivate'}</button>
+        <div class="card-dropdown-divider"></div>
+        <button class="card-dropdown-item danger js-delete-event">✕ Delete</button>
       </div>`;
 
     card.querySelector('.js-open-event').addEventListener('click', () => openEvent(ev));
@@ -227,6 +230,18 @@ function renderEventsGrid(events) {
     card.querySelector('.js-delete-event').addEventListener('click', () => deleteEvent(gid(ev), ev.name));
     const statusBtn = card.querySelector('.js-status-event');
     if (statusBtn) statusBtn.addEventListener('click', () => toggleEventStatus(gid(ev), ev.status, ev.name));
+
+    // Three-dots dropdown toggle
+    const menuBtn  = card.querySelector('.js-menu-btn');
+    const dropdown = card.querySelector('.js-dropdown');
+    if (menuBtn && dropdown) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Close all other dropdowns first
+        $$('.card-dropdown.open').forEach(d => { if (d !== dropdown) d.classList.remove('open'); });
+        dropdown.classList.toggle('open');
+      });
+    }
     grid.appendChild(card);
   });
 }
@@ -2467,4 +2482,8 @@ function initPWA() {
 document.addEventListener('DOMContentLoaded', () => {
   initPWA();
   init();
+  // Close any open card dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    $$('.card-dropdown.open').forEach(d => d.classList.remove('open'));
+  });
 });
