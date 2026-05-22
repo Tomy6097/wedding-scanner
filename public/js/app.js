@@ -410,11 +410,11 @@ function renderGuestsTable(guests) {
       <td><span class="code-badge">${escHtml(lookupCode)}</span></td>
       <td>
         <span class="badge ${g.status === 'used' ? 'badge-used' : 'badge-unused'}">
-          ${g.status === 'used' ? '✅ Checked In' : '⏳ Pending'}
+          ${g.status === 'used' ? 'Checked In' : 'Pending'}
         </span>
         ${g.status === 'used' && g.checked_in_at ? `<div style="font-size:0.75rem;color:var(--gray-400)">${formatDateTime(g.checked_in_at)}</div>` : ''}
       </td>
-      <td>${g.sms_sent ? '✅' : '<span style="color:var(--gray-400)">—</span>'}</td>
+      <td>${g.sms_sent ? '<span style="color:var(--gray-500);font-size:0.75rem">Sent</span>' : '<span style="color:var(--gray-300)">—</span>'}</td>
       <td class="table-actions-cell"></td>`;
 
     // Build actions cell safely
@@ -425,28 +425,28 @@ function renderGuestsTable(guests) {
     const qrBtn = document.createElement('button');
     qrBtn.className = 'btn btn-outline btn-sm';
     qrBtn.title = 'View QR Code';
-    qrBtn.textContent = '🔲 QR';
+    qrBtn.innerHTML = '<i data-lucide="qr-code" style="width:13px;height:13px"></i>';
     qrBtn.addEventListener('click', () => viewGuestQR(gid(g)));
     actionsDiv.appendChild(qrBtn);
 
     const linkBtn = document.createElement('button');
     linkBtn.className = 'btn btn-outline btn-sm';
     linkBtn.title = 'Copy guest link';
-    linkBtn.textContent = '🔗';
+    linkBtn.innerHTML = '<i data-lucide="link" style="width:13px;height:13px"></i>';
     linkBtn.addEventListener('click', () => copyGuestLink(g.qr_token));
     actionsDiv.appendChild(linkBtn);
 
     const waBtn = document.createElement('button');
     waBtn.className = 'btn btn-outline btn-sm';
     waBtn.title = 'Share via WhatsApp';
-    waBtn.textContent = '💬';
+    waBtn.innerHTML = '<i data-lucide="message-circle" style="width:13px;height:13px"></i>';
     waBtn.addEventListener('click', () => shareGuestWhatsApp(g.qr_token, g.name, g.phone || ''));
     actionsDiv.appendChild(waBtn);
 
     const smsBtn = document.createElement('button');
     smsBtn.className = 'btn btn-outline btn-sm';
     smsBtn.title = 'Send SMS';
-    smsBtn.textContent = '📱';
+    smsBtn.innerHTML = '<i data-lucide="smartphone" style="width:13px;height:13px"></i>';
     smsBtn.addEventListener('click', () => sendSingleSMS(gid(g), g.name));
     actionsDiv.appendChild(smsBtn);
 
@@ -454,29 +454,30 @@ function renderGuestsTable(guests) {
       const resetBtn = document.createElement('button');
       resetBtn.className = 'btn btn-outline btn-sm';
       resetBtn.title = 'Reset check-in';
-      resetBtn.textContent = '↩ Reset';
+      resetBtn.innerHTML = '<i data-lucide="rotate-ccw" style="width:13px;height:13px"></i>';
       resetBtn.addEventListener('click', () => resetCheckin(gid(g), g.name));
       actionsDiv.appendChild(resetBtn);
     }
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.className = 'btn btn-ghost btn-sm';
     delBtn.title = 'Delete guest';
-    delBtn.textContent = '🗑';
+    delBtn.style.color = 'var(--error)';
+    delBtn.innerHTML = '<i data-lucide="trash-2" style="width:13px;height:13px"></i>';
     delBtn.addEventListener('click', () => deleteGuest(gid(g), g.name));
     actionsDiv.appendChild(delBtn);
 
-    // History button
     const histBtn = document.createElement('button');
     histBtn.className = 'btn btn-outline btn-sm';
     histBtn.title = 'View scan history';
-    histBtn.textContent = '📋';
+    histBtn.innerHTML = '<i data-lucide="clock" style="width:13px;height:13px"></i>';
     histBtn.addEventListener('click', () => viewGuestHistory(gid(g), g.name));
     actionsDiv.appendChild(histBtn);
 
     actionsCell.appendChild(actionsDiv);
     tbody.appendChild(tr);
   });
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function refreshGuestRow(guest) {
@@ -485,7 +486,7 @@ function refreshGuestRow(guest) {
   const cells = row.querySelectorAll('td');
   // Status cell is index 5
   if (cells[5]) {
-    cells[5].innerHTML = `<span class="badge badge-used">✅ Checked In</span>
+    cells[5].innerHTML = `<span class="badge badge-used">Checked In</span>
       <div style="font-size:0.75rem;color:var(--gray-400)">${formatDateTime(guest.checked_in_at)}</div>`;
   }
 }

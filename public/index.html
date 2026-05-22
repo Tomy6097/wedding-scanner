@@ -201,8 +201,8 @@
           <h2 class="section-title">Guests</h2>
           <div class="guests-controls">
             <input type="text" id="guest-search" placeholder="Search..." class="search-input" />
-            <button class="btn btn-outline btn-sm" id="export-btn"><i data-lucide="download" style="width:14px;height:14px"></i> CSV</button>
-            <button class="btn btn-outline btn-sm" id="download-all-qr-btn"><i data-lucide="qr-code" style="width:14px;height:14px"></i> All QR</button>
+            <button class="btn btn-outline btn-sm" id="export-btn"><i data-lucide="download" style="width:14px;height:14px"></i>Export CSV</button>
+            <button class="btn btn-outline btn-sm" id="download-all-qr-btn"><i data-lucide="qr-code" style="width:14px;height:14px"></i>Download QR</button>
             <button class="btn btn-outline btn-sm" id="print-all-qr-btn"><i data-lucide="printer" style="width:14px;height:14px"></i> Print All</button>
             <button class="btn btn-ghost btn-sm" id="delete-all-btn" style="color:var(--error)"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete All</button>
           </div>
@@ -235,7 +235,7 @@
             <h3>Bulk Import (CSV)</h3>
             <p class="hint-text">Columns: <code>name,phone,table_number</code></p>
             <div class="file-drop-zone" id="csv-drop-zone">
-              <span>📂 Drop CSV here or click to browse</span>
+              <span>📂 DropExport CSV here or click to browse</span>
               <input type="file" id="csv-file" accept=".csv" class="file-input" />
             </div>
             <div id="csv-preview" class="csv-preview hidden"></div>
@@ -264,7 +264,7 @@
           </div>
           <div class="card">
             <h3>💬 WhatsApp Broadcast</h3>
-            <p class="hint-text">Downloads a CSV with all guest links. Open in Excel, send each guest their personal link.</p>
+            <p class="hint-text">Downloads aExport CSV with all guest links. Open in Excel, send each guest their personal link.</p>
             <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.75rem;font-size:0.8rem;color:var(--gray-600);margin-bottom:0.75rem">
               <strong>How it works:</strong><br>
               1. Click the button — a .csv file downloads<br>
@@ -272,7 +272,7 @@
               3. Send each guest their personal link<br>
               4. Each guest opens their link to see their QR
             </div>
-            <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Download Broadcast CSV</button>
+            <button class="btn btn-secondary btn-full" id="send-all-wa-btn"><i data-lucide="download" style="width:14px;height:14px"></i>Download BroadcastExport CSV</button>
           </div>
         </div>
       </div>
