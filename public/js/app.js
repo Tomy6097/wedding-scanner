@@ -1028,8 +1028,8 @@ function renderScannerEventList(events) {
         ${ev.client_name ? `<div class="event-card-client">${escHtml(ev.client_name)}</div>` : ''}
       </div>
       <div class="event-card-meta">
-        ${dateStr ? `<span>📅 ${escHtml(dateStr)}</span>` : ''}
-        ${ev.venue ? `<span>📍 ${escHtml(ev.venue)}</span>` : ''}
+        ${dateStr ? `<span>${escHtml(dateStr)}</span>` : ''}
+        ${ev.venue ? `<span>${escHtml(ev.venue)}</span>` : ''}
       </div>
       <div class="event-card-stats">
         <div class="event-stat"><span class="event-stat-value">${ev.total || 0}</span><span class="event-stat-label">Total</span></div>
@@ -1037,7 +1037,7 @@ function renderScannerEventList(events) {
         <div class="event-stat"><span class="event-stat-value">${ev.remaining || 0}</span><span class="event-stat-label">Remaining</span></div>
       </div>
       <div style="text-align:center;margin-top:0.5rem">
-        <span class="btn btn-primary btn-sm">${ev.has_pin ? '🔒 Enter PIN →' : 'Scan for this event →'}</span>
+        <span class="btn btn-primary btn-sm">${ev.has_pin ? 'Enter PIN' : 'Select'}</span>
       </div>`;
     card.addEventListener('click', () => selectScannerEvent(ev));
     listEl.appendChild(card);
@@ -1515,12 +1515,13 @@ async function fetchDashboard() {
       } else {
         recentEl.innerHTML = data.recentActivity.map(a => `
           <div class="recent-item">
-            <div class="recent-item-icon">✅</div>
+            <div class="recent-item-icon"><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--gray-400)"></i></div>
             <div class="recent-item-info">
               <div class="recent-item-name">${escHtml(a.guest_name || '—')}</div>
               <div class="recent-item-time">${formatDateTime(a.createdAt)} · by ${escHtml(a.scanned_by || '—')}</div>
             </div>
           </div>`).join('');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
       }
     }
   } catch (e) { console.error('Dashboard error:', e); }
