@@ -217,19 +217,23 @@ function renderEventsGrid(events) {
       </div>
       <button class="card-menu-btn js-menu-btn" title="Options">⋯</button>
       <div class="card-dropdown js-dropdown">
-        <button class="card-dropdown-item js-open-event">→ Open</button>
-        <button class="card-dropdown-item js-edit-event">✎ Edit</button>
+        <button class="card-dropdown-item js-edit-event">Edit details</button>
         <div class="card-dropdown-divider"></div>
-        <button class="card-dropdown-item js-status-event">${ev.status === 'active' ? '✓ Mark complete' : '↺ Reactivate'}</button>
+        <button class="card-dropdown-item js-status-event">${ev.status === 'active' ? 'Mark complete' : 'Reactivate'}</button>
         <div class="card-dropdown-divider"></div>
-        <button class="card-dropdown-item danger js-delete-event">✕ Delete</button>
+        <button class="card-dropdown-item danger js-delete-event">Delete</button>
       </div>`;
 
-    card.querySelector('.js-open-event').addEventListener('click', () => openEvent(ev));
-    card.querySelector('.js-edit-event').addEventListener('click', () => editEvent(ev));
-    card.querySelector('.js-delete-event').addEventListener('click', () => deleteEvent(gid(ev), ev.name));
+    card.querySelector('.js-edit-event').addEventListener('click', (e) => { e.stopPropagation(); editEvent(ev); });
+    card.querySelector('.js-delete-event').addEventListener('click', (e) => { e.stopPropagation(); deleteEvent(gid(ev), ev.name); });
     const statusBtn = card.querySelector('.js-status-event');
-    if (statusBtn) statusBtn.addEventListener('click', () => toggleEventStatus(gid(ev), ev.status, ev.name));
+    if (statusBtn) statusBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleEventStatus(gid(ev), ev.status, ev.name); });
+
+    // Clicking the card body opens the event
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.card-menu-btn') || e.target.closest('.card-dropdown')) return;
+      openEvent(ev);
+    });
 
     // Three-dots dropdown toggle
     const menuBtn  = card.querySelector('.js-menu-btn');

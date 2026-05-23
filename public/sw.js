@@ -4,7 +4,7 @@
    API calls are always fetched from network (never cached).
    ============================================================ */
 
-const CACHE_NAME = 'wedding-checkin-v38';
+const CACHE_NAME = 'wedding-checkin-v39';
 
 // App shell files to cache on install
 const SHELL_FILES = [

@@ -417,9 +417,14 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 .event-card {
   background: var(--white); border-radius: var(--radius);
   border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s; position: relative;
+  transition: box-shadow 0.15s, background 0.15s, border-color 0.15s;
+  position: relative; cursor: pointer;
 }
-.event-card:hover { box-shadow: var(--shadow); }
+.event-card:hover {
+  box-shadow: var(--shadow);
+  background: rgba(124,58,237,0.04);
+  border-color: rgba(124,58,237,0.25);
+}
 .event-card-body { padding: 0.9rem 0.9rem 0.6rem; }
 .event-card-name { font-size: 0.95rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.1rem; padding-right: 1.5rem; }
 .event-card-client { font-size: 0.75rem; color: var(--gray-400); margin-bottom: 0.4rem; }
