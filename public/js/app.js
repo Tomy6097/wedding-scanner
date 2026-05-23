@@ -2330,9 +2330,9 @@ function initAdmin() {
       hideAlert(resultEl);
       try {
         const res = await api('POST', '/guests/sms/test', { phone });
-        showAlert(resultEl, '✅ ' + res.message, 'success');
+        showAlert(resultEl, 'SMS sent successfully: ' + res.message, 'success');
       } catch (e) {
-        showAlert(resultEl, '❌ ' + e.message, 'error');
+        showAlert(resultEl, 'Failed: ' + e.message, 'error');
       } finally {
         testSmsBtn.disabled = false;
         testSmsBtn.textContent = '📱 Test';
