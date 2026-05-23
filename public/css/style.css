@@ -744,3 +744,16 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 .action-used    .activity-icon svg { color: var(--error); }
 .action-invalid .activity-icon svg { color: var(--warning); }
 .action-reset   .activity-icon svg { color: var(--primary); }
+
+/* ===== EVENT FILTER TABS ===== */
+.event-filter-tabs {
+  display: flex; gap: 0; border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm); overflow: hidden; background: var(--white);
+}
+.event-filter-btn {
+  padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 500;
+  border: none; background: none; cursor: pointer; color: var(--gray-500);
+  transition: all 0.15s; font-family: var(--font);
+}
+.event-filter-btn:hover { background: var(--gray-50); color: var(--gray-800); }
+.event-filter-btn.active { background: var(--primary); color: var(--white); }

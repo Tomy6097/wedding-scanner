@@ -127,10 +127,12 @@ async function logout() {
 }
 
 // ── Events (Admin) ───────────────────────────────────────────
-async function fetchEvents() {
+async function fetchEvents(filter = 'all') {
   try {
     const events = await api('GET', '/events');
-    renderEventsGrid(events);
+    const filtered = filter === 'all' ? events :
+                     events.filter(ev => ev.status === filter);
+    renderEventsGrid(filtered);
   } catch (e) {
     const grid = $('#events-grid');
     if (grid) grid.innerHTML = '<div class="empty-state">Failed to load events</div>';
@@ -1881,6 +1883,176 @@ function generateGuestCard(guest, qrDataUrl, cardTemplate) {
   });
 }
 
+// ── Export Activity Log CSV ──────────────────────────────────
+function exportActivityLog() {
+  const items = $$('.activity-item', $('#activity-list'));
+  if (!items.length) { alert('No activity to export.'); return; }
+
+  // Re-fetch and export
+  api('GET', '/activity?limit=1000' + (state.currentEvent ? `&event_id=${gid(state.currentEvent)}` : ''))
+    .then(logs => {
+      const rows = [['Time', 'Action', 'Guest', 'Scanned By', 'Note']];
+      logs.forEach(l => rows.push([
+        new Date(l.createdAt).toLocaleString(),
+        l.action,
+        l.guest_name || '—',
+        l.scanned_by || '—',
+        l.note || ''
+      ]));
+      const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      const evName = state.currentEvent ? state.currentEvent.name.replace(/\s+/g,'-').toLowerCase() : 'all';
+      a.download = `activity-log-${evName}.csv`;
+      a.click();
+    }).catch(e => alert('Export failed: ' + e.message));
+}
+
+// ── Event Summary Report ─────────────────────────────────────
+async function printEventSummary() {
+  if (!state.currentEvent) { alert('Please open an event first.'); return; }
+  const ev = state.currentEvent;
+  try {
+    const [stats, guests, activity] = await Promise.all([
+      api('GET', `/guests/stats?event_id=${gid(ev)}`),
+      api('GET', `/guests?event_id=${gid(ev)}`),
+      api('GET', `/activity?event_id=${gid(ev)}&limit=1000`)
+    ]);
+
+    const checkedInGuests  = guests.filter(g => g.status === 'used');
+    const pendingGuests    = guests.filter(g => g.status !== 'used');
+    const firstCheckin     = activity.filter(a => a.action === 'granted').sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
+    const lastCheckin      = activity.filter(a => a.action === 'granted').sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const invalidScans     = activity.filter(a => a.action === 'invalid').length;
+    const duplicateScans   = activity.filter(a => a.action === 'used').length;
+    const pct              = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Event Summary — ${escHtml(ev.name)}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; color: #222; padding: 2rem; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat { background: #f8f8f8; border-radius: 8px; padding: 1rem; text-align: center; }
+    .stat-val { font-size: 2rem; font-weight: 800; color: #1a1a2e; }
+    .stat-lbl { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+    .section { margin-bottom: 2rem; }
+    .section h2 { font-size: 1rem; font-weight: 700; border-bottom: 1px solid #eee; padding-bottom: 0.4rem; margin-bottom: 0.75rem; }
+    .info-row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid #f0f0f0; font-size: 0.875rem; }
+    .info-row span:first-child { color: #666; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th { background: #f8f8f8; padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #eee; }
+    td { padding: 0.45rem 0.75rem; border-bottom: 1px solid #f5f5f5; }
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; background: #f0f0f0; color: #555; }
+    .badge-in { background: #d1fae5; color: #065f46; }
+    .footer { margin-top: 2rem; font-size: 0.75rem; color: #aaa; text-align: center; }
+    @media print { @page { margin: 1cm; } }
+  </style>
+</head>
+<body>
+  <h1>${escHtml(ev.name)}</h1>
+  <div class="subtitle">
+    Event Summary Report &nbsp;·&nbsp; Generated ${new Date().toLocaleString()}
+    ${ev.date ? ` &nbsp;·&nbsp; Event Date: ${new Date(ev.date).toLocaleDateString()}` : ''}
+    ${ev.venue ? ` &nbsp;·&nbsp; ${escHtml(ev.venue)}` : ''}
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val">${stats.total}</div><div class="stat-lbl">Total Guests</div></div>
+    <div class="stat"><div class="stat-val">${stats.checkedIn}</div><div class="stat-lbl">Checked In</div></div>
+    <div class="stat"><div class="stat-val">${stats.remaining}</div><div class="stat-lbl">Did Not Attend</div></div>
+    <div class="stat"><div class="stat-val">${pct}%</div><div class="stat-lbl">Attendance Rate</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Check-in Details</h2>
+    <div class="info-row"><span>First check-in</span><span>${firstCheckin ? new Date(firstCheckin.createdAt).toLocaleString() + ' — ' + escHtml(firstCheckin.guest_name || '—') : '—'}</span></div>
+    <div class="info-row"><span>Last check-in</span><span>${lastCheckin ? new Date(lastCheckin.createdAt).toLocaleString() + ' — ' + escHtml(lastCheckin.guest_name || '—') : '—'}</span></div>
+    <div class="info-row"><span>Invalid scan attempts</span><span>${invalidScans}</span></div>
+    <div class="info-row"><span>Duplicate scan attempts</span><span>${duplicateScans}</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Guests Who Attended (${checkedInGuests.length})</h2>
+    <table>
+      <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th><th>Checked In At</th></tr></thead>
+      <tbody>
+        ${checkedInGuests.map((g,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td>${escHtml(g.name)}</td>
+            <td>${g.phone ? escHtml(g.phone) : '—'}</td>
+            <td>${g.table_number ? escHtml(g.table_number) : '—'}</td>
+            <td>${g.checked_in_at ? new Date(g.checked_in_at).toLocaleString() : '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  ${pendingGuests.length ? `
+  <div class="section">
+    <h2>Guests Who Did Not Attend (${pendingGuests.length})</h2>
+    <table>
+      <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th></tr></thead>
+      <tbody>
+        ${pendingGuests.map((g,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td>${escHtml(g.name)}</td>
+            <td>${g.phone ? escHtml(g.phone) : '—'}</td>
+            <td>${g.table_number ? escHtml(g.table_number) : '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="footer">TMJ Wedding Tech &nbsp;·&nbsp; Event Check-in System</div>
+  <script>window.onload = function() { window.print(); };<\/script>
+</body>
+</html>`);
+    win.document.close();
+  } catch (e) {
+    alert('Failed to generate report: ' + e.message);
+  }
+}
+
+// ── Session Timeout Warning ───────────────────────────────────
+function initSessionWarning() {
+  // Warn 5 minutes before session expires (session = 24h)
+  const WARNING_BEFORE = 5 * 60 * 1000; // 5 min
+  const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24h
+
+  // Check every minute
+  setInterval(async () => {
+    try {
+      await api('GET', '/auth/me');
+    } catch (e) {
+      // Session expired — show warning and redirect to login
+      if (confirm('Your session has expired. Click OK to log in again.')) {
+        state.user = null;
+        state.initialized = false;
+        stopScanner();
+        showPage('page-login');
+      }
+    }
+  }, 15 * 60 * 1000); // check every 15 minutes
+}
+
+// ── Guest Import Validation ───────────────────────────────────
+// (Enhanced bulk import with result report — called after import)
+function showImportReport(created, total) {
+  const skipped = total - created.length;
+  let msg = `Import complete!\n\n✓ ${created.length} guests imported successfully.`;
+  if (skipped > 0) msg += `\n⚠ ${skipped} rows skipped (empty names or errors).`;
+  alert(msg);
+}
+
 // ── Tab Navigation ───────────────────────────────────────────
 function switchTab(tabId) {
   // Update sidebar nav items
@@ -1971,6 +2143,15 @@ function initAdmin() {
   if (sectionLabel) sectionLabel.style.display = 'none';
 
   fetchEvents();
+
+  // Event filter tabs
+  $$('.event-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.event-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fetchEvents(btn.dataset.filter);
+    });
+  });
 
   // Sidebar nav items
   $$('.nav-item').forEach(item => {
@@ -2120,7 +2301,7 @@ function initAdmin() {
         cardState.qrX = null; cardState.qrY = null;
         showCardPreview(ev.target.result);
         const label = $('#card-drop-label');
-        if (label) label.textContent = '✅ ' + file.name;
+        if (label) label.textContent = file.name + ' selected';
         const marker = $('#qr-position-marker');
         if (marker) marker.style.display = 'none';
         const sampleWrap = $('#card-sample-wrap');
@@ -2292,7 +2473,8 @@ function initAdmin() {
           guests:   state.csvData,
           event_id: gid(state.currentEvent)
         });
-        showAlert(sucEl, `Successfully imported ${created.length} guests!`, 'success');
+        showAlert(sucEl, `Imported ${created.length} guests successfully${state.csvData.length - created.length > 0 ? ` (${state.csvData.length - created.length} skipped)` : ''}.`, 'success');
+        showImportReport(created, state.csvData.length);
         state.csvData = [];
         const preview = $('#csv-preview');
         if (preview) preview.classList.add('hidden');
@@ -2371,6 +2553,17 @@ function initAdmin() {
       } catch (e) { alert('Failed to clear logs: ' + e.message); }
     });
   }
+
+  // Export activity log
+  const exportActivityBtn = $('#export-activity-btn');
+  if (exportActivityBtn) exportActivityBtn.addEventListener('click', exportActivityLog);
+
+  // Print summary report
+  const printSummaryBtn = $('#print-summary-btn');
+  if (printSummaryBtn) printSummaryBtn.addEventListener('click', printEventSummary);
+
+  // Session warning
+  initSessionWarning();
 
   // ── Change Admin Password ────────────────────────────────
   const changeAdminPwBtn = $('#change-admin-pw-btn');

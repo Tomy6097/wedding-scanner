@@ -64,7 +64,11 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-name">Event Check-in</div>
+      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.2rem">
+        <img src="/logo.png" alt="Logo" style="height:28px;width:auto;object-fit:contain;flex-shrink:0"
+          onerror="this.style.display='none'" />
+        <div class="sidebar-brand-name">Event Check-in</div>
+      </div>
       <div class="sidebar-brand-sub">Management System</div>
     </div>
 
@@ -132,7 +136,14 @@
       <div id="tab-events" class="tab-content active">
         <div class="page-header">
           <h2>My Events</h2>
-          <button class="btn btn-primary btn-sm" id="create-event-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> New Event</button>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <div class="event-filter-tabs" id="event-filter-tabs">
+              <button class="event-filter-btn active" data-filter="all">All</button>
+              <button class="event-filter-btn" data-filter="active">Active</button>
+              <button class="event-filter-btn" data-filter="completed">Completed</button>
+            </div>
+            <button class="btn btn-primary btn-sm" id="create-event-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> New Event</button>
+          </div>
         </div>
         <div id="events-grid" class="events-grid">
           <div class="empty-state">Loading events...</div>
@@ -182,7 +193,7 @@
       <!-- Overview Tab -->
       <div id="tab-overview" class="tab-content hidden">
         <div class="event-breadcrumb" id="event-breadcrumb"></div>
-        <div class="page-header"><h2>Overview</h2></div>
+        <div class="page-header"><h2>Overview</h2><button class="btn btn-outline btn-sm" id="print-summary-btn"><i data-lucide="file-text" style="width:13px;height:13px"></i> Summary Report</button></div>
         <div class="stats-grid">
           <div class="stat-card stat-total"><div class="stat-icon"><i data-lucide="users"></i></div><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Guests</div></div>
           <div class="stat-card stat-checkedin"><div class="stat-icon"><i data-lucide="check-circle"></i></div><div class="stat-value" id="stat-checkedin">0</div><div class="stat-label">Checked In</div></div>
