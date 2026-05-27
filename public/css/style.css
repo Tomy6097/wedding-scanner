@@ -39,16 +39,18 @@
   --radius:    10px;
   --radius-sm: 6px;
   --radius-lg: 14px;
-  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 html, body {
   height: 100%;
   font-family: var(--font);
-  background: var(--gray-50);
+  background: #f4f4f6;
   color: var(--gray-800);
   font-size: 15px;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ===== PAGES ===== */
@@ -70,13 +72,14 @@ html, body {
 .sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
-  background: var(--dark);
+  background: #16162a;
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 200;
   transition: transform 0.25s ease;
+  border-right: 1px solid rgba(255,255,255,0.04);
 }
 
 .sidebar-brand {
@@ -312,10 +315,10 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 /* ===== CARDS ===== */
 .card {
   background: var(--white); border-radius: var(--radius);
-  padding: 1.25rem; border: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
+  padding: 1.25rem; border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
 }
-.card h3 { font-size: 0.95rem; font-weight: 600; color: var(--gray-800); margin-bottom: 0.75rem; }
+.card h3 { font-size: 0.9rem; font-weight: 700; color: var(--gray-800); margin-bottom: 0.75rem; letter-spacing: -0.2px; }
 
 /* ===== SECTION TITLES ===== */
 .section-title {
