@@ -117,41 +117,76 @@ router.get('/sample-qr', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// POST /api/events/:id/card — upload card template (base64)
+// POST /api/events/:id/card — upload QR card template
 router.post('/:id/card', requireAdmin, async (req, res) => {
   try {
     const { card_image, card_qr_x, card_qr_y, card_qr_size } = req.body;
     if (!card_image) return res.status(400).json({ error: 'Card image is required' });
-
-    // Validate it's a valid data URL
-    if (!card_image.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Invalid image format' });
-    }
-
-    // Limit size to 2MB
+    if (!card_image.startsWith('data:image/')) return res.status(400).json({ error: 'Invalid image format' });
     const sizeBytes = Math.ceil((card_image.length * 3) / 4);
-    if (sizeBytes > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Image too large. Maximum size is 2MB.' });
-    }
-
-    const event = await Event.findByIdAndUpdate(
-      req.params.id,
+    if (sizeBytes > 2 * 1024 * 1024) return res.status(400).json({ error: 'Image too large. Maximum size is 2MB.' });
+    const event = await Event.findByIdAndUpdate(req.params.id,
       { $set: { card_image, card_qr_x, card_qr_y, card_qr_size: card_qr_size || 20 } },
-      { new: true }
-    );
+      { new: true });
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    res.json({ success: true, message: 'Card template saved' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error: ' + err.message });
-  }
+    res.json({ success: true, message: 'QR card template saved' });
+  } catch (err) { res.status(500).json({ error: 'Server error: ' + err.message }); }
 });
 
-// DELETE /api/events/:id/card — remove card template
+// DELETE /api/events/:id/card
 router.delete('/:id/card', requireAdmin, async (req, res) => {
   try {
+    await Event.findByIdAndUpdate(req.params.id, { $set: { card_image: null, card_qr_x: null, card_qr_y: null } });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// POST /api/events/:id/invite — upload invitation card template
+router.post('/:id/invite', requireAdmin, async (req, res) => {
+  try {
+    const { invite_image, invite_name_x, invite_name_y, invite_name_size, invite_name_color } = req.body;
+    if (!invite_image) return res.status(400).json({ error: 'Image is required' });
+    if (!invite_image.startsWith('data:image/')) return res.status(400).json({ error: 'Invalid image format' });
+    const sizeBytes = Math.ceil((invite_image.length * 3) / 4);
+    if (sizeBytes > 2 * 1024 * 1024) return res.status(400).json({ error: 'Image too large. Maximum 2MB.' });
     await Event.findByIdAndUpdate(req.params.id, {
-      $set: { card_image: null, card_qr_x: null, card_qr_y: null }
+      $set: { invite_image, invite_name_x, invite_name_y,
+              invite_name_size: invite_name_size || 5,
+              invite_name_color: invite_name_color || '#000000' }
     });
+    res.json({ success: true, message: 'Invitation card template saved' });
+  } catch (err) { res.status(500).json({ error: 'Server error: ' + err.message }); }
+});
+
+// DELETE /api/events/:id/invite
+router.delete('/:id/invite', requireAdmin, async (req, res) => {
+  try {
+    await Event.findByIdAndUpdate(req.params.id, { $set: { invite_image: null, invite_name_x: null, invite_name_y: null } });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// POST /api/events/:id/thanks — upload thank you card template
+router.post('/:id/thanks', requireAdmin, async (req, res) => {
+  try {
+    const { thanks_image, thanks_name_x, thanks_name_y, thanks_name_size, thanks_name_color } = req.body;
+    if (!thanks_image) return res.status(400).json({ error: 'Image is required' });
+    if (!thanks_image.startsWith('data:image/')) return res.status(400).json({ error: 'Invalid image format' });
+    const sizeBytes = Math.ceil((thanks_image.length * 3) / 4);
+    if (sizeBytes > 2 * 1024 * 1024) return res.status(400).json({ error: 'Image too large. Maximum 2MB.' });
+    await Event.findByIdAndUpdate(req.params.id, {
+      $set: { thanks_image, thanks_name_x, thanks_name_y,
+              thanks_name_size: thanks_name_size || 5,
+              thanks_name_color: thanks_name_color || '#000000' }
+    });
+    res.json({ success: true, message: 'Thank you card template saved' });
+  } catch (err) { res.status(500).json({ error: 'Server error: ' + err.message }); }
+});
+
+// DELETE /api/events/:id/thanks
+router.delete('/:id/thanks', requireAdmin, async (req, res) => {
+  try {
+    await Event.findByIdAndUpdate(req.params.id, { $set: { thanks_image: null, thanks_name_x: null, thanks_name_y: null } });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });

@@ -30,11 +30,23 @@ const eventSchema = new mongoose.Schema({
   status:      { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
   color:       { type: String, default: '#7c3aed' },
   pin:         { type: String, default: null },
-  // Card template
-  card_image:  { type: String, default: null }, // base64 data URL of uploaded card
-  card_qr_x:   { type: Number, default: null }, // QR position X (percentage 0-100)
-  card_qr_y:   { type: Number, default: null }, // QR position Y (percentage 0-100)
-  card_qr_size:{ type: Number, default: 20 }    // QR size as % of card width
+  // Card template (QR card)
+  card_image:       { type: String, default: null },
+  card_qr_x:        { type: Number, default: null },
+  card_qr_y:        { type: Number, default: null },
+  card_qr_size:     { type: Number, default: 20 },
+  // Invitation card template
+  invite_image:     { type: String, default: null },
+  invite_name_x:    { type: Number, default: null },
+  invite_name_y:    { type: Number, default: null },
+  invite_name_size: { type: Number, default: 5 },
+  invite_name_color:{ type: String, default: '#000000' },
+  // Thank you card template
+  thanks_image:     { type: String, default: null },
+  thanks_name_x:    { type: Number, default: null },
+  thanks_name_y:    { type: Number, default: null },
+  thanks_name_size: { type: Number, default: 5 },
+  thanks_name_color:{ type: String, default: '#000000' }
 }, { timestamps: true });
 
 // ── Guests ────────────────────────────────────────────────────

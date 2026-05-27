@@ -124,18 +124,38 @@ router.get('/view/:token', async (req, res) => {
   try {
     const guest = await Guest.findOne({ qr_token: req.params.token });
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
-    const eventName   = await getEventName(guest.event_id);
+    const ev          = await Event.findById(guest.event_id);
+    const eventName   = ev ? ev.name : 'Our Event';
     const totalGuests = await Guest.countDocuments({ event_id: guest.event_id });
     const guestNumber = await Guest.countDocuments({ event_id: guest.event_id, createdAt: { $lte: guest.createdAt } });
     const qrDataUrl   = await QRCode.toDataURL(guest.qr_token, {
       width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' }
     });
+
+    // Include card templates if set
+    const cardTemplate = (ev && ev.card_image && ev.card_qr_x != null) ? {
+      image: ev.card_image, qr_x: ev.card_qr_x, qr_y: ev.card_qr_y, qr_size: ev.card_qr_size || 20
+    } : null;
+
+    const inviteTemplate = (ev && ev.invite_image && ev.invite_name_x != null) ? {
+      image: ev.invite_image, name_x: ev.invite_name_x, name_y: ev.invite_name_y,
+      name_size: ev.invite_name_size || 5, name_color: ev.invite_name_color || '#000000'
+    } : null;
+
+    const thanksTemplate = (ev && ev.thanks_image && ev.thanks_name_x != null) ? {
+      image: ev.thanks_image, name_x: ev.thanks_name_x, name_y: ev.thanks_name_y,
+      name_size: ev.thanks_name_size || 5, name_color: ev.thanks_name_color || '#000000'
+    } : null;
+
     res.json({
       name: guest.name, phone: guest.phone,
       unique_id: guest.unique_id, status: guest.status,
       table_number: guest.table_number,
       guest_number: guestNumber, total_guests: totalGuests,
-      qrDataUrl, eventName
+      qrDataUrl, eventName,
+      cardTemplate, inviteTemplate, thanksTemplate,
+      eventDate: ev ? ev.date : null,
+      eventVenue: ev ? ev.venue : null
     });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });

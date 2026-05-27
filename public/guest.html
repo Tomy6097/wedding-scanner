@@ -9,195 +9,258 @@
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
       min-height: 100vh;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background: #1a1a2e;
       display: flex; align-items: center; justify-content: center;
       padding: 1rem;
     }
+    .container { width: 100%; max-width: 380px; }
     .card {
-      background: linear-gradient(160deg, #2d1b69 0%, #1a1a2e 100%);
-      border-radius: 20px;
-      padding: 2rem 1.5rem;
-      max-width: 340px;
-      width: 100%;
-      text-align: center;
-      color: white;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
-      position: relative;
-      overflow: hidden;
-    }
-    .card::before {
-      content: '💍';
-      position: absolute;
-      top: -20px; right: -20px;
-      font-size: 8rem;
-      opacity: 0.05;
-    }
-    .rings { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .event-name {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 0.5rem;
-    }
-    .guest-name {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-      color: #fff;
-    }
-    .guest-subtitle {
-      font-size: 0.9rem;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 1.25rem;
-    }
-    .qr-wrap {
-      background: white;
-      border-radius: 12px;
-      padding: 12px;
-      display: inline-block;
+      background: #fff; border-radius: 16px;
+      overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
       margin-bottom: 1rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     }
-    .qr-wrap img { width: 200px; height: 200px; display: block; }
-    .code-label {
-      font-size: 0.75rem;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 0.25rem;
+    .card-img-wrap { position: relative; width: 100%; }
+    .card-img-wrap img.template { width: 100%; display: block; }
+    .card-img-wrap canvas { width: 100%; display: block; }
+    .plain-qr { padding: 1.5rem; text-align: center; }
+    .plain-qr img { width: 200px; height: 200px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .guest-info { padding: 1rem 1.25rem; border-top: 1px solid #f0f0f0; }
+    .guest-name { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; }
+    .guest-meta { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
+    .status-badge {
+      display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 600; margin-top: 0.5rem;
+      background: #d1fae5; color: #065f46;
     }
-    .code {
-      font-family: monospace;
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      color: #a78bfa;
-      margin-bottom: 1.25rem;
-    }
-    .instruction {
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.5);
-      line-height: 1.5;
-      margin-bottom: 1.5rem;
-      padding: 0.75rem;
-      background: rgba(255,255,255,0.05);
-      border-radius: 8px;
-    }
+    .status-badge.pending { background: #f3f4f6; color: #6b7280; }
+    .actions { padding: 0.75rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-      padding: 0.75rem 1.5rem; border-radius: 10px; border: none;
-      font-size: 0.95rem; font-weight: 600; cursor: pointer;
-      text-decoration: none; width: 100%; margin-bottom: 0.5rem;
-      transition: opacity 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.7rem 1rem; border-radius: 8px; border: none;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: opacity 0.15s; width: 100%;
     }
-    .btn:hover { opacity: 0.9; }
-    .btn-download { background: #7c3aed; color: white; }
-    .btn-whatsapp { background: #25D366; color: white; }
-    .status-used {
-      background: rgba(5,150,105,0.2);
-      border: 1px solid rgba(5,150,105,0.4);
-      color: #6ee7b7;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: #7c3aed; color: #fff; }
+    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+    .btn-wa { background: #25D366; color: #fff; }
+    .section-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: rgba(255,255,255,0.4);
+      margin: 1rem 0 0.5rem; text-align: center;
     }
-    .loading { color: rgba(255,255,255,0.6); font-size: 1rem; }
-    .error-msg { color: #fca5a5; font-size: 1rem; }
-    .footer {
-      margin-top: 1.5rem;
-      font-size: 0.75rem;
-      color: rgba(255,255,255,0.25);
-    }
+    .loading { color: rgba(255,255,255,0.6); text-align: center; padding: 3rem 1rem; }
+    .error-msg { color: #fca5a5; text-align: center; padding: 2rem 1rem; }
   </style>
 </head>
 <body>
-  <div class="card" id="card">
-    <div class="loading">Loading your invitation... 💍</div>
+  <div class="container">
+    <div id="loading" class="loading">Loading your invitation...</div>
+    <div id="content" style="display:none">
+
+      <!-- QR Check-in Card -->
+      <div class="section-title" id="qr-section-title">Check-in QR Code</div>
+      <div class="card" id="qr-card">
+        <div class="card-img-wrap" id="qr-card-wrap"></div>
+        <div class="guest-info">
+          <div class="guest-name" id="guest-name-el"></div>
+          <div class="guest-meta" id="guest-meta-el"></div>
+          <div id="status-badge-el"></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="downloadQRCard()">Save QR Card</button>
+          <button class="btn btn-wa" onclick="shareWhatsApp('qr')">Share via WhatsApp</button>
+        </div>
+      </div>
+
+      <!-- Invitation Card (if set) -->
+      <div id="invite-section" style="display:none">
+        <div class="section-title">Invitation Card</div>
+        <div class="card">
+          <div class="card-img-wrap" id="invite-card-wrap"></div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="downloadCard('invite')">Save Invitation</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('invite')">Share via WhatsApp</button>
+            <button class="btn btn-outline" onclick="shareViaSMS('invite')">Share via SMS</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thank You Card (if set) -->
+      <div id="thanks-section" style="display:none">
+        <div class="section-title">Thank You Card</div>
+        <div class="card">
+          <div class="card-img-wrap" id="thanks-card-wrap"></div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="downloadCard('thanks')">Save Thank You Card</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('thanks')">Share via WhatsApp</button>
+            <button class="btn btn-outline" onclick="shareViaSMS('thanks')">Share via SMS</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div id="error-div" class="error-msg" style="display:none"></div>
   </div>
 
   <script>
     const token = window.location.pathname.split('/guest/')[1];
+    let _data = null;
+    let _canvases = {};
+
+    // Scroll to top
+    if (history.scrollRestoration) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
 
     async function load() {
-      const card = document.getElementById('card');
       try {
         const res  = await fetch(`/api/guests/view/${token}`);
         const data = await res.json();
-
-        if (!res.ok) {
-          card.innerHTML = `<div class="error-msg">❌ Invitation not found.<br><small>Please contact the event organizer.</small></div>`;
-          return;
-        }
-
-        const lookupCode = (data.unique_id || '').substring(0, 8).toUpperCase();
-
-        card.innerHTML = `
-          <div class="rings">💍</div>
-          <div class="event-name">${esc(data.eventName)}</div>
-          <div class="guest-name">${esc(data.name)}</div>
-          <div class="guest-subtitle">You're invited!</div>
-
-          ${data.status === 'used' ? `<div class="status-used">✅ Already checked in</div>` : ''}
-
-          <div class="qr-wrap">
-            <img src="${data.qrDataUrl}" alt="QR Code" id="qr-img" />
-          </div>
-
-          <div class="instruction">
-            Show the QR code above at the entrance to check in.<br>
-            If the QR can't be scanned, give your code: <strong>${esc(lookupCode)}</strong>
-          </div>
-
-          <button class="btn btn-download" onclick="downloadCard()">⬇ Save QR Code</button>
-          ${data.name ? `<button class="btn btn-whatsapp" onclick="shareWhatsApp()">💬 Share via WhatsApp</button>` : ''}
-
-          <div class="footer">Wedding Check-in System</div>
-        `;
-
-        // Store data for download/share
-        window._guestData = data;
-        window._lookupCode = lookupCode;
-
+        if (!res.ok) throw new Error(data.error || 'Not found');
+        _data = data;
+        render(data);
       } catch (e) {
-        card.innerHTML = `<div class="error-msg">❌ Failed to load invitation.<br><small>${e.message}</small></div>`;
+        document.getElementById('loading').style.display = 'none';
+        const errDiv = document.getElementById('error-div');
+        errDiv.style.display = 'block';
+        errDiv.innerHTML = `Invitation not found.<br><small>Please contact the event organizer.</small>`;
       }
     }
 
-    function esc(str) {
-      return String(str || '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    function render(data) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      // Guest info
+      document.getElementById('guest-name-el').textContent = data.name;
+      const meta = [data.table_number ? 'Table: ' + data.table_number : null,
+                    data.eventName].filter(Boolean).join(' · ');
+      document.getElementById('guest-meta-el').textContent = meta;
+      const badge = document.getElementById('status-badge-el');
+      badge.innerHTML = data.status === 'used'
+        ? '<span class="status-badge">Checked In</span>'
+        : '<span class="status-badge pending">Not yet checked in</span>';
+
+      // QR card
+      buildQRCard(data);
+
+      // Invitation card
+      if (data.inviteTemplate) {
+        document.getElementById('invite-section').style.display = 'block';
+        buildNameCard('invite', data.inviteTemplate, data.name);
+      }
+
+      // Thank you card
+      if (data.thanksTemplate) {
+        document.getElementById('thanks-section').style.display = 'block';
+        buildNameCard('thanks', data.thanksTemplate, data.name);
+      }
     }
 
-    function downloadCard() {
-      const d = window._guestData;
-      if (!d) return;
+    function buildQRCard(data) {
+      const wrap = document.getElementById('qr-card-wrap');
+      if (data.cardTemplate && data.cardTemplate.image && data.cardTemplate.qr_x != null) {
+        // Draw card template with QR overlay on canvas
+        const canvas = document.createElement('canvas');
+        const ctx    = canvas.getContext('2d');
+        const cardImg = new Image();
+        cardImg.onload = () => {
+          canvas.width  = cardImg.naturalWidth;
+          canvas.height = cardImg.naturalHeight;
+          ctx.drawImage(cardImg, 0, 0);
+          const qrImg = new Image();
+          qrImg.onload = () => {
+            const W    = canvas.width;
+            const H    = canvas.height;
+            const qrW  = (data.cardTemplate.qr_size / 100) * W;
+            const qrX  = (data.cardTemplate.qr_x / 100) * W - qrW / 2;
+            const qrY  = (data.cardTemplate.qr_y / 100) * H - qrW / 2;
+            ctx.drawImage(qrImg, qrX, qrY, qrW, qrW);
+            _canvases['qr'] = canvas;
+          };
+          qrImg.src = data.qrDataUrl;
+        };
+        cardImg.src = data.cardTemplate.image;
+        wrap.appendChild(canvas);
+      } else {
+        // Plain QR
+        wrap.innerHTML = `<div class="plain-qr"><img src="${data.qrDataUrl}" alt="QR Code" /></div>`;
+        _canvases['qr'] = null; // will use img src directly
+      }
+    }
 
-      // QR only — plain white, just the QR image
-      const SIZE = 300;
+    function buildNameCard(type, template, guestName) {
+      const wrap = document.getElementById(`${type}-card-wrap`);
       const canvas = document.createElement('canvas');
-      canvas.width = SIZE; canvas.height = SIZE;
-      const ctx = canvas.getContext('2d');
-
-      const img = new Image();
+      const ctx    = canvas.getContext('2d');
+      const img    = new Image();
       img.onload = () => {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, SIZE, SIZE);
-        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        // Draw guest name
+        const fontSize = Math.round((template.name_size / 100) * img.naturalWidth);
+        ctx.font      = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+        ctx.fillStyle = template.name_color || '#000000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const x = (template.name_x / 100) * img.naturalWidth;
+        const y = (template.name_y / 100) * img.naturalHeight;
+        ctx.fillText(guestName, x, y);
+        _canvases[type] = canvas;
+      };
+      img.src = template.image;
+      wrap.appendChild(canvas);
+    }
+
+    function downloadQRCard() {
+      const canvas = _canvases['qr'];
+      if (canvas) {
         const a = document.createElement('a');
-        a.download = `qr-${d.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+        a.download = `qr-${_data.name.replace(/\s+/g,'-').toLowerCase()}.png`;
         a.href = canvas.toDataURL('image/png');
         a.click();
-      };
-      img.src = d.qrDataUrl;
+      } else {
+        // Plain QR — download the QR image directly
+        const a = document.createElement('a');
+        a.download = `qr-${_data.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+        a.href = _data.qrDataUrl;
+        a.click();
+      }
     }
 
-    function shareWhatsApp() {
-      const d = window._guestData;
-      if (!d) return;
-      const msg = `💍 Dear ${d.name},\n\nYou are invited to ${d.eventName || 'our wedding'}!\n\nYour personal invitation:\n${window.location.href}\n\nYour check-in code: *${window._lookupCode}*\n\nOpen the link and show the QR code at the entrance. If the QR can't be scanned, give your code: ${window._lookupCode}`;
+    function downloadCard(type) {
+      const canvas = _canvases[type];
+      if (!canvas) return;
+      const a = document.createElement('a');
+      a.download = `${type}-${_data.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+
+    function shareWhatsApp(type) {
+      const lookupCode = (_data.unique_id || '').substring(0, 8).toUpperCase();
+      let msg;
+      if (type === 'qr') {
+        msg = `Dear ${_data.name}, you are invited to ${_data.eventName}!\n\nYour check-in QR code: ${window.location.href}\n\nCode: ${lookupCode}`;
+      } else if (type === 'invite') {
+        msg = `Dear ${_data.name}, you are cordially invited to ${_data.eventName}!\n\nView your invitation: ${window.location.href}`;
+      } else {
+        msg = `Dear ${_data.name}, thank you for attending ${_data.eventName}! It was a pleasure having you with us.`;
+      }
       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function shareViaSMS(type) {
+      const lookupCode = (_data.unique_id || '').substring(0, 8).toUpperCase();
+      let msg;
+      if (type === 'invite') {
+        msg = `Dear ${_data.name}, you are invited to ${_data.eventName}. View: ${window.location.href}`;
+      } else {
+        msg = `Dear ${_data.name}, thank you for attending ${_data.eventName}!`;
+      }
+      const phone = (_data.phone || '').replace(/\D/g, '');
+      window.open(`sms:${phone}?body=${encodeURIComponent(msg)}`, '_self');
     }
 
     load();

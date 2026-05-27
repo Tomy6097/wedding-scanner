@@ -764,19 +764,28 @@ async function loadSendTab() {
   if (!state.currentEvent) return;
   const eventId = gid(state.currentEvent);
   try {
-    const stats = await api('GET', `/guests/stats?event_id=${eventId}`);
-    // Fetch guests to count phone/sms stats
     const guests = await api('GET', `/guests?event_id=${eventId}`);
     const withPhone   = guests.filter(g => g.phone && g.phone.trim()).length;
     const alreadySent = guests.filter(g => g.sms_sent).length;
     const notSent     = withPhone - alreadySent;
+    const ev = state.currentEvent;
 
     const smsStatsEl = $('#sms-stats');
     if (smsStatsEl) {
       smsStatsEl.innerHTML = `
-        <div class="sms-stat-row"><span>Total guests with phone:</span><strong>${withPhone}</strong></div>
-        <div class="sms-stat-row"><span>Already sent SMS:</span><strong style="color:var(--success)">${alreadySent}</strong></div>
-        <div class="sms-stat-row"><span>Not sent yet:</span><strong style="color:var(--warning)">${notSent}</strong></div>`;
+        <div class="sms-stat-row"><span>Guests with phone:</span><strong>${withPhone}</strong></div>
+        <div class="sms-stat-row"><span>SMS already sent:</span><strong>${alreadySent}</strong></div>
+        <div class="sms-stat-row"><span>Not sent yet:</span><strong>${notSent}</strong></div>`;
+    }
+
+    // Show/hide invitation send button based on template
+    const inviteSendSection = $('#invite-send-section');
+    if (inviteSendSection) {
+      inviteSendSection.style.display = ev.invite_image ? 'block' : 'none';
+    }
+    const thanksSendSection = $('#thanks-send-section');
+    if (thanksSendSection) {
+      thanksSendSection.style.display = ev.thanks_image ? 'block' : 'none';
     }
   } catch (e) {
     console.error('loadSendTab error:', e);
@@ -1670,24 +1679,129 @@ async function printAllQR() {
 
 // ── Card Template ─────────────────────────────────────────────
 let cardState = {
-  imageDataUrl: null,   // uploaded image
-  qrX: null,            // click position X %
-  qrY: null,            // click position Y %
-  qrSize: 20            // QR size %
+  imageDataUrl: null,
+  qrX: null,
+  qrY: null,
+  qrSize: 20
 };
+
+// Name card state for invite and thanks
+let nameCardState = {
+  invite: { imageDataUrl: null, nameX: null, nameY: null, nameSize: 5, nameColor: '#000000' },
+  thanks: { imageDataUrl: null, nameX: null, nameY: null, nameSize: 5, nameColor: '#000000' }
+};
+
+function showNameCardPreview(type, dataUrl) {
+  const img  = $(`#${type}-preview-img`);
+  const hint = $(`#${type}-preview-hint`);
+  if (!img) return;
+  img.src = dataUrl;
+  img.style.display = 'block';
+  if (hint) hint.textContent = 'Click on the card to position the guest name';
+  const wrap = $(`#${type}-preview-wrap`);
+  if (wrap) {
+    wrap.onclick = (e) => {
+      const rect = img.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width)  * 100;
+      const y = ((e.clientY - rect.top)  / rect.height) * 100;
+      nameCardState[type].nameX = Math.round(x * 10) / 10;
+      nameCardState[type].nameY = Math.round(y * 10) / 10;
+      updateNameMarker(type, nameCardState[type].nameX, nameCardState[type].nameY);
+      const sb = $(`#save-${type}-btn`); if (sb) sb.disabled = false;
+      renderNameCardSample(type);
+    };
+  }
+}
+
+function updateNameMarker(type, xPct, yPct) {
+  const marker = $(`#${type}-name-marker`);
+  if (!marker) return;
+  marker.style.display = 'block';
+  marker.style.left    = xPct + '%';
+  marker.style.top     = yPct + '%';
+}
+
+function renderNameCardSample(type) {
+  const s = nameCardState[type];
+  if (!s.imageDataUrl || s.nameX == null) return;
+  const canvas = $(`#${type}-sample-canvas`);
+  const wrap   = $(`#${type}-sample-wrap`);
+  if (!canvas) return;
+  const img = new Image();
+  img.onload = () => {
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const fontSize = Math.round((s.nameSize / 100) * img.naturalWidth);
+    ctx.font      = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+    ctx.fillStyle = s.nameColor || '#000000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Guest Name', (s.nameX / 100) * img.naturalWidth, (s.nameY / 100) * img.naturalHeight);
+    if (wrap) wrap.style.display = 'block';
+  };
+  img.src = s.imageDataUrl;
+}
+
+async function saveNameCardTemplate(type) {
+  if (!state.currentEvent) return;
+  const s    = nameCardState[type];
+  const errEl = $(`#${type}-upload-error`);
+  const sucEl = $(`#${type}-upload-success`);
+  const saveBtn = $(`#save-${type}-btn`);
+  hideAlert(errEl); hideAlert(sucEl);
+  if (!s.imageDataUrl) { showAlert(errEl, 'Please upload an image first'); return; }
+  if (s.nameX == null) { showAlert(errEl, 'Please click on the card to set name position'); return; }
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+  try {
+    const body = {};
+    body[`${type}_image`]      = s.imageDataUrl;
+    body[`${type}_name_x`]     = s.nameX;
+    body[`${type}_name_y`]     = s.nameY;
+    body[`${type}_name_size`]  = s.nameSize;
+    body[`${type}_name_color`] = s.nameColor;
+    await api('POST', `/events/${gid(state.currentEvent)}/${type}`, body);
+    state.currentEvent[`${type}_image`]      = s.imageDataUrl;
+    state.currentEvent[`${type}_name_x`]     = s.nameX;
+    state.currentEvent[`${type}_name_y`]     = s.nameY;
+    state.currentEvent[`${type}_name_size`]  = s.nameSize;
+    state.currentEvent[`${type}_name_color`] = s.nameColor;
+    showAlert(sucEl, 'Template saved!', 'success');
+    const rb = $(`#remove-${type}-btn`); if (rb) rb.style.display = 'inline-flex';
+  } catch (e) {
+    showAlert(errEl, e.message);
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = `Save ${type === 'invite' ? 'Invitation' : 'Thank You'} Template`; }
+  }
+}
+
+async function removeNameCardTemplate(type) {
+  if (!state.currentEvent) return;
+  if (!confirm(`Remove ${type === 'invite' ? 'invitation' : 'thank you'} card template?`)) return;
+  try {
+    await api('DELETE', `/events/${gid(state.currentEvent)}/${type}`);
+    nameCardState[type] = { imageDataUrl: null, nameX: null, nameY: null, nameSize: 5, nameColor: '#000000' };
+    state.currentEvent[`${type}_image`] = null;
+    const img = $(`#${type}-preview-img`); if (img) { img.src = ''; img.style.display = 'none'; }
+    const marker = $(`#${type}-name-marker`); if (marker) marker.style.display = 'none';
+    const wrap = $(`#${type}-sample-wrap`); if (wrap) wrap.style.display = 'none';
+    const rb = $(`#remove-${type}-btn`); if (rb) rb.style.display = 'none';
+    const label = $(`#${type}-drop-label`); if (label) label.textContent = `Drop ${type === 'invite' ? 'invitation' : 'thank you'} image here or click to browse`;
+    showAlert($(`#${type}-upload-success`), 'Template removed', 'success');
+  } catch (e) { alert('Failed: ' + e.message); }
+}
 
 function initCardTab() {
   if (!state.currentEvent) return;
   updateBreadcrumbs();
 
-  // Update breadcrumb for card tab
   const bc = $('#event-breadcrumb-card');
   if (bc) {
     bc.innerHTML = `<a href="#" class="breadcrumb-back js-back-card">← Back to Events</a> <span class="breadcrumb-sep">›</span> <span class="breadcrumb-event">${escHtml(state.currentEvent.name)}</span>`;
     bc.querySelector('.js-back-card').addEventListener('click', (e) => { e.preventDefault(); backToEvents(); });
   }
 
-  // Load existing card if any
   const ev = state.currentEvent;
   if (ev.card_image) {
     cardState.imageDataUrl = ev.card_image;
@@ -1703,6 +1817,38 @@ function initCardTab() {
     const slider = $('#qr-size-slider');
     if (slider) { slider.value = cardState.qrSize; $('#qr-size-label').textContent = cardState.qrSize + '%'; }
     renderCardSample();
+  }
+
+  // Load invite template if exists
+  if (ev.invite_image) {
+    nameCardState.invite.imageDataUrl = ev.invite_image;
+    nameCardState.invite.nameX = ev.invite_name_x;
+    nameCardState.invite.nameY = ev.invite_name_y;
+    nameCardState.invite.nameSize = ev.invite_name_size || 5;
+    nameCardState.invite.nameColor = ev.invite_name_color || '#000000';
+    showNameCardPreview('invite', ev.invite_image);
+    if (ev.invite_name_x != null) updateNameMarker('invite', ev.invite_name_x, ev.invite_name_y);
+    const rb = $('#remove-invite-btn'); if (rb) rb.style.display = 'inline-flex';
+    const sb = $('#save-invite-btn');   if (sb) sb.disabled = false;
+    const sl = $('#invite-name-size');  if (sl) { sl.value = nameCardState.invite.nameSize; $('#invite-name-size-label').textContent = nameCardState.invite.nameSize + '%'; }
+    const cl = $('#invite-name-color'); if (cl) cl.value = nameCardState.invite.nameColor;
+    renderNameCardSample('invite');
+  }
+
+  // Load thanks template if exists
+  if (ev.thanks_image) {
+    nameCardState.thanks.imageDataUrl = ev.thanks_image;
+    nameCardState.thanks.nameX = ev.thanks_name_x;
+    nameCardState.thanks.nameY = ev.thanks_name_y;
+    nameCardState.thanks.nameSize = ev.thanks_name_size || 5;
+    nameCardState.thanks.nameColor = ev.thanks_name_color || '#000000';
+    showNameCardPreview('thanks', ev.thanks_image);
+    if (ev.thanks_name_x != null) updateNameMarker('thanks', ev.thanks_name_x, ev.thanks_name_y);
+    const rb = $('#remove-thanks-btn'); if (rb) rb.style.display = 'inline-flex';
+    const sb = $('#save-thanks-btn');   if (sb) sb.disabled = false;
+    const sl = $('#thanks-name-size');  if (sl) { sl.value = nameCardState.thanks.nameSize; $('#thanks-name-size-label').textContent = nameCardState.thanks.nameSize + '%'; }
+    const cl = $('#thanks-name-color'); if (cl) cl.value = nameCardState.thanks.nameColor;
+    renderNameCardSample('thanks');
   }
 }
 
@@ -2065,6 +2211,57 @@ function showImportReport(created, total) {
   alert(msg);
 }
 
+// ── Send Card Broadcast (Invite / Thanks) ────────────────────
+async function sendCardBroadcast(type, channel) {
+  if (!state.currentEvent) return;
+  const ev = state.currentEvent;
+  const template = type === 'invite'
+    ? { image: ev.invite_image, name_x: ev.invite_name_x, name_y: ev.invite_name_y, name_size: ev.invite_name_size || 5, name_color: ev.invite_name_color || '#000000' }
+    : { image: ev.thanks_image, name_x: ev.thanks_name_x, name_y: ev.thanks_name_y, name_size: ev.thanks_name_size || 5, name_color: ev.thanks_name_color || '#000000' };
+
+  if (!template.image) { alert('Please set up the card template first in Card Template tab.'); return; }
+
+  const guests = await api('GET', `/guests?event_id=${gid(ev)}`);
+  const withPhone = guests.filter(g => g.phone && g.phone.trim());
+  if (!withPhone.length) { alert('No guests with phone numbers found.'); return; }
+
+  const typeName = type === 'invite' ? 'invitation' : 'thank you';
+  if (!confirm(`Send ${typeName} cards to ${withPhone.length} guests via ${channel === 'wa' ? 'WhatsApp' : 'SMS'}?`)) return;
+
+  if (channel === 'wa') {
+    // Build CSV with personalized card links
+    const origin = window.location.origin;
+    const rows = [['Name', 'Phone', 'Personal Card Link']];
+    withPhone.forEach(g => {
+      rows.push([g.name, g.phone.trim(), `${origin}/guest/${g.qr_token}`]);
+    });
+    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `${ev.name.replace(/\s+/g,'-')}-${type}-cards.csv`;
+    a.click();
+    setTimeout(() => alert(`CSV downloaded!\n\nEach guest's personal page (${origin}/guest/...) now shows their ${typeName} card with their name.\n\nSend each guest their link from the CSV.`), 500);
+  } else {
+    // SMS — send link via Beem
+    if (!confirm(`This will send SMS to ${withPhone.length} guests. Beem Africa charges apply.`)) return;
+    const eventName = ev.name;
+    const baseUrl   = window.location.origin;
+    let sent = 0, failed = 0;
+    for (const g of withPhone) {
+      try {
+        const msg = type === 'invite'
+          ? `Dear ${g.name}, you are invited to ${eventName}. View your invitation: ${baseUrl}/guest/${g.qr_token}`
+          : `Dear ${g.name}, thank you for attending ${eventName}! View your card: ${baseUrl}/guest/${g.qr_token}`;
+        await api('POST', `/guests/${g._id}/sms`, { custom_message: msg });
+        sent++;
+        await new Promise(r => setTimeout(r, 200));
+      } catch (e) { failed++; }
+    }
+    alert(`Done! Sent: ${sent}, Failed: ${failed}`);
+  }
+}
+
 // ── Tab Navigation ───────────────────────────────────────────
 function switchTab(tabId) {
   // Update sidebar nav items
@@ -2361,6 +2558,56 @@ function initAdmin() {
     });
   }
 
+  // ── Invite Card Controls ──────────────────────────────────
+  ['invite', 'thanks'].forEach(type => {
+    const fileInput = $(`#${type}-file`);
+    const dropZone  = $(`#${type}-drop-zone`);
+    const sizeSlider = $(`#${type}-name-size`);
+    const colorPicker = $(`#${type}-name-color`);
+    const saveBtn   = $(`#save-${type}-btn`);
+    const removeBtn = $(`#remove-${type}-btn`);
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      if (file.size > 2 * 1024 * 1024) { showAlert($(`#${type}-upload-error`), 'Image too large. Max 2MB.'); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        nameCardState[type].imageDataUrl = ev.target.result;
+        nameCardState[type].nameX = null;
+        nameCardState[type].nameY = null;
+        showNameCardPreview(type, ev.target.result);
+        const label = $(`#${type}-drop-label`);
+        if (label) label.textContent = file.name + ' selected';
+        const marker = $(`#${type}-name-marker`); if (marker) marker.style.display = 'none';
+        const wrap = $(`#${type}-sample-wrap`); if (wrap) wrap.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    if (fileInput) fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    if (dropZone) {
+      dropZone.addEventListener('click', () => fileInput && fileInput.click());
+      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+      dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+    }
+    if (sizeSlider) {
+      sizeSlider.addEventListener('input', (e) => {
+        nameCardState[type].nameSize = parseInt(e.target.value);
+        const lbl = $(`#${type}-name-size-label`); if (lbl) lbl.textContent = nameCardState[type].nameSize + '%';
+        if (nameCardState[type].nameX != null) renderNameCardSample(type);
+      });
+    }
+    if (colorPicker) {
+      colorPicker.addEventListener('input', (e) => {
+        nameCardState[type].nameColor = e.target.value;
+        if (nameCardState[type].nameX != null) renderNameCardSample(type);
+      });
+    }
+    if (saveBtn)   saveBtn.addEventListener('click', () => saveNameCardTemplate(type));
+    if (removeBtn) removeBtn.addEventListener('click', () => removeNameCardTemplate(type));
+  });
+
   // History modal close
   const histClose   = $('#history-modal-close');
   const histOverlay = $('#history-modal-overlay');
@@ -2540,6 +2787,17 @@ function initAdmin() {
 
   const sendAllWaBtn = $('#send-all-wa-btn');
   if (sendAllWaBtn) sendAllWaBtn.addEventListener('click', sendAllWhatsApp);
+
+  // Send invitation cards
+  const sendInviteWaBtn  = $('#send-invite-wa-btn');
+  const sendInviteSmsBtn = $('#send-invite-sms-btn');
+  const sendThanksWaBtn  = $('#send-thanks-wa-btn');
+  const sendThanksSmsBtn = $('#send-thanks-sms-btn');
+
+  if (sendInviteWaBtn) sendInviteWaBtn.addEventListener('click', () => sendCardBroadcast('invite', 'wa'));
+  if (sendInviteSmsBtn) sendInviteSmsBtn.addEventListener('click', () => sendCardBroadcast('invite', 'sms'));
+  if (sendThanksWaBtn) sendThanksWaBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'wa'));
+  if (sendThanksSmsBtn) sendThanksSmsBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'sms'));
 
   // ── Activity Log Controls ────────────────────────────────
   const refreshActivityBtn = $('#refresh-activity-btn');
