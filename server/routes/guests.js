@@ -270,6 +270,21 @@ router.post('/scan', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Send custom SMS to a single guest
+router.post('/sms/custom', requireAdmin, async (req, res) => {
+  const { guest_id, message } = req.body;
+  if (!guest_id || !message) return res.status(400).json({ error: 'guest_id and message required' });
+  try {
+    const guest = await Guest.findById(guest_id);
+    if (!guest) return res.status(404).json({ error: 'Guest not found' });
+    if (!guest.phone) return res.status(400).json({ error: 'Guest has no phone number' });
+    await sendBeemSMS(guest.phone, message);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Test SMS — send a test message to verify Beem settings
 router.post('/sms/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;

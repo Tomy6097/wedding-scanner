@@ -265,29 +265,76 @@
         <div class="event-breadcrumb" id="event-breadcrumb-send"></div>
         <div class="page-header"><h2>Send Invitations</h2></div>
         <div class="add-grid">
+
+          <!-- QR Invitation SMS -->
           <div class="card">
-            <h3>📱 SMS</h3>
-            <p class="hint-text">Send invitation link + check-in code via SMS using Beem Africa.</p>
+            <h3>QR Invitation SMS</h3>
+            <p class="hint-text">Send each guest their personal QR link + check-in code via SMS.</p>
             <div id="sms-stats" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.75rem"></div>
             <div class="form-group" style="margin-top:0.5rem">
               <label><input type="checkbox" id="sms-only-unsent" checked /> Only send to guests who haven't received SMS yet</label>
             </div>
             <div id="sms-result" class="alert hidden"></div>
-            <button class="btn btn-primary btn-full" id="send-all-sms-btn"><i data-lucide="send" style="width:14px;height:14px"></i> Send SMS to All</button>
+            <button class="btn btn-primary btn-full" id="send-all-sms-btn">Send QR SMS to All</button>
             <p class="hint-text" style="margin-top:0.4rem">Requires Beem Africa API keys in Settings</p>
           </div>
+
+          <!-- WhatsApp Broadcast -->
           <div class="card">
-            <h3>💬 WhatsApp Broadcast</h3>
-            <p class="hint-text">Downloads aExport CSV with all guest links. Open in Excel, send each guest their personal link.</p>
+            <h3>WhatsApp Broadcast</h3>
+            <p class="hint-text">Downloads a CSV with all guest links. Send each guest their personal link.</p>
             <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.75rem;font-size:0.8rem;color:var(--gray-600);margin-bottom:0.75rem">
-              <strong>How it works:</strong><br>
-              1. Click the button — a .csv file downloads<br>
+              1. Click button — CSV downloads<br>
               2. Open in Excel or Google Sheets<br>
-              3. Send each guest their personal link<br>
-              4. Each guest opens their link to see their QR
+              3. Send each guest their personal link
             </div>
-            <button class="btn btn-secondary btn-full" id="send-all-wa-btn"><i data-lucide="download" style="width:14px;height:14px"></i>Download BroadcastExport CSV</button>
+            <button class="btn btn-secondary btn-full" id="send-all-wa-btn">Download Broadcast CSV</button>
           </div>
+
+          <!-- Custom SMS Message -->
+          <div class="card">
+            <h3>Custom SMS Message</h3>
+            <p class="hint-text">Write your own message. System will automatically add each guest's name at the beginning.</p>
+            <div class="form-group">
+              <label>Your Message</label>
+              <textarea id="custom-sms-text" rows="4" placeholder="e.g. You are cordially invited to our wedding on 15th June at Serena Hotel. Please arrive by 3:00 PM." style="width:100%;padding:0.6rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:0.875rem;resize:vertical"></textarea>
+              <small class="hint-text">Preview: "Dear <em>John Smith</em>, [your message]"</small>
+            </div>
+            <div class="form-group">
+              <label><input type="radio" name="custom-sms-target" value="all" checked /> Send to all guests with phone</label><br>
+              <label><input type="radio" name="custom-sms-target" value="attended" /> Send only to guests who attended</label><br>
+              <label><input type="radio" name="custom-sms-target" value="absent" /> Send only to guests who did NOT attend</label>
+            </div>
+            <div id="custom-sms-result" class="alert hidden"></div>
+            <button class="btn btn-primary btn-full" id="send-custom-sms-btn">Send Custom SMS</button>
+          </div>
+
+          <!-- Invitation Card Send -->
+          <div class="card" id="invite-send-section">
+            <h3>Send Invitation Cards</h3>
+            <p class="hint-text">Send personalized invitation cards. Set up the template in Card Template tab first.</p>
+            <div id="invite-template-status" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.6rem;font-size:0.8rem;color:var(--gray-500);margin-bottom:0.75rem">
+              No invitation template set. Go to Card Template tab to upload one.
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-secondary btn-full" id="send-invite-wa-btn">Send via WhatsApp</button>
+              <button class="btn btn-outline btn-full" id="send-invite-sms-btn">Send via SMS</button>
+            </div>
+          </div>
+
+          <!-- Thank You Card Send -->
+          <div class="card" id="thanks-send-section">
+            <h3>Send Thank You Cards</h3>
+            <p class="hint-text">Send personalized thank you cards after the event. Set up the template in Card Template tab first.</p>
+            <div id="thanks-template-status" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.6rem;font-size:0.8rem;color:var(--gray-500);margin-bottom:0.75rem">
+              No thank you template set. Go to Card Template tab to upload one.
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-secondary btn-full" id="send-thanks-wa-btn">Send via WhatsApp</button>
+              <button class="btn btn-outline btn-full" id="send-thanks-sms-btn">Send via SMS</button>
+            </div>
+          </div>
+
         </div>
       </div>
 

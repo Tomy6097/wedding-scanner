@@ -778,14 +778,22 @@ async function loadSendTab() {
         <div class="sms-stat-row"><span>Not sent yet:</span><strong>${notSent}</strong></div>`;
     }
 
-    // Show/hide invitation send button based on template
-    const inviteSendSection = $('#invite-send-section');
-    if (inviteSendSection) {
-      inviteSendSection.style.display = ev.invite_image ? 'block' : 'none';
+    // Update invite template status
+    const inviteStatus = $('#invite-template-status');
+    if (inviteStatus) {
+      inviteStatus.textContent = ev.invite_image
+        ? `Template set. ${withPhone} guests with phone numbers.`
+        : 'No invitation template set. Go to Card Template tab to upload one.';
+      inviteStatus.style.color = ev.invite_image ? 'var(--success)' : 'var(--gray-500)';
     }
-    const thanksSendSection = $('#thanks-send-section');
-    if (thanksSendSection) {
-      thanksSendSection.style.display = ev.thanks_image ? 'block' : 'none';
+
+    // Update thanks template status
+    const thanksStatus = $('#thanks-template-status');
+    if (thanksStatus) {
+      thanksStatus.textContent = ev.thanks_image
+        ? `Template set. ${withPhone} guests with phone numbers.`
+        : 'No thank you template set. Go to Card Template tab to upload one.';
+      thanksStatus.style.color = ev.thanks_image ? 'var(--success)' : 'var(--gray-500)';
     }
   } catch (e) {
     console.error('loadSendTab error:', e);
@@ -2222,6 +2230,53 @@ function showImportReport(created, total) {
   alert(msg);
 }
 
+// ── Custom SMS Message ────────────────────────────────────────
+async function sendCustomSMS() {
+  if (!state.currentEvent) return;
+  const message = $('#custom-sms-text') ? $('#custom-sms-text').value.trim() : '';
+  const resultEl = $('#custom-sms-result');
+  const btn = $('#send-custom-sms-btn');
+
+  if (!message) { showAlert(resultEl, 'Please write a message first', 'error'); return; }
+
+  const targetRadio = document.querySelector('input[name="custom-sms-target"]:checked');
+  const target = targetRadio ? targetRadio.value : 'all';
+
+  const guests = await api('GET', `/guests?event_id=${gid(state.currentEvent)}`);
+  let targetGuests = guests.filter(g => g.phone && g.phone.trim());
+
+  if (target === 'attended') targetGuests = targetGuests.filter(g => g.status === 'used');
+  if (target === 'absent')   targetGuests = targetGuests.filter(g => g.status !== 'used');
+
+  if (!targetGuests.length) { showAlert(resultEl, 'No guests found for selected target', 'error'); return; }
+
+  if (!confirm(`Send custom SMS to ${targetGuests.length} guests?`)) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  hideAlert(resultEl);
+
+  let sent = 0, failed = 0, errors = [];
+  for (const g of targetGuests) {
+    try {
+      const personalMsg = `Dear ${g.name}, ${message}`;
+      // Use Beem directly via a new endpoint
+      await api('POST', '/guests/sms/custom', {
+        guest_id: g._id,
+        message: personalMsg
+      });
+      sent++;
+      await new Promise(r => setTimeout(r, 200));
+    } catch (e) {
+      failed++;
+      errors.push(`${g.name}: ${e.message}`);
+    }
+  }
+
+  const msg = `Sent: ${sent}${failed > 0 ? `, Failed: ${failed}` : ''}`;
+  showAlert(resultEl, msg, failed === 0 ? 'success' : 'error');
+  if (btn) { btn.disabled = false; btn.textContent = 'Send Custom SMS'; }
+}
+
 // ── Send Card Broadcast (Invite / Thanks) ────────────────────
 async function sendCardBroadcast(type, channel) {
   if (!state.currentEvent) return;
@@ -2809,6 +2864,10 @@ function initAdmin() {
   if (sendInviteSmsBtn) sendInviteSmsBtn.addEventListener('click', () => sendCardBroadcast('invite', 'sms'));
   if (sendThanksWaBtn) sendThanksWaBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'wa'));
   if (sendThanksSmsBtn) sendThanksSmsBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'sms'));
+
+  // Custom SMS
+  const sendCustomSmsBtn = $('#send-custom-sms-btn');
+  if (sendCustomSmsBtn) sendCustomSmsBtn.addEventListener('click', sendCustomSMS);
 
   // ── Activity Log Controls ────────────────────────────────
   const refreshActivityBtn = $('#refresh-activity-btn');
