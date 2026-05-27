@@ -220,9 +220,9 @@ function renderEventsGrid(events) {
         </div>
       </div>
       <div class="event-card-stats">
-        <div class="event-stat"><span class="event-stat-value">${total}</span><span class="event-stat-label">Total</span></div>
-        <div class="event-stat"><span class="event-stat-value">${checkedIn}</span><span class="event-stat-label">In</span></div>
-        <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Left</span></div>
+        <div class="event-stat"><span class="event-stat-value">${total}</span><span class="event-stat-label">Guests</span></div>
+        <div class="event-stat"><span class="event-stat-value">${checkedIn}</span><span class="event-stat-label">Arrived</span></div>
+        <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Pending</span></div>
       </div>
       <div class="event-card-progress">
         <div class="progress-bar" style="height:3px">
@@ -1067,9 +1067,9 @@ function renderScannerEventList(events) {
         ${ev.venue ? `<span>${escHtml(ev.venue)}</span>` : ''}
       </div>
       <div class="event-card-stats">
-        <div class="event-stat"><span class="event-stat-value">${ev.total || 0}</span><span class="event-stat-label">Total</span></div>
-        <div class="event-stat"><span class="event-stat-value">${ev.checkedIn || 0}</span><span class="event-stat-label">Checked In</span></div>
-        <div class="event-stat"><span class="event-stat-value">${ev.remaining || 0}</span><span class="event-stat-label">Remaining</span></div>
+        <div class="event-stat"><span class="event-stat-value">${ev.total || 0}</span><span class="event-stat-label">Guests</span></div>
+        <div class="event-stat"><span class="event-stat-value">${ev.checkedIn || 0}</span><span class="event-stat-label">Arrived</span></div>
+        <div class="event-stat"><span class="event-stat-value">${ev.remaining || 0}</span><span class="event-stat-label">Pending</span></div>
       </div>
       <div style="text-align:center;margin-top:0.5rem">
         <span class="btn btn-primary btn-sm">${ev.has_pin ? 'Enter PIN' : 'Select'}</span>
