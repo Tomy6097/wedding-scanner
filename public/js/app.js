@@ -1802,7 +1802,18 @@ function initCardTab() {
     bc.querySelector('.js-back-card').addEventListener('click', (e) => { e.preventDefault(); backToEvents(); });
   }
 
-  const ev = state.currentEvent;
+  // Fetch full event data (includes card templates)
+  api('GET', `/events`).then(events => {
+    const ev = events.find(e => e._id === gid(state.currentEvent) || e._id === state.currentEvent._id);
+    if (ev) {
+      state.currentEvent = { ...state.currentEvent, ...ev };
+      loadCardTabData(ev);
+    }
+  }).catch(() => loadCardTabData(state.currentEvent));
+}
+
+function loadCardTabData(ev) {
+  // QR card
   if (ev.card_image) {
     cardState.imageDataUrl = ev.card_image;
     cardState.qrX   = ev.card_qr_x;
@@ -1819,7 +1830,7 @@ function initCardTab() {
     renderCardSample();
   }
 
-  // Load invite template if exists
+  // Invite card
   if (ev.invite_image) {
     nameCardState.invite.imageDataUrl = ev.invite_image;
     nameCardState.invite.nameX = ev.invite_name_x;
@@ -1835,7 +1846,7 @@ function initCardTab() {
     renderNameCardSample('invite');
   }
 
-  // Load thanks template if exists
+  // Thanks card
   if (ev.thanks_image) {
     nameCardState.thanks.imageDataUrl = ev.thanks_image;
     nameCardState.thanks.nameX = ev.thanks_name_x;
