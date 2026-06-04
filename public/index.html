@@ -88,21 +88,31 @@
         <span class="nav-badge" id="bookings-badge" style="display:none">0</span>
       </button>
 
-      <div class="sidebar-section-label" id="event-nav-section" style="display:none">Current Event</div>
-      <button class="nav-item hidden" data-tab="tab-overview">
-        <span class="nav-icon"><i data-lucide="activity"></i></span> Overview
-      </button>
-      <button class="nav-item hidden" data-tab="tab-guests">
-        <span class="nav-icon"><i data-lucide="users"></i></span> Guests
-      </button>
-      <button class="nav-item hidden" data-tab="tab-add">
-        <span class="nav-icon"><i data-lucide="user-plus"></i></span> Add Guest
-      </button>
-      <button class="nav-item hidden" data-tab="tab-send">
-        <span class="nav-icon"><i data-lucide="send"></i></span> Send Invites
-      </button>
-      <button class="nav-item hidden" data-tab="tab-card">
-        <span class="nav-icon"><i data-lucide="image"></i></span> Card Template
+      <div class="sidebar-section-label" id="event-nav-section" style="display:none">
+        <!-- collapsible event sub-menu -->
+      </div>
+      <div id="event-submenu-wrapper" style="display:none">
+        <div class="sidebar-event-divider"></div>
+        <button class="sidebar-event-name" id="sidebar-event-toggle">
+          <span class="ev-name-text" id="sidebar-event-label">Current Event</span>
+          <i data-lucide="chevron-down" class="ev-chevron" id="sidebar-event-chevron" style="width:14px;height:14px"></i>
+        </button>
+        <div class="sidebar-event-menu" id="sidebar-event-menu">
+          <button class="nav-item" data-tab="tab-overview"><span class="nav-icon"><i data-lucide="activity"></i></span> Overview</button>
+          <button class="nav-item" data-tab="tab-guests"><span class="nav-icon"><i data-lucide="users"></i></span> Guests</button>
+          <button class="nav-item" data-tab="tab-add"><span class="nav-icon"><i data-lucide="user-plus"></i></span> Add Guest</button>
+          <button class="nav-item" data-tab="tab-send"><span class="nav-icon"><i data-lucide="send"></i></span> Send Invites</button>
+          <button class="nav-item" data-tab="tab-card"><span class="nav-icon"><i data-lucide="image"></i></span> Card Template</button>
+          <button class="nav-item" data-tab="tab-activity"><span class="nav-icon"><i data-lucide="scroll-text"></i></span> Activity Log</button>
+        </div>
+        <div class="sidebar-event-divider"></div>
+      </div>
+      <button class="nav-item hidden" data-tab="tab-overview" style="display:none"></button>
+      <button class="nav-item hidden" data-tab="tab-guests" style="display:none"></button>
+      <button class="nav-item hidden" data-tab="tab-add" style="display:none"></button>
+      <button class="nav-item hidden" data-tab="tab-send" style="display:none"></button>
+      <button class="nav-item hidden" data-tab="tab-card" style="display:none"></button>
+      <button class="nav-item hidden" data-tab="tab-activity" style="display:none"></button>
       </button>
       <button class="nav-item hidden" data-tab="tab-activity">
         <span class="nav-icon"><i data-lucide="scroll-text"></i></span> Activity Log

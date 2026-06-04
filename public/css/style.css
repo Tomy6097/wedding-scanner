@@ -9,17 +9,17 @@
   --dark:          #1a1a2e;
   --white:         #ffffff;
 
-  /* Greys */
-  --gray-50:  #f8f8f8;
-  --gray-100: #f0f0f0;
-  --gray-200: #e4e4e4;
-  --gray-300: #d0d0d0;
-  --gray-400: #a8a8a8;
-  --gray-500: #808080;
-  --gray-600: #585858;
-  --gray-700: #383838;
-  --gray-800: #222222;
-  --gray-900: #111111;
+  /* Greys — Warm Slate */
+  --gray-50:  #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
 
   /* Semantic (kept minimal) */
   --success:       #059669;
@@ -45,7 +45,7 @@
 html, body {
   height: 100%;
   font-family: var(--font);
-  background: #f4f4f6;
+  background: #f8fafc;
   color: var(--gray-800);
   font-size: 15px;
   line-height: 1.6;
@@ -760,3 +760,43 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
 }
 .event-filter-btn:hover { background: var(--gray-50); color: var(--gray-800); }
 .event-filter-btn.active { background: var(--primary); color: var(--white); }
+
+/* ===== SIDEBAR SUB-MENU (Event) ===== */
+.sidebar-event-menu {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+.sidebar-event-menu.open {
+  max-height: 400px;
+}
+.sidebar-event-name {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer; background: none; border: none; width: 100%;
+  text-align: left; font-family: var(--font);
+  transition: color 0.15s;
+}
+.sidebar-event-name:hover { color: rgba(255,255,255,0.8); }
+.sidebar-event-name .ev-name-text {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.825rem; color: rgba(255,255,255,0.85); font-weight: 600;
+}
+.sidebar-event-name .ev-chevron {
+  flex-shrink: 0; transition: transform 0.25s;
+  color: rgba(255,255,255,0.4);
+}
+.sidebar-event-name .ev-chevron.open { transform: rotate(180deg); }
+.sidebar-event-menu .nav-item {
+  padding-left: 2rem;
+  font-size: 0.825rem;
+}
+.sidebar-event-menu .nav-item .nav-icon svg {
+  width: 14px; height: 14px;
+}
+.sidebar-event-divider {
+  height: 1px; background: rgba(255,255,255,0.06);
+  margin: 0.25rem 1rem;
+}

@@ -270,13 +270,21 @@ function openEvent(event) {
   state.currentEvent = event;
   state.recentCheckins = [];
 
-  // Show event-specific nav items
-  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
-    .forEach(t => t.classList.remove('hidden'));
-
-  // Show the event nav section label
+  // Show event submenu wrapper
+  const wrapper = $('#event-submenu-wrapper');
   const sectionLabel = $('#event-nav-section');
-  if (sectionLabel) sectionLabel.style.display = '';
+  if (wrapper) wrapper.style.display = 'block';
+  if (sectionLabel) sectionLabel.style.display = 'none';
+
+  // Update event name in sidebar
+  const labelEl = $('#sidebar-event-label');
+  if (labelEl) labelEl.textContent = event.name;
+
+  // Open the sub-menu
+  const menu = $('#sidebar-event-menu');
+  const chevron = $('#sidebar-event-chevron');
+  if (menu) menu.classList.add('open');
+  if (chevron) chevron.classList.add('open');
 
   updateBreadcrumbs();
   switchTab('tab-overview');
@@ -298,11 +306,15 @@ function updateBreadcrumbs() {
 function backToEvents() {
   state.currentEvent = null;
   state.recentCheckins = [];
-  // Hide event-specific nav items
-  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
-    .forEach(t => t.classList.add('hidden'));
-  const sectionLabel = $('#event-nav-section');
-  if (sectionLabel) sectionLabel.style.display = 'none';
+
+  // Hide event submenu
+  const wrapper = $('#event-submenu-wrapper');
+  if (wrapper) wrapper.style.display = 'none';
+  const menu = $('#sidebar-event-menu');
+  const chevron = $('#sidebar-event-chevron');
+  if (menu) menu.classList.remove('open');
+  if (chevron) chevron.classList.remove('open');
+
   switchTab('tab-events');
 }
 
@@ -2409,13 +2421,61 @@ function initAdmin() {
 
   showPage('page-admin');
   const adminUser = $('#admin-username');
-  if (adminUser) adminUser.textContent = `👤 ${state.user.username}`;
+  if (adminUser) adminUser.textContent = state.user.username;
 
-  // Hide event-specific nav items until an event is opened
-  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-activity"], .nav-item[data-tab="tab-card"]')
-    .forEach(t => t.classList.add('hidden'));
-  const sectionLabel = $('#event-nav-section');
-  if (sectionLabel) sectionLabel.style.display = 'none';
+  // Hide event submenu until event is opened
+  const evWrapper = $('#event-submenu-wrapper');
+  const evSection = $('#event-nav-section');
+  if (evWrapper) evWrapper.style.display = 'none';
+  if (evSection) evSection.style.display = 'none';
+
+  fetchEvents();
+
+  // Event filter tabs
+  $$('.event-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.event-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fetchEvents(btn.dataset.filter);
+    });
+  });
+
+  // Sub-menu toggle
+  const eventToggle = $('#sidebar-event-toggle');
+  if (eventToggle) {
+    eventToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = $('#sidebar-event-menu');
+      const chevron = $('#sidebar-event-chevron');
+      if (menu) menu.classList.toggle('open');
+      if (chevron) chevron.classList.toggle('open');
+    });
+  }
+
+  // Sub-menu nav items
+  $$('#sidebar-event-menu .nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      $$('#sidebar-event-menu .nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      switchTab(item.dataset.tab);
+      const sidebar = $('#sidebar'); if (sidebar) sidebar.classList.remove('open');
+      const overlay = $('#sidebar-overlay'); if (overlay) overlay.classList.remove('show');
+    });
+  });
+
+  // Main sidebar nav items (Events, Dashboard, Bookings, Settings)
+  $$('.sidebar-nav > .nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const tabId = item.dataset.tab;
+      if (!tabId) return;
+      // Close event sub-menu when navigating to main tabs
+      backToEvents();
+      switchTab(tabId);
+      const sidebar = $('#sidebar'); if (sidebar) sidebar.classList.remove('open');
+      const overlay = $('#sidebar-overlay'); if (overlay) overlay.classList.remove('show');
+    });
+  });
 
   fetchEvents();
 
