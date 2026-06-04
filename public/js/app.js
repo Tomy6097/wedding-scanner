@@ -153,116 +153,98 @@ async function fetchEvents(filter = 'all') {
 }
 
 function renderEventsGrid(events) {
-  const grid = $('#events-grid');
-  if (!grid) return;
+  // Use table instead of cards
+  const tbody = $('#events-tbody');
+  if (!tbody) return;
+
   if (!events.length) {
-    grid.innerHTML = '<div class="empty-state">No events yet. Create your first event!</div>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No events yet. Create your first event.</td></tr>';
     return;
   }
-  grid.innerHTML = events.map(ev => {
-    const color      = ev.color || '#7c3aed';
-    const dateStr    = ev.date ? new Date(ev.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-    const total      = ev.total      || 0;
-    const checkedIn  = ev.checkedIn  || 0;
-    const remaining  = ev.remaining  || 0;
-    const pct        = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
-    return `
-    <div class="event-card" style="--event-color: ${escHtml(color)}">
-      <div class="event-card-header">
-        <div class="event-card-name">${escHtml(ev.name)}</div>
-        ${ev.client_name ? `<div class="event-card-client">${escHtml(ev.client_name)}</div>` : ''}
-      </div>
-      <div class="event-card-meta">
-        ${ev.date   ? `<span>📅 ${escHtml(dateStr)}</span>` : ''}
-        ${ev.venue  ? `<span>📍 ${escHtml(ev.venue)}</span>` : ''}
-      </div>
-      <div class="event-card-stats">
-        <div class="event-stat"><span class="event-stat-value">${total}</span><span class="event-stat-label">Total</span></div>
-        <div class="event-stat"><span class="event-stat-value">${checkedIn}</span><span class="event-stat-label">Checked In</span></div>
-        <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Remaining</span></div>
-      </div>
-      <div class="event-card-progress">
-        <div class="progress-bar" style="height:6px">
-          <div class="progress-fill" style="width:${pct}%;background:var(--event-color)"></div>
-        </div>
-        <small style="color:var(--gray-400)">${pct}% attendance</small>
-      </div>
-      <div class="event-card-actions">
-        <button class="btn btn-primary btn-sm" onclick="openEvent(${JSON.stringify(escHtml(JSON.stringify(ev))).slice(1,-1)})">Open →</button>
-        <button class="btn btn-outline btn-sm" onclick='editEvent(${JSON.stringify(JSON.stringify(ev))}.replace ? JSON.parse(${JSON.stringify(JSON.stringify(ev))}) : ${JSON.stringify(ev)})'>✏️ Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${gid(ev)}','${escHtml(ev.name).replace(/'/g,"\\'")}')">🗑 Delete</button>
-      </div>
-    </div>`;
-  }).join('');
 
-  // Attach open/edit/delete via data attributes to avoid inline JSON escaping issues
-  grid.innerHTML = '';
+  tbody.innerHTML = '';
   events.forEach(ev => {
-    const color     = ev.color || '#7c3aed';
-    const dateStr   = ev.date ? new Date(ev.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
     const total     = ev.total     || 0;
     const checkedIn = ev.checkedIn || 0;
-    const remaining = ev.remaining || 0;
     const pct       = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
+    const dateStr   = ev.date ? new Date(ev.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-    const card = document.createElement('div');
-    card.className = 'event-card';
-    if (ev.status === 'completed') card.style.opacity = '0.65';
-    card.innerHTML = `
-      <div class="event-card-body">
-        <div class="event-card-name">${escHtml(ev.name)}</div>
-        ${ev.client_name ? `<div class="event-card-client" style="font-size:0.78rem;color:var(--gray-500);margin-bottom:0.35rem;font-weight:500">${escHtml(ev.client_name)}</div>` : ''}
-        <div class="event-card-meta" style="display:flex;flex-wrap:wrap;gap:0.4rem;font-size:0.72rem;color:var(--gray-400)">
-          ${ev.date  ? `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:var(--gray-100);padding:0.15rem 0.5rem;border-radius:999px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>${escHtml(new Date(ev.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}</span>` : ''}
-          ${ev.venue ? `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:var(--gray-100);padding:0.15rem 0.5rem;border-radius:999px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${escHtml(ev.venue)}</span>` : ''}
-          ${ev.has_pin ? `<span style="display:inline-flex;align-items:center;gap:0.25rem;background:var(--gray-100);padding:0.15rem 0.5rem;border-radius:999px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>PIN</span>` : ''}
-          ${ev.status === 'completed' ? `<span style="display:inline-flex;align-items:center;background:var(--gray-100);padding:0.15rem 0.5rem;border-radius:999px">Done</span>` : ''}
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="event-name-cell">${escHtml(ev.name)}</div>
+        ${ev.has_pin ? `<span style="font-size:0.7rem;color:var(--gray-400)">PIN protected</span>` : ''}
+      </td>
+      <td class="event-client-cell">${ev.client_name ? escHtml(ev.client_name) : '—'}</td>
+      <td style="white-space:nowrap;font-size:0.82rem">${dateStr}</td>
+      <td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.venue ? escHtml(ev.venue) : '—'}</td>
+      <td style="font-weight:700">${total}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <div class="progress-bar" style="flex:1;height:6px;min-width:60px">
+            <div class="progress-fill" style="width:${pct}%"></div>
+          </div>
+          <span style="font-size:0.75rem;color:var(--gray-500);white-space:nowrap">${checkedIn}/${total}</span>
         </div>
-      </div>
-      <div class="event-card-stats">
-        <div class="event-stat"><span class="event-stat-value">${total}</span><span class="event-stat-label">Guests</span></div>
-        <div class="event-stat"><span class="event-stat-value">${checkedIn}</span><span class="event-stat-label">Arrived</span></div>
-        <div class="event-stat"><span class="event-stat-value">${remaining}</span><span class="event-stat-label">Pending</span></div>
-      </div>
-      <div class="event-card-progress">
-        <div class="progress-bar" style="height:3px">
-          <div class="progress-fill" style="width:${pct}%"></div>
-        </div>
-      </div>
-      <button class="card-menu-btn js-menu-btn" title="Options">⋯</button>
-      <div class="card-dropdown js-dropdown">
-        <button class="card-dropdown-item js-edit-event">Edit details</button>
-        <div class="card-dropdown-divider"></div>
-        <button class="card-dropdown-item js-status-event">${ev.status === 'active' ? 'Mark complete' : 'Reactivate'}</button>
-        <div class="card-dropdown-divider"></div>
-        <button class="card-dropdown-item danger js-delete-event">Delete</button>
-      </div>`;
+      </td>
+      <td>
+        <span class="badge ${ev.status === 'active' ? 'badge-unused' : 'badge-used'}"
+          style="${ev.status === 'active' ? 'background:#dcfce7;color:#166534' : ''}">
+          ${ev.status === 'active' ? 'Active' : ev.status === 'completed' ? 'Completed' : escHtml(ev.status)}
+        </span>
+      </td>
+      <td class="event-actions-cell"></td>`;
 
-    card.querySelector('.js-edit-event').addEventListener('click', (e) => { e.stopPropagation(); editEvent(ev); });
-    card.querySelector('.js-delete-event').addEventListener('click', (e) => { e.stopPropagation(); deleteEvent(gid(ev), ev.name); });
-    const statusBtn = card.querySelector('.js-status-event');
-    if (statusBtn) statusBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleEventStatus(gid(ev), ev.status, ev.name); });
+    // Build actions
+    const actionsCell = tr.querySelector('.event-actions-cell');
+    const actDiv = document.createElement('div');
+    actDiv.className = 'event-actions';
 
-    // Clicking the card body opens the event
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.card-menu-btn') || e.target.closest('.card-dropdown')) return;
-      openEvent(ev);
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn btn-primary btn-sm';
+    openBtn.textContent = 'Open';
+    openBtn.addEventListener('click', (e) => { e.stopPropagation(); openEvent(ev); });
+    actDiv.appendChild(openBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-outline btn-sm';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); editEvent(ev); });
+    actDiv.appendChild(editBtn);
+
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'btn btn-ghost btn-sm card-menu-btn';
+    menuBtn.innerHTML = '⋯';
+    menuBtn.title = 'More options';
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'card-dropdown js-dropdown';
+    dropdown.innerHTML = `
+      <button class="card-dropdown-item js-status-btn">${ev.status === 'active' ? 'Mark complete' : 'Reactivate'}</button>
+      <div class="card-dropdown-divider"></div>
+      <button class="card-dropdown-item danger js-delete-btn">Delete</button>`;
+
+    dropdown.querySelector('.js-status-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleEventStatus(gid(ev), ev.status, ev.name); });
+    dropdown.querySelector('.js-delete-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteEvent(gid(ev), ev.name); });
+
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      $$('.card-dropdown.open').forEach(d => { if (d !== dropdown) d.classList.remove('open'); });
+      dropdown.classList.toggle('open');
     });
 
-    // Three-dots dropdown toggle
-    const menuBtn  = card.querySelector('.js-menu-btn');
-    const dropdown = card.querySelector('.js-dropdown');
-    if (menuBtn && dropdown) {
-      menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Close all other dropdowns first
-        $$('.card-dropdown.open').forEach(d => { if (d !== dropdown) d.classList.remove('open'); });
-        dropdown.classList.toggle('open');
-      });
-    }
-    grid.appendChild(card);
+    const menuWrap = document.createElement('div');
+    menuWrap.style.position = 'relative';
+    menuWrap.appendChild(menuBtn);
+    menuWrap.appendChild(dropdown);
+    actDiv.appendChild(menuWrap);
+    actionsCell.appendChild(actDiv);
+
+    // Click row to open event
+    tr.addEventListener('click', () => openEvent(ev));
+    tbody.appendChild(tr);
   });
-  // Re-initialize Lucide icons for dynamically added content
+
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -270,21 +252,15 @@ function openEvent(event) {
   state.currentEvent = event;
   state.recentCheckins = [];
 
-  // Show event submenu wrapper
-  const wrapper = $('#event-submenu-wrapper');
-  const sectionLabel = $('#event-nav-section');
-  if (wrapper) wrapper.style.display = 'block';
-  if (sectionLabel) sectionLabel.style.display = 'none';
+  // Show event nav items in sidebar
+  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-card"], .nav-item[data-tab="tab-activity"]')
+    .forEach(t => { t.classList.remove('hidden'); t.style.display = ''; });
 
-  // Update event name in sidebar
+  // Update current event label in sidebar
   const labelEl = $('#sidebar-event-label');
   if (labelEl) labelEl.textContent = event.name;
-
-  // Open the sub-menu
-  const menu = $('#sidebar-event-menu');
-  const chevron = $('#sidebar-event-chevron');
-  if (menu) menu.classList.add('open');
-  if (chevron) chevron.classList.add('open');
+  const sectionEl = $('#event-nav-section');
+  if (sectionEl) { sectionEl.style.display = ''; sectionEl.textContent = event.name; }
 
   updateBreadcrumbs();
   switchTab('tab-overview');
@@ -307,13 +283,12 @@ function backToEvents() {
   state.currentEvent = null;
   state.recentCheckins = [];
 
-  // Hide event submenu
-  const wrapper = $('#event-submenu-wrapper');
-  if (wrapper) wrapper.style.display = 'none';
-  const menu = $('#sidebar-event-menu');
-  const chevron = $('#sidebar-event-chevron');
-  if (menu) menu.classList.remove('open');
-  if (chevron) chevron.classList.remove('open');
+  // Hide event nav items
+  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-card"], .nav-item[data-tab="tab-activity"]')
+    .forEach(t => { t.classList.add('hidden'); t.style.display = 'none'; });
+
+  const sectionEl = $('#event-nav-section');
+  if (sectionEl) sectionEl.style.display = 'none';
 
   switchTab('tab-events');
 }
@@ -2423,11 +2398,13 @@ function initAdmin() {
   const adminUser = $('#admin-username');
   if (adminUser) adminUser.textContent = state.user.username;
 
-  // Hide event submenu until event is opened
+  // Hide event nav items until event is opened
   const evWrapper = $('#event-submenu-wrapper');
   const evSection = $('#event-nav-section');
   if (evWrapper) evWrapper.style.display = 'none';
   if (evSection) evSection.style.display = 'none';
+  $$('.nav-item[data-tab="tab-overview"], .nav-item[data-tab="tab-guests"], .nav-item[data-tab="tab-add"], .nav-item[data-tab="tab-send"], .nav-item[data-tab="tab-card"], .nav-item[data-tab="tab-activity"]')
+    .forEach(t => { t.classList.add('hidden'); t.style.display = 'none'; });
 
   fetchEvents();
 
@@ -2440,38 +2417,20 @@ function initAdmin() {
     });
   });
 
-  // Sub-menu toggle
-  const eventToggle = $('#sidebar-event-toggle');
-  if (eventToggle) {
-    eventToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const menu = $('#sidebar-event-menu');
-      const chevron = $('#sidebar-event-chevron');
-      if (menu) menu.classList.toggle('open');
-      if (chevron) chevron.classList.toggle('open');
-    });
-  }
-
-  // Sub-menu nav items
-  $$('#sidebar-event-menu .nav-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.stopPropagation();
-      $$('#sidebar-event-menu .nav-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      switchTab(item.dataset.tab);
-      const sidebar = $('#sidebar'); if (sidebar) sidebar.classList.remove('open');
-      const overlay = $('#sidebar-overlay'); if (overlay) overlay.classList.remove('show');
-    });
-  });
-
-  // Main sidebar nav items (Events, Dashboard, Bookings, Settings)
-  $$('.sidebar-nav > .nav-item').forEach(item => {
+  // Sidebar nav items
+  $$('.nav-item[data-tab]').forEach(item => {
     item.addEventListener('click', () => {
       const tabId = item.dataset.tab;
       if (!tabId) return;
-      // Close event sub-menu when navigating to main tabs
-      backToEvents();
+      const eventTabs = ['tab-overview','tab-guests','tab-add','tab-send','tab-card','tab-activity'];
+      if (!eventTabs.includes(tabId)) {
+        // Main tab clicked — close event view
+        if (state.currentEvent) backToEvents();
+      }
       switchTab(tabId);
+      // Active state
+      $$('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
       const sidebar = $('#sidebar'); if (sidebar) sidebar.classList.remove('open');
       const overlay = $('#sidebar-overlay'); if (overlay) overlay.classList.remove('show');
     });

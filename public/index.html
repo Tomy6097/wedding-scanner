@@ -88,9 +88,26 @@
         <span class="nav-badge" id="bookings-badge" style="display:none">0</span>
       </button>
 
-      <div class="sidebar-section-label" id="event-nav-section" style="display:none">
-        <!-- collapsible event sub-menu -->
-      </div>
+      <!-- Event sub-menu (shows when event is open) -->
+      <div id="event-nav-section" style="display:none">Current Event</div>
+      <button class="nav-item hidden" data-tab="tab-overview">
+        <span class="nav-icon"><i data-lucide="activity"></i></span> Overview
+      </button>
+      <button class="nav-item hidden" data-tab="tab-guests">
+        <span class="nav-icon"><i data-lucide="users"></i></span> Guests
+      </button>
+      <button class="nav-item hidden" data-tab="tab-add">
+        <span class="nav-icon"><i data-lucide="user-plus"></i></span> Add Guest
+      </button>
+      <button class="nav-item hidden" data-tab="tab-send">
+        <span class="nav-icon"><i data-lucide="send"></i></span> Send Invites
+      </button>
+      <button class="nav-item hidden" data-tab="tab-card">
+        <span class="nav-icon"><i data-lucide="image"></i></span> Card Template
+      </button>
+      <button class="nav-item hidden" data-tab="tab-activity">
+        <span class="nav-icon"><i data-lucide="scroll-text"></i></span> Activity Log
+      </button>
       <div id="event-submenu-wrapper" style="display:none">
         <div class="sidebar-event-divider"></div>
         <button class="sidebar-event-name" id="sidebar-event-toggle">
@@ -158,8 +175,24 @@
             <button class="btn btn-primary btn-sm" id="create-event-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> New Event</button>
           </div>
         </div>
-        <div id="events-grid" class="events-grid">
-          <div class="empty-state">Loading events...</div>
+        <div class="events-table-wrap">
+          <table class="events-table">
+            <thead>
+              <tr>
+                <th>Event Name</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Venue</th>
+                <th>Guests</th>
+                <th>Attendance</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="events-tbody">
+              <tr><td colspan="8" class="empty-state">Loading events...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

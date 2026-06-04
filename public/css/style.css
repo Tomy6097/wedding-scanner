@@ -800,3 +800,51 @@ code { background: var(--gray-100); padding: 0.1rem 0.35rem; border-radius: 4px;
   height: 1px; background: rgba(255,255,255,0.06);
   margin: 0.25rem 1rem;
 }
+
+/* ===== CURRENT EVENT INDICATOR ===== */
+.sidebar-current-event {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.sidebar-current-event-name {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.6);
+  padding: 0.3rem 1.25rem 0.5rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid var(--primary);
+  margin-left: 1rem;
+  padding-left: 0.75rem;
+}
+
+/* ===== EVENTS TABLE ===== */
+.events-table-wrap {
+  background: var(--white);
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.events-table { width: 100%; border-collapse: collapse; }
+.events-table th {
+  background: var(--gray-50); padding: 0.65rem 1rem;
+  text-align: left; font-size: 0.72rem; font-weight: 700;
+  color: var(--gray-500); text-transform: uppercase;
+  letter-spacing: 0.05em; border-bottom: 1px solid var(--gray-200);
+}
+.events-table td {
+  padding: 0.85rem 1rem; border-bottom: 1px solid var(--gray-100);
+  font-size: 0.875rem; color: var(--gray-700); vertical-align: middle;
+}
+.events-table tr:last-child td { border-bottom: none; }
+.events-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.events-table tbody tr:hover td { background: #f8fafc; }
+.events-table .event-name-cell { font-weight: 700; color: var(--gray-900); }
+.events-table .event-client-cell { color: var(--gray-500); font-size: 0.8rem; }
+.events-table .event-actions { display: flex; gap: 0.35rem; }
