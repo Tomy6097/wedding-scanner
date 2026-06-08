@@ -89,7 +89,11 @@
       </button>
 
       <!-- Event sub-menu (shows when event is open) -->
-      <div id="event-nav-section" style="display:none">Current Event</div>
+      <div id="event-nav-section" style="display:none">
+        <div style="height:1px;background:rgba(255,255,255,0.07);margin:0.4rem 0"></div>
+        <div style="padding:0.5rem 1.25rem 0.3rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.3)">Current Event</div>
+        <div id="sidebar-event-label" style="padding:0.2rem 1.25rem 0.6rem;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--primary);margin-left:1rem;padding-left:0.75rem"></div>
+      </div>
       <button class="nav-item hidden" data-tab="tab-overview">
         <span class="nav-icon"><i data-lucide="activity"></i></span> Overview
       </button>

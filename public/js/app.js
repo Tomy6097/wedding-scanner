@@ -260,7 +260,7 @@ function openEvent(event) {
   const labelEl = $('#sidebar-event-label');
   if (labelEl) labelEl.textContent = event.name;
   const sectionEl = $('#event-nav-section');
-  if (sectionEl) { sectionEl.style.display = ''; sectionEl.textContent = event.name; }
+  if (sectionEl) { sectionEl.style.display = 'block'; }
 
   updateBreadcrumbs();
   switchTab('tab-overview');
