@@ -193,7 +193,7 @@ router.get('/check-duplicate', requireAdmin, async (req, res) => {
 
 // Add single guest
 router.post('/', requireAdmin, async (req, res) => {
-  const { name, phone, table_number, event_id } = req.body;
+  const { name, phone, table_number, event_id, ticket_type } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Guest name is required' });
   if (!event_id) return res.status(400).json({ error: 'Event is required' });
   try {
@@ -201,6 +201,7 @@ router.post('/', requireAdmin, async (req, res) => {
       event_id, name: name.trim(),
       phone: phone ? phone.trim() : null,
       table_number: table_number ? table_number.trim() : null,
+      ticket_type: ticket_type === 'D' ? 'D' : 'S',
       unique_id: uuidv4(), qr_token: uuidv4()
     });
     res.status(201).json(guest);
@@ -248,11 +249,58 @@ router.post('/scan', requireAuth, async (req, res) => {
     }
 
     if (guest.status === 'used') {
+      // Check if double ticket — fully used (both scanned)
+      const msg = guest.ticket_type === 'D'
+        ? 'Already Checked In — Both persons entered'
+        : 'Already Checked In';
       await Activity.create({ action: 'used', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username });
-      return res.json({ result: 'used', message: 'Already Checked In', guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at } });
+      return res.json({ result: 'used', message: msg, guest: { name: guest.name, phone: guest.phone, checked_in_at: guest.checked_in_at, ticket_type: guest.ticket_type } });
     }
 
+    const isDouble = guest.ticket_type === 'D';
+    const scanCount = guest.scan_count || 0;
+
+    if (isDouble && scanCount === 0) {
+      // First scan of double — person 1 enters, ticket still open for person 2
+      guest.scan_count    = 1;
+      guest.checked_in_at = new Date();
+      guest.checked_in_by = req.session.user.username;
+      // status stays 'unused' — still needs 2nd scan
+      await guest.save();
+
+      await Activity.create({ action: 'granted', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username, note: 'Double ticket - person 1/2' });
+
+      const io = req.app.get('io');
+      if (io) io.emit('guest_checked_in', { id: guest._id, name: guest.name, status: 'partial', checked_in_at: guest.checked_in_at, checked_in_by: guest.checked_in_by, event_id: guest.event_id });
+
+      return res.json({
+        result: 'double_first',
+        message: 'Double Ticket — Person 1 of 2 Entered',
+        guest: { name: guest.name, phone: guest.phone, table_number: guest.table_number, checked_in_at: guest.checked_in_at, ticket_type: 'D', scan_count: 1 }
+      });
+    }
+
+    if (isDouble && scanCount === 1) {
+      // Second scan of double — both entered, fully used
+      guest.scan_count = 2;
+      guest.status     = 'used';
+      await guest.save();
+
+      await Activity.create({ action: 'granted', guest_name: guest.name, guest_id: guest._id, event_id: guest.event_id, scanned_by: req.session.user.username, note: 'Double ticket - person 2/2' });
+
+      const io = req.app.get('io');
+      if (io) io.emit('guest_checked_in', { id: guest._id, name: guest.name, status: 'used', checked_in_at: guest.checked_in_at, checked_in_by: guest.checked_in_by, event_id: guest.event_id });
+
+      return res.json({
+        result: 'granted',
+        message: 'Double Ticket — Person 2 of 2 Entered',
+        guest: { name: guest.name, phone: guest.phone, table_number: guest.table_number, checked_in_at: guest.checked_in_at, ticket_type: 'D', scan_count: 2 }
+      });
+    }
+
+    // Single ticket — normal check-in
     guest.status        = 'used';
+    guest.scan_count    = 1;
     guest.checked_in_at = new Date();
     guest.checked_in_by = req.session.user.username;
     await guest.save();

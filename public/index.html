@@ -273,8 +273,8 @@
         </div>
         <div class="guests-table-wrap">
           <table class="guests-table">
-            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th><th>Code</th><th>Status</th><th>SMS</th><th>Actions</th></tr></thead>
-            <tbody id="guests-tbody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th><th>Type</th><th>Code</th><th>Status</th><th>SMS</th><th>Actions</th></tr></thead>
+            <tbody id="guests-tbody"><tr><td colspan="9" class="empty-state">Loading...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -290,6 +290,17 @@
               <div class="form-group"><label>Full Name *</label><input type="text" id="guest-name" placeholder="e.g. John Smith" required /></div>
               <div class="form-group"><label>Phone Number</label><input type="tel" id="guest-phone" placeholder="e.g. +255 712 345678" /></div>
               <div class="form-group"><label>Table / Seat</label><input type="text" id="guest-table" placeholder="e.g. Table 5, VIP" /></div>
+              <div class="form-group">
+                <label>Ticket Type</label>
+                <div style="display:flex;gap:0.75rem;margin-top:0.2rem">
+                  <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:500;font-size:0.875rem">
+                    <input type="radio" name="ticket-type" value="S" checked /> S — Single (1 person)
+                  </label>
+                  <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-weight:500;font-size:0.875rem">
+                    <input type="radio" name="ticket-type" value="D" /> D — Double (2 persons)
+                  </label>
+                </div>
+              </div>
               <div id="add-guest-error" class="alert alert-error hidden"></div>
               <div id="add-guest-success" class="alert alert-success hidden"></div>
               <button type="submit" class="btn btn-primary btn-full"><i data-lucide="user-plus" style="width:14px;height:14px"></i> Add Guest & Generate QR</button>

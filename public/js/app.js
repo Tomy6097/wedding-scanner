@@ -399,7 +399,7 @@ function renderGuestsTable(guests) {
   const tbody = $('#guests-tbody');
   if (!tbody) return;
   if (!guests.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No guests found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No guests found</td></tr>';
     return;
   }
   tbody.innerHTML = '';
@@ -412,6 +412,12 @@ function renderGuestsTable(guests) {
       <td><strong>${escHtml(g.name)}</strong></td>
       <td>${g.phone ? escHtml(g.phone) : '<span style="color:var(--gray-400)">—</span>'}</td>
       <td>${g.table_number ? escHtml(g.table_number) : '<span style="color:var(--gray-400)">—</span>'}</td>
+      <td>
+        <span style="font-size:0.75rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:4px;background:${g.ticket_type === 'D' ? '#dbeafe' : '#f1f5f9'};color:${g.ticket_type === 'D' ? '#1d4ed8' : '#475569'}">
+          ${g.ticket_type === 'D' ? 'D' : 'S'}
+        </span>
+        ${g.ticket_type === 'D' && g.scan_count === 1 ? '<div style="font-size:0.68rem;color:var(--warning)">1/2 entered</div>' : ''}
+      </td>
       <td><span class="code-badge">${escHtml(lookupCode)}</span></td>
       <td>
         <span class="badge ${g.status === 'used' ? 'badge-used' : 'badge-unused'}">
@@ -622,8 +628,8 @@ async function viewGuestQR(id) {
 }
 
 // ── Add Guest ────────────────────────────────────────────────
-async function addGuest(name, phone, table_number, eventId) {
-  return await api('POST', '/guests', { name, phone, table_number, event_id: eventId });
+async function addGuest(name, phone, table_number, eventId, ticket_type) {
+  return await api('POST', '/guests', { name, phone, table_number, event_id: eventId, ticket_type });
 }
 
 async function showNewGuestQR(guest) {
@@ -1188,21 +1194,79 @@ async function onScanSuccess(token) {
 }
 
 function handleScanResult(result) {
-  if (result.result === 'granted') {
+  hideScanPerson2Button();
+  if (result.result === 'double_first') {
     const name  = result.guest ? result.guest.name : '';
-    const table = result.guest && result.guest.table_number ? ` · ${result.guest.table_number}` : '';
-    setScanResult('granted', '<i data-lucide="check-circle"></i>', 'Access Granted', name + table, result.guest ? result.guest.checked_in_at : '');
+    const table = result.guest && result.guest.table_number ? ' · ' + result.guest.table_number : '';
+    setScanResult('double', '<i data-lucide="check-circle"></i>', 'Double Ticket — Person 1 of 2 Entered', name + table, result.guest ? result.guest.checked_in_at : '');
+    playSound('success');
+    fetchScannerStats();
+    showScanPerson2Button(result.guest);
+  } else if (result.result === 'granted') {
+    const name  = result.guest ? result.guest.name : '';
+    const table = result.guest && result.guest.table_number ? '  ' + result.guest.table_number : '';
+    const msg   = result.guest && result.guest.ticket_type === 'D' ? 'Double Ticket — Both Entered' : 'Access Granted';
+    setScanResult('granted', '<i data-lucide="check-circle"></i>', msg, name + table, result.guest ? result.guest.checked_in_at : '');
     playSound('success');
     fetchScannerStats();
   } else if (result.result === 'used') {
-    setScanResult('used', '<i data-lucide="x-circle"></i>', 'Already Checked In', result.guest ? result.guest.name : '', result.guest ? result.guest.checked_in_at : '');
+    setScanResult('used', '<i data-lucide="x-circle"></i>', result.message || 'Already Checked In', result.guest ? result.guest.name : '', result.guest ? result.guest.checked_in_at : '');
     playSound('error');
   } else {
-    setScanResult('invalid', '<i data-lucide="alert-circle"></i>', 'Invalid QR Code', 'This QR code is not recognized');
+    setScanResult('invalid', '<i data-lucide="help-circle"></i>', 'Invalid QR Code', 'This QR code is not recognized');
     playSound('error');
   }
 }
 
+function showScanPerson2Button(guest) {
+  let btn = document.getElementById('scan-person2-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'scan-person2-btn';
+    btn.className = 'btn btn-primary btn-lg';
+    btn.style.cssText = 'width:100%;margin-top:0.75rem;font-size:1rem;background:#2563eb';
+    btn.addEventListener('click', () => {
+      hideScanPerson2Button();
+      setScanResult('idle', '<i data-lucide="scan-line"></i>', 'Ready  Scan Person 2', '');
+    });
+    const cameraSection = document.querySelector('.camera-section');
+    if (cameraSection) cameraSection.insertAdjacentElement('afterend', btn);
+  }
+  btn.textContent = 'Scan Person 2 — ' + (guest ? guest.name : '');
+  btn.style.display = 'flex';
+  if (btn._timer) clearTimeout(btn._timer);
+  btn._timer = setTimeout(() => hideScanPerson2Button(), 30000);
+}
+
+function hideScanPerson2Button() {
+  const btn = document.getElementById('scan-person2-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+// ── Double Ticket Person 2 Button ────────────────────────────
+function showScanPerson2Button(guest) {
+  let wrap = $('#scan-person2-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'scan-person2-wrap';
+    wrap.style.cssText = 'margin-top:0.75rem';
+    const cameraSection = $('.camera-section');
+    if (cameraSection) cameraSection.parentNode.insertBefore(wrap, cameraSection.nextSibling);
+  }
+  const guestNameDisplay = guest ? escHtml(guest.name) : '';
+  wrap.innerHTML = '<div style="background:#dbeafe;border:2px solid #3b82f6;border-radius:12px;padding:1rem;text-align:center">'
+    + '<div style="font-size:0.85rem;font-weight:600;color:#1d4ed8;margin-bottom:0.5rem">Double Ticket — Waiting for Person 2</div>'
+    + '<div style="font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:0.75rem">' + guestNameDisplay + '</div>'
+    + '<div style="font-size:0.78rem;color:#475569">Scan the same QR code again for Person 2</div></div>';
+  wrap.style.display = 'block';
+  clearTimeout(wrap._timer);
+  wrap._timer = setTimeout(() => hideScanPerson2Button(), 30000);
+}
+
+function hideScanPerson2Button() {
+  const wrap = $('#scan-person2-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
 function setScanResult(type, icon, message, name, time) {
   name = name || '';
   time = time || '';
@@ -2730,6 +2794,8 @@ function initAdmin() {
       const name  = $('#guest-name').value.trim();
       const phone = $('#guest-phone').value.trim();
       const table = $('#guest-table') ? $('#guest-table').value.trim() : '';
+      const ticketTypeEl = document.querySelector('input[name="ticket-type"]:checked');
+      const ticketType = ticketTypeEl ? ticketTypeEl.value : 'S';
       const eventId = gid(state.currentEvent);
 
       // Duplicate name check scoped to event
@@ -2742,7 +2808,7 @@ function initAdmin() {
       } catch (e) { /* ignore duplicate check errors */ }
 
       try {
-        const guest = await addGuest(name, phone, table, eventId);
+        const guest = await addGuest(name, phone, table, eventId, ticketType);
         showAlert(sucEl, `Guest "${guest.name}" added successfully!`, 'success');
         addGuestForm.reset();
         await showNewGuestQR(guest);

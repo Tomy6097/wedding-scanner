@@ -57,7 +57,8 @@ const guestSchema = new mongoose.Schema({
   table_number:  { type: String, default: null },
   unique_id:     { type: String, unique: true, required: true },
   qr_token:      { type: String, unique: true, required: true },
-  status:        { type: String, enum: ['unused', 'used'], default: 'unused' },
+  ticket_type:   { type: String, enum: ['S', 'D'], default: 'S' }, // S=Single, D=Double
+  scan_count:    { type: Number, default: 0 }, // how many times scanned
   checked_in_at: { type: Date, default: null },
   checked_in_by: { type: String, default: null },
   sms_sent:      { type: Boolean, default: false },
