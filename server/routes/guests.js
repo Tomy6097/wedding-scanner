@@ -90,13 +90,26 @@ async function sendBeemSMS(phone, message) {
 
 // ── Fixed routes BEFORE /:id ──────────────────────────────────
 
-// Stats — scoped to event
+// Stats — scoped to event, counts Double tickets as 2 persons
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const { event_id } = req.query;
     const filter = event_id ? { event_id } : {};
-    const total     = await Guest.countDocuments(filter);
-    const checkedIn = await Guest.countDocuments({ ...filter, status: 'used' });
+
+    const guests = await Guest.find(filter, 'ticket_type status scan_count');
+
+    // Total persons (S=1, D=2)
+    const total = guests.reduce((sum, g) => sum + (g.ticket_type === 'D' ? 2 : 1), 0);
+
+    // Checked in persons
+    const checkedIn = guests.reduce((sum, g) => {
+      if (g.ticket_type === 'D') {
+        // D: scan_count=1 means 1 person in, scan_count=2 (status=used) means 2 persons in
+        return sum + (g.status === 'used' ? 2 : g.scan_count === 1 ? 1 : 0);
+      }
+      return sum + (g.status === 'used' ? 1 : 0);
+    }, 0);
+
     res.json({ total, checkedIn, remaining: total - checkedIn });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });

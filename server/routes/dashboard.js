@@ -13,18 +13,28 @@ router.get('/', requireAdmin, async (req, res) => {
   try {
     const totalEvents   = await Event.countDocuments();
     const activeEvents  = await Event.countDocuments({ status: 'active' });
-    const totalGuests   = await Guest.countDocuments();
-    const checkedIn     = await Guest.countDocuments({ status: 'used' });
     const totalScans    = await Activity.countDocuments();
     const invalidScans  = await Activity.countDocuments({ action: 'invalid' });
     const dupScans      = await Activity.countDocuments({ action: 'used' });
 
+    // Count persons (D ticket = 2 persons)
+    const allGuests = await Guest.find({}, 'ticket_type status scan_count');
+    const totalGuests = allGuests.reduce((s, g) => s + (g.ticket_type === 'D' ? 2 : 1), 0);
+    const checkedIn   = allGuests.reduce((s, g) => {
+      if (g.ticket_type === 'D') return s + (g.status === 'used' ? 2 : g.scan_count === 1 ? 1 : 0);
+      return s + (g.status === 'used' ? 1 : 0);
+    }, 0);
+
     // Per-event breakdown
     const events = await Event.find().sort({ createdAt: -1 });
     const eventStats = await Promise.all(events.map(async (e) => {
-      const guests     = await Guest.countDocuments({ event_id: e._id });
-      const checked    = await Guest.countDocuments({ event_id: e._id, status: 'used' });
-      const scans      = await Activity.countDocuments({ event_id: e._id });
+      const evGuests = await Guest.find({ event_id: e._id }, 'ticket_type status scan_count');
+      const guests   = evGuests.reduce((s, g) => s + (g.ticket_type === 'D' ? 2 : 1), 0);
+      const checked  = evGuests.reduce((s, g) => {
+        if (g.ticket_type === 'D') return s + (g.status === 'used' ? 2 : g.scan_count === 1 ? 1 : 0);
+        return s + (g.status === 'used' ? 1 : 0);
+      }, 0);
+      const scans    = await Activity.countDocuments({ event_id: e._id });
       return {
         _id:        e._id,
         name:       e.name,

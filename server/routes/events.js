@@ -20,14 +20,14 @@ router.get('/', requireAuth, async (req, res) => {
     const isAdmin = req.session.user.role === 'admin';
     const events  = await Event.find().sort({ createdAt: -1 });
     const result  = await Promise.all(events.map(async (e) => {
-      const total     = await Guest.countDocuments({ event_id: e._id });
-      const checkedIn = await Guest.countDocuments({ event_id: e._id, status: 'used' });
-      const obj       = e.toObject();
-      // Hide PIN value from scanners but tell them if a PIN exists
-      if (!isAdmin) {
-        obj.has_pin = !!e.pin;
-        delete obj.pin;
-      }
+      const evGuests  = await Guest.find({ event_id: e._id }, 'ticket_type status scan_count');
+      const total     = evGuests.reduce((s, g) => s + (g.ticket_type === 'D' ? 2 : 1), 0);
+      const checkedIn = evGuests.reduce((s, g) => {
+        if (g.ticket_type === 'D') return s + (g.status === 'used' ? 2 : g.scan_count === 1 ? 1 : 0);
+        return s + (g.status === 'used' ? 1 : 0);
+      }, 0);
+      const obj = e.toObject();
+      if (!isAdmin) { obj.has_pin = !!e.pin; delete obj.pin; }
       return { ...obj, total, checkedIn, remaining: total - checkedIn };
     }));
     res.json(result);
