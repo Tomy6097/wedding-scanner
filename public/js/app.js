@@ -874,10 +874,12 @@ function parseCSV(text) {
   for (let i = start; i < lines.length; i++) {
     const parts = lines[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
     if (parts[0]) {
+      const ticketType = parts[3] ? parts[3].toUpperCase() : 'S';
       results.push({
         name:         parts[0],
         phone:        parts[1] || '',
-        table_number: parts[2] || ''
+        table_number: parts[2] || '',
+        ticket_type:  ticketType === 'D' ? 'D' : 'S'
       });
     }
   }
@@ -2846,7 +2848,7 @@ function initAdmin() {
       const preview = $('#csv-preview');
       if (preview) {
         preview.innerHTML = `<strong>${state.csvData.length} guests found:</strong><br>` +
-          state.csvData.slice(0, 5).map(g => `• ${escHtml(g.name)}${g.phone ? ` (${escHtml(g.phone)})` : ''}${g.table_number ? ` [${escHtml(g.table_number)}]` : ''}`).join('<br>') +
+          state.csvData.slice(0, 5).map(g => `• ${escHtml(g.name)}${g.phone ? ` (${escHtml(g.phone)})` : ''}${g.table_number ? ` [${escHtml(g.table_number)}]` : ''} — ${g.ticket_type === 'D' ? 'Double' : 'Single'}`).join('<br>') +
           (state.csvData.length > 5 ? `<br>… and ${state.csvData.length - 5} more` : '');
         preview.classList.remove('hidden');
       }

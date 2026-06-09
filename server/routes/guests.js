@@ -218,6 +218,7 @@ router.post('/bulk', requireAdmin, async (req, res) => {
       event_id, name: g.name.trim(),
       phone: g.phone ? g.phone.trim() : null,
       table_number: g.table_number ? g.table_number.trim() : null,
+      ticket_type: g.ticket_type === 'D' ? 'D' : 'S',
       unique_id: uuidv4(), qr_token: uuidv4()
     }));
     const created = await Guest.insertMany(docs);
