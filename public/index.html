@@ -308,7 +308,18 @@
           </div>
           <div class="card">
             <h3>Bulk Import (CSV)</h3>
-            <p class="hint-text">Columns: <code>name,phone,table_number,ticket_type</code> — ticket_type: S or D (optional, default S)</p>
+            <p class="hint-text">CSV format: <code>name,phone,table_number,ticket_type</code></p>
+            <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.65rem;font-size:0.78rem;color:var(--gray-600);margin-bottom:0.75rem;border:1px solid var(--gray-200)">
+              <strong>Column guide:</strong><br>
+              1. <strong>name</strong> — Full name (required)<br>
+              2. <strong>phone</strong> — Phone number e.g. 255712345678 (optional)<br>
+              3. <strong>table_number</strong> — Table or seat e.g. Table 5, VIP (optional)<br>
+              4. <strong>ticket_type</strong> — S = Single (1 person), D = Double (2 persons). Default: S<br><br>
+              <strong>Example:</strong><br>
+              <code style="font-size:0.72rem">name,phone,table_number,ticket_type<br>
+              John Smith,255712345678,Table 1,S<br>
+              Jane &amp; Peter,255712345679,Table 2,D</code>
+            </div>
             <div class="file-drop-zone" id="csv-drop-zone">
               <span>📂 DropExport CSV here or click to browse</span>
               <input type="file" id="csv-file" accept=".csv" class="file-input" />
