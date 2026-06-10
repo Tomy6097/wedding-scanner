@@ -1,4 +1,4 @@
-// ── Settings ─────────────────────────────────────────────
+// ΓöÇΓöÇ Settings ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function fetchSettings() {
   try {
     const s = await api('GET', '/settings');
@@ -117,11 +117,11 @@ async function testFonnte() {
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Test'; } }
 }
 /* ============================================================
-   Multi-Event Wedding Check-in System — Frontend Application
+   Multi-Event Wedding Check-in System ΓÇö Frontend Application
    ============================================================ */
 'use strict';
 
-// ── State ────────────────────────────────────────────────────
+// ΓöÇΓöÇ State ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const state = {
   user: null,
   currentEvent: null,      // { _id, name, color, ... }
@@ -134,10 +134,10 @@ const state = {
   scannerEventId: null     // event scanner is working on
 };
 
-// ── Socket.io ────────────────────────────────────────────────
+// ΓöÇΓöÇ Socket.io ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const socket = io();
 
-// ── Helpers ──────────────────────────────────────────────────
+// ΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const $  = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
@@ -163,7 +163,7 @@ function hideAlert(el) {
 }
 
 function formatDateTime(iso) {
-  if (!iso) return '—';
+  if (!iso) return 'ΓÇö';
   return new Date(iso).toLocaleString(undefined, {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
@@ -178,13 +178,13 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// ── Audio Feedback ───────────────────────────────────────────
+// ΓöÇΓöÇ Audio Feedback ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function playSound(type) {
   try {
     const ctx  = new (window.AudioContext || window.webkitAudioContext)();
 
     if (type === 'success') {
-      // Three ascending beeps — clear and loud
+      // Three ascending beeps ΓÇö clear and loud
       [0, 0.15, 0.3].forEach((delay, i) => {
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -199,7 +199,7 @@ function playSound(type) {
         osc.stop(ctx.currentTime + delay + 0.18);
       });
     } else {
-      // Two descending beeps — distinct error sound
+      // Two descending beeps ΓÇö distinct error sound
       [0, 0.2].forEach((delay, i) => {
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -217,7 +217,7 @@ function playSound(type) {
   } catch (e) { /* audio not supported */ }
 }
 
-// ── API ──────────────────────────────────────────────────────
+// ΓöÇΓöÇ API ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function api(method, path, body) {
   const opts = {
     method,
@@ -231,7 +231,7 @@ async function api(method, path, body) {
   return data;
 }
 
-// ── Auth ─────────────────────────────────────────────────────
+// ΓöÇΓöÇ Auth ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function checkAuth() {
   try {
     const user = await api('GET', '/auth/me');
@@ -256,7 +256,7 @@ async function logout() {
   showPage('page-login');
 }
 
-// ── Events (Admin) ───────────────────────────────────────────
+// ΓöÇΓöÇ Events (Admin) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function fetchEvents(filter = 'all') {
   try {
     const events = await api('GET', '/events');
@@ -285,7 +285,7 @@ function renderEventsGrid(events) {
     const total     = ev.total     || 0;
     const checkedIn = ev.checkedIn || 0;
     const pct       = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
-    const dateStr   = ev.date ? new Date(ev.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    const dateStr   = ev.date ? new Date(ev.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'ΓÇö';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -293,9 +293,9 @@ function renderEventsGrid(events) {
         <div class="event-name-cell">${escHtml(ev.name)}</div>
         ${ev.has_pin ? `<span style="font-size:0.7rem;color:var(--gray-400)">PIN protected</span>` : ''}
       </td>
-      <td class="event-client-cell">${ev.client_name ? escHtml(ev.client_name) : '—'}</td>
+      <td class="event-client-cell">${ev.client_name ? escHtml(ev.client_name) : 'ΓÇö'}</td>
       <td style="white-space:nowrap;font-size:0.82rem">${dateStr}</td>
-      <td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.venue ? escHtml(ev.venue) : '—'}</td>
+      <td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.venue ? escHtml(ev.venue) : 'ΓÇö'}</td>
       <td style="font-weight:700">${total}</td>
       <td>
         <div style="display:flex;align-items:center;gap:0.5rem">
@@ -332,7 +332,7 @@ function renderEventsGrid(events) {
 
     const menuBtn = document.createElement('button');
     menuBtn.className = 'btn btn-ghost btn-sm card-menu-btn';
-    menuBtn.innerHTML = '⋯';
+    menuBtn.innerHTML = 'Γï»';
     menuBtn.title = 'More options';
 
     const dropdown = document.createElement('div');
@@ -389,7 +389,7 @@ function openEvent(event) {
 function updateBreadcrumbs() {
   const name = state.currentEvent ? escHtml(state.currentEvent.name) : '';
   $$('.event-breadcrumb').forEach(el => {
-    el.innerHTML = `<a href="#" class="breadcrumb-back js-back-to-events">← Back to Events</a> <span class="breadcrumb-sep">›</span> <span class="breadcrumb-event">${name}</span>`;
+    el.innerHTML = `<a href="#" class="breadcrumb-back js-back-to-events">ΓåÉ Back to Events</a> <span class="breadcrumb-sep">ΓÇ║</span> <span class="breadcrumb-event">${name}</span>`;
     el.querySelector('.js-back-to-events').addEventListener('click', (e) => {
       e.preventDefault();
       backToEvents();
@@ -457,7 +457,7 @@ async function deleteEvent(id, name) {
   }
 }
 
-// ── Stats ────────────────────────────────────────────────────
+// ΓöÇΓöÇ Stats ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function fetchStats() {
   if (!state.currentEvent) return;
   try {
@@ -498,7 +498,7 @@ async function fetchScannerStats() {
   } catch (e) { console.error('Scanner stats error:', e); }
 }
 
-// ── Guests ───────────────────────────────────────────────────
+// ΓöÇΓöÇ Guests ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function fetchGuests(search = '') {
   if (!state.currentEvent) return;
   const eventId = gid(state.currentEvent);
@@ -528,8 +528,8 @@ function renderGuestsTable(guests) {
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td><strong>${escHtml(g.name)}</strong></td>
-      <td>${g.phone ? escHtml(g.phone) : '<span style="color:var(--gray-400)">—</span>'}</td>
-      <td>${g.table_number ? escHtml(g.table_number) : '<span style="color:var(--gray-400)">—</span>'}</td>
+      <td>${g.phone ? escHtml(g.phone) : '<span style="color:var(--gray-400)">ΓÇö</span>'}</td>
+      <td>${g.table_number ? escHtml(g.table_number) : '<span style="color:var(--gray-400)">ΓÇö</span>'}</td>
       <td>
         <span style="font-size:0.75rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:4px;background:${g.ticket_type === 'D' ? '#dbeafe' : '#f1f5f9'};color:${g.ticket_type === 'D' ? '#1d4ed8' : '#475569'}">
           ${g.ticket_type === 'D' ? 'D' : 'S'}
@@ -543,7 +543,7 @@ function renderGuestsTable(guests) {
         </span>
         ${g.status === 'used' && g.checked_in_at ? `<div style="font-size:0.75rem;color:var(--gray-400)">${formatDateTime(g.checked_in_at)}</div>` : ''}
       </td>
-      <td>${g.sms_sent ? '<span style="color:var(--gray-500);font-size:0.75rem">Sent</span>' : '<span style="color:var(--gray-300)">—</span>'}</td>
+      <td>${g.sms_sent ? '<span style="color:var(--gray-500);font-size:0.75rem">Sent</span>' : '<span style="color:var(--gray-300)">ΓÇö</span>'}</td>
       <td class="table-actions-cell"></td>`;
 
     // Build actions cell safely
@@ -637,10 +637,10 @@ function renderRecentCheckins() {
   }
   el.innerHTML = state.recentCheckins.map(g => `
     <div class="recent-item">
-      <div class="recent-item-icon">✅</div>
+      <div class="recent-item-icon">Γ£à</div>
       <div class="recent-item-info">
         <div class="recent-item-name">${escHtml(g.name)}</div>
-        <div class="recent-item-time">${formatDateTime(g.checked_in_at)}${g.checked_in_by ? ' · by ' + escHtml(g.checked_in_by) : ''}</div>
+        <div class="recent-item-time">${formatDateTime(g.checked_in_at)}${g.checked_in_by ? ' ┬╖ by ' + escHtml(g.checked_in_by) : ''}</div>
       </div>
     </div>
   `).join('');
@@ -685,11 +685,11 @@ function shareGuestWhatsApp(token, name, phone) {
   const link       = `${window.location.origin}/guest/${token}`;
   const lookupCode = token.substring(0, 8).toUpperCase();
   const eventName  = state.currentEvent ? state.currentEvent.name : 'Our Event';
-  const msg = `💍 Dear ${name},\n\nYou are invited to ${eventName}! Here is your personal QR code invitation:\n\n${link}\n\nYour check-in code: *${lookupCode}*\n\nOpen the link and show the QR code at the entrance. If the QR can't be scanned, give your code: ${lookupCode}`;
+  const msg = `≡ƒÆì Dear ${name},\n\nYou are invited to ${eventName}! Here is your personal QR code invitation:\n\n${link}\n\nYour check-in code: *${lookupCode}*\n\nOpen the link and show the QR code at the entrance. If the QR can't be scanned, give your code: ${lookupCode}`;
   const ph  = (phone || '').replace(/\D/g, '');
   if (!ph) {
     navigator.clipboard.writeText(msg)
-      .then(() => alert(`No phone number for ${name}.\n\nMessage copied to clipboard — paste it in WhatsApp manually.`))
+      .then(() => alert(`No phone number for ${name}.\n\nMessage copied to clipboard ΓÇö paste it in WhatsApp manually.`))
       .catch(() => prompt(`No phone number for ${name}. Copy this message:`, msg));
     return;
   }
@@ -710,7 +710,7 @@ async function sendSingleSMS(id, name) {
   }
 }
 
-// ── View Guest QR ────────────────────────────────────────────
+// ΓöÇΓöÇ View Guest QR ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function viewGuestQR(id) {
   try {
     const data  = await api('GET', `/guests/${id}/qr`);
@@ -745,7 +745,7 @@ async function viewGuestQR(id) {
   }
 }
 
-// ── Add Guest ────────────────────────────────────────────────
+// ΓöÇΓöÇ Add Guest ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function addGuest(name, phone, table_number, eventId, ticket_type) {
   return await api('POST', '/guests', { name, phone, table_number, event_id: eventId, ticket_type });
 }
@@ -762,12 +762,12 @@ async function showNewGuestQR(guest) {
   $('#qr-modal').classList.remove('hidden');
 }
 
-// ── QR Card Rendering ────────────────────────────────────────
+// ΓöÇΓöÇ QR Card Rendering ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function showQRCard(data, containerSelector) {
   const container = $(containerSelector);
   if (!container) return null;
 
-  // Show ONLY the plain QR image — no text, no code, no decoration
+  // Show ONLY the plain QR image ΓÇö no text, no code, no decoration
   container.innerHTML = `
     <div style="text-align:center;padding:0.5rem">
       <img src="${data.qrDataUrl}" alt="QR Code"
@@ -779,7 +779,7 @@ function showQRCard(data, containerSelector) {
   return container;
 }
 
-// ── Download QR Card (canvas) ────────────────────────────────
+// ΓöÇΓöÇ Download QR Card (canvas) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function downloadQRCard(guestName, containerSelector) {
   const container = $(containerSelector);
   if (!container) return;
@@ -817,7 +817,7 @@ function downloadQRCard(guestName, containerSelector) {
   qrImg.src = imgEl.src;
 }
 
-// ── Print QR Card ────────────────────────────────────────────
+// ΓöÇΓöÇ Print QR Card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function printQRCard(guestName, containerSelector) {
   const container = $(containerSelector);
   if (!container) return;
@@ -851,17 +851,17 @@ function printQRCard(guestName, containerSelector) {
   win.document.close();
 }
 
-// ── Share via WhatsApp ───────────────────────────────────────
+// ΓöÇΓöÇ Share via WhatsApp ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function shareViaWhatsApp(guest, eventName) {
   const phone      = (guest.phone || '').replace(/\D/g, '');
   const lookupCode = (guest.unique_id || '').substring(0, 8).toUpperCase();
   const link       = `${window.location.origin}/guest/${guest.qr_token}`;
-  const message    = `💍 Dear ${guest.name}, you are invited to ${eventName}!\n\nYour QR invitation: ${link}\n\nCheck-in code: *${lookupCode}*\n\nShow this at the entrance.`;
+  const message    = `≡ƒÆì Dear ${guest.name}, you are invited to ${eventName}!\n\nYour QR invitation: ${link}\n\nCheck-in code: *${lookupCode}*\n\nShow this at the entrance.`;
   const url        = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank');
 }
 
-// ── Share via SMS ────────────────────────────────────────────
+// ΓöÇΓöÇ Share via SMS ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function shareViaSMS(guest, eventName) {
   const phone      = (guest.phone || '').replace(/\D/g, '');
   const lookupCode = (guest.unique_id || '').substring(0, 8).toUpperCase();
@@ -870,7 +870,7 @@ function shareViaSMS(guest, eventName) {
   window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
 }
 
-// ── Send Invites Tab ─────────────────────────────────────────
+// ΓöÇΓöÇ Send Invites Tab ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function loadSendTab() {
   if (!state.currentEvent) return;
   const eventId = gid(state.currentEvent);
@@ -891,7 +891,7 @@ async function loadSendTab() {
 
     const waStat = $('#wa-send-stats');
     if (waStat) {
-      waStat.innerHTML = `<span style="font-size:0.8rem">${withPhone} guests with phone · ${alreadySent} already sent · ${notSent} pending</span>`;
+      waStat.innerHTML = `<span style="font-size:0.8rem">${withPhone} guests with phone ┬╖ ${alreadySent} already sent ┬╖ ${notSent} pending</span>`;
     }
 
     // Update invite template status
@@ -925,18 +925,18 @@ async function sendAllSMS() {
 
   if (!confirm(`Send SMS invitations to all guests${onlyUnsent ? ' who haven\'t received one yet' : ''}?`)) return;
 
-  if (btn) { btn.disabled = true; btn.textContent = '📱 Sending…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '≡ƒô▒ SendingΓÇª'; }
   hideAlert(resultEl);
 
   try {
     const res = await api('POST', '/guests/sms/bulk', { event_id: eventId, only_unsent: onlyUnsent });
-    const msg = `✅ Sent: ${res.sent} | ❌ Failed: ${res.failed}${res.errors && res.errors.length ? '\n\nErrors:\n' + res.errors.join('\n') : ''}`;
+    const msg = `Γ£à Sent: ${res.sent} | Γ¥î Failed: ${res.failed}${res.errors && res.errors.length ? '\n\nErrors:\n' + res.errors.join('\n') : ''}`;
     showAlert(resultEl, msg, res.failed === 0 ? 'success' : 'error');
     loadSendTab();
   } catch (e) {
     showAlert(resultEl, 'Failed to send SMS: ' + e.message, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '📱 Send SMS to All Guests'; }
+    if (btn) { btn.disabled = false; btn.textContent = '≡ƒô▒ Send SMS to All Guests'; }
   }
 }
 
@@ -989,7 +989,7 @@ async function sendCardBroadcast(type, channel) {
       if (btn) { btn.disabled = false; btn.textContent = type === 'invite' ? 'Send via WhatsApp' : 'Send via WhatsApp'; }
     }
   } else {
-    // SMS — send link via Beem
+    // SMS ΓÇö send link via Beem
     if (!confirm(`This will send SMS to ${withPhone.length} guests. Beem Africa charges apply.`)) return;
     const eventName = ev.name;
     const baseUrl   = window.location.origin;
@@ -1008,7 +1008,102 @@ async function sendCardBroadcast(type, channel) {
   }
 }
 
-// ── Tab Navigation ───────────────────────────────────────────
+//  Export CSV 
+function exportCSV() {
+  const guests = state.guests;
+  if (!guests.length) { alert('No guests to export.'); return; }
+  const rows = [['Name', 'Phone', 'Table', 'Type', 'Code', 'Status', 'Checked In At', 'Checked In By', 'SMS Sent']];
+  guests.forEach(g => rows.push([
+    g.name, g.phone || '', g.table_number || '',
+    g.ticket_type || 'S',
+    (g.unique_id || '').substring(0, 8).toUpperCase(),
+    g.status,
+    g.checked_in_at ? new Date(g.checked_in_at).toLocaleString() : '',
+    g.checked_in_by || '',
+    g.sms_sent ? 'Yes' : 'No'
+  ]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const evName = state.currentEvent ? state.currentEvent.name.replace(/\s+/g, '-').toLowerCase() : 'guests';
+  a.download = `${evName}-guests.csv`;
+  a.click();
+}
+
+//  Custom SMS Message 
+async function sendCustomSMS() {
+  if (!state.currentEvent) return;
+  const message = document.getElementById('custom-sms-text') ? document.getElementById('custom-sms-text').value.trim() : '';
+  const resultEl = document.getElementById('custom-sms-result');
+  const btn = document.getElementById('send-custom-sms-btn');
+  if (!message) { if (resultEl) { resultEl.textContent = 'Please write a message first'; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); } return; }
+  const targetRadio = document.querySelector('input[name="custom-sms-target"]:checked');
+  const target = targetRadio ? targetRadio.value : 'all';
+  const guests = await api('GET', `/guests?event_id=${gid(state.currentEvent)}`);
+  let targetGuests = guests.filter(g => g.phone && g.phone.trim());
+  if (target === 'attended') targetGuests = targetGuests.filter(g => g.status === 'used');
+  if (target === 'absent') targetGuests = targetGuests.filter(g => g.status !== 'used');
+  if (!targetGuests.length) { if (resultEl) { resultEl.textContent = 'No guests found for selected target'; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); } return; }
+  if (!confirm(`Send custom SMS to ${targetGuests.length} guests?`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  if (resultEl) resultEl.classList.add('hidden');
+  let sent = 0, failed = 0;
+  for (const g of targetGuests) {
+    try {
+      await api('POST', '/guests/sms/custom', { guest_id: g._id, message: `Dear ${g.name}, ${message}` });
+      sent++;
+      await new Promise(r => setTimeout(r, 200));
+    } catch (e) { failed++; }
+  }
+  const msg = `Sent: ${sent}${failed > 0 ? `, Failed: ${failed}` : ''}`;
+  if (resultEl) { resultEl.textContent = msg; resultEl.className = 'alert alert-success'; resultEl.classList.remove('hidden'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send Custom SMS'; }
+}
+
+//  Print All QR Codes 
+async function printAllQR() {
+  if (!state.currentEvent) { alert('Please open an event first.'); return; }
+  const eventId = gid(state.currentEvent);
+  try {
+    const guests = await api('GET', `/guests/allqr?event_id=${eventId}`);
+    if (!guests.length) { alert('No guests found.'); return; }
+    const eventName = state.currentEvent.name;
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>QR Codes</title><style>body{font-family:sans-serif;padding:1rem}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem}.item{text-align:center;border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem}.item img{width:100%;max-width:150px}.item .name{font-size:0.7rem;margin-top:0.25rem;color:#374151}@media print{@page{margin:0.5cm}}</style></head><body><h2>${escHtml(eventName)}  QR Codes</h2><div class="grid">${guests.map(g => `<div class="item"><img src="${g.qrDataUrl}" /><div class="name">${escHtml(g.name)}</div></div>`).join('')}</div><script>window.onload=function(){window.print()}<\/script></body></html>`);
+    win.document.close();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+//  Export Activity Log CSV 
+function exportActivityLog() {
+  api('GET', '/activity?limit=1000' + (state.currentEvent ? `&event_id=${gid(state.currentEvent)}` : ''))
+    .then(logs => {
+      const rows = [['Time', 'Action', 'Guest', 'Scanned By', 'Note']];
+      logs.forEach(l => rows.push([new Date(l.createdAt).toLocaleString(), l.action, l.guest_name || '', l.scanned_by || '', l.note || '']));
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = `activity-log.csv`;
+      a.click();
+    }).catch(e => alert('Export failed: ' + e.message));
+}
+
+//  Print Event Summary 
+async function printEventSummary() {
+  if (!state.currentEvent) { alert('Please open an event first.'); return; }
+  const ev = state.currentEvent;
+  try {
+    const [stats, guests] = await Promise.all([
+      api('GET', `/guests/stats?event_id=${gid(ev)}`),
+      api('GET', `/guests?event_id=${gid(ev)}`)
+    ]);
+    const pct = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>Summary</title><style>body{font-family:sans-serif;padding:2rem;max-width:800px;margin:0 auto}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1rem 0}.stat{background:#f8fafc;border-radius:8px;padding:1rem;text-align:center}.stat-val{font-size:2rem;font-weight:800}.stat-lbl{font-size:0.75rem;color:#888}table{width:100%;border-collapse:collapse;margin-top:1rem}th{background:#f8fafc;padding:0.5rem;text-align:left;font-size:0.8rem}td{padding:0.5rem;border-bottom:1px solid #f0f0f0;font-size:0.85rem}</style></head><body><h1>${escHtml(ev.name)}</h1><p>Summary Report  ${new Date().toLocaleString()}</p><div class="stats"><div class="stat"><div class="stat-val">${stats.total}</div><div class="stat-lbl">Total</div></div><div class="stat"><div class="stat-val">${stats.checkedIn}</div><div class="stat-lbl">Attended</div></div><div class="stat"><div class="stat-val">${stats.remaining}</div><div class="stat-lbl">Absent</div></div><div class="stat"><div class="stat-val">${pct}%</div><div class="stat-lbl">Attendance</div></div></div><table><thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Type</th><th>Status</th><th>Checked In</th></tr></thead><tbody>${guests.map((g,i) => `<tr><td>${i+1}</td><td>${escHtml(g.name)}</td><td>${g.phone||''}</td><td>${g.ticket_type||'S'}</td><td>${g.status==='used'?'Attended':'Absent'}</td><td>${g.checked_in_at?new Date(g.checked_in_at).toLocaleString():''}</td></tr>`).join('')}</tbody></table><script>window.onload=function(){window.print()}<\/script></body></html>`);
+    win.document.close();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+// ΓöÇΓöÇ Tab Navigation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function switchTab(tabId) {
   // Update sidebar nav items
   $$('.nav-item').forEach(t => t.classList.remove('active'));
@@ -1047,7 +1142,7 @@ function switchTab(tabId) {
   if (tabId === 'tab-settings')  { fetchSettings(); fetchScannerAccounts(); }
 }
 
-// ── Init ─────────────────────────────────────────────────────
+// ΓöÇΓöÇ Init ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function init() {
   const user = await checkAuth();
   if (user) {
@@ -1067,7 +1162,7 @@ async function init() {
       const btnText = btn ? btn.querySelector('.btn-text') : null;
       hideAlert(errEl);
       if (btn) btn.disabled = true;
-      if (btnText) btnText.textContent = 'Signing in…';
+      if (btnText) btnText.textContent = 'Signing inΓÇª';
       try {
         const user = await login($('#username').value, $('#password').value);
         state.user = user;
@@ -1117,7 +1212,7 @@ function initAdmin() {
       if (!tabId) return;
       const eventTabs = ['tab-overview','tab-guests','tab-add','tab-send','tab-card','tab-activity'];
       if (!eventTabs.includes(tabId)) {
-        // Main tab clicked — close event view
+        // Main tab clicked ΓÇö close event view
         if (state.currentEvent) backToEvents();
       }
       switchTab(tabId);
@@ -1188,7 +1283,7 @@ function initAdmin() {
   const logoutBtn = $('#admin-logout');
   if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
-  // ── Create/Edit Event Modal ──────────────────────────────
+  // ΓöÇΓöÇ Create/Edit Event Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const createEventBtn = $('#create-event-btn');
   if (createEventBtn) {
     createEventBtn.addEventListener('click', () => {
@@ -1243,7 +1338,7 @@ function initAdmin() {
   if (eventModalClose)   eventModalClose.addEventListener('click',   () => $('#event-modal').classList.add('hidden'));
   if (eventModalOverlay) eventModalOverlay.addEventListener('click', () => $('#event-modal').classList.add('hidden'));
 
-  // ── Guest Search ─────────────────────────────────────────
+  // ΓöÇΓöÇ Guest Search ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   let searchTimer;
   const guestSearch = $('#guest-search');
   if (guestSearch) {
@@ -1253,7 +1348,7 @@ function initAdmin() {
     });
   }
 
-  // ── Export / Download All QR / Delete All ────────────────
+  // ΓöÇΓöÇ Export / Download All QR / Delete All ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const exportBtn = $('#export-btn');
   if (exportBtn) exportBtn.addEventListener('click', exportCSV);
 
@@ -1336,7 +1431,7 @@ function initAdmin() {
     });
   }
 
-  // ── Invite Card Controls ──────────────────────────────────
+  // ΓöÇΓöÇ Invite Card Controls ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   ['invite', 'thanks'].forEach(type => {
     const fileInput = $(`#${type}-file`);
     const dropZone  = $(`#${type}-drop-zone`);
@@ -1410,7 +1505,7 @@ function initAdmin() {
     });
   }
 
-  // ── Add Guest Form ───────────────────────────────────────
+  // ΓöÇΓöÇ Add Guest Form ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const addGuestForm = $('#add-guest-form');
   if (addGuestForm) {
     addGuestForm.addEventListener('submit', async (e) => {
@@ -1448,7 +1543,7 @@ function initAdmin() {
     });
   }
 
-  // ── QR Modal Close ───────────────────────────────────────
+  // ΓöÇΓöÇ QR Modal Close ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const qrClose   = $('#qr-modal-close');
   const qrOverlay = $('#qr-modal-overlay');
   if (qrClose)   qrClose.addEventListener('click',   () => $('#qr-modal').classList.add('hidden'));
@@ -1459,7 +1554,7 @@ function initAdmin() {
   if (vqrClose)   vqrClose.addEventListener('click',   () => $('#view-qr-modal').classList.add('hidden'));
   if (vqrOverlay) vqrOverlay.addEventListener('click', () => $('#view-qr-modal').classList.add('hidden'));
 
-  // ── CSV File / Drop / Bulk Import ────────────────────────
+  // ΓöÇΓöÇ CSV File / Drop / Bulk Import ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const csvFile     = $('#csv-file');
   const csvDropZone = $('#csv-drop-zone');
   const bulkBtn     = $('#bulk-import-btn');
@@ -1475,8 +1570,8 @@ function initAdmin() {
       const preview = $('#csv-preview');
       if (preview) {
         preview.innerHTML = `<strong>${state.csvData.length} guests found:</strong><br>` +
-          state.csvData.slice(0, 5).map(g => `• ${escHtml(g.name)}${g.phone ? ` (${escHtml(g.phone)})` : ''}${g.table_number ? ` [${escHtml(g.table_number)}]` : ''} — ${g.ticket_type === 'D' ? 'Double' : 'Single'}`).join('<br>') +
-          (state.csvData.length > 5 ? `<br>… and ${state.csvData.length - 5} more` : '');
+          state.csvData.slice(0, 5).map(g => `ΓÇó ${escHtml(g.name)}${g.phone ? ` (${escHtml(g.phone)})` : ''}${g.table_number ? ` [${escHtml(g.table_number)}]` : ''} ΓÇö ${g.ticket_type === 'D' ? 'Double' : 'Single'}`).join('<br>') +
+          (state.csvData.length > 5 ? `<br>ΓÇª and ${state.csvData.length - 5} more` : '');
         preview.classList.remove('hidden');
       }
       if (bulkBtn) bulkBtn.disabled = state.csvData.length === 0;
@@ -1506,7 +1601,7 @@ function initAdmin() {
       hideAlert(errEl);
       hideAlert(sucEl);
       bulkBtn.disabled    = true;
-      bulkBtn.textContent = 'Importing…';
+      bulkBtn.textContent = 'ImportingΓÇª';
       try {
         const created = await api('POST', '/guests/bulk', {
           guests:   state.csvData,
@@ -1529,14 +1624,14 @@ function initAdmin() {
     });
   }
 
-  // ── Beem Settings ────────────────────────────────────────
+  // ΓöÇΓöÇ Beem Settings ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const saveBeemBtn = $('#save-beem-btn');
   if (saveBeemBtn) saveBeemBtn.addEventListener('click', saveBeemSettings);
 
-  // ── Fonnte Settings (wired directly - called after tab switch) ──
-  // These are wired via switchTab → fetchSettings which re-queries DOM
+  // ΓöÇΓöÇ Fonnte Settings (wired directly - called after tab switch) ΓöÇΓöÇ
+  // These are wired via switchTab ΓåÆ fetchSettings which re-queries DOM
 
-  // ── CSV Download fallback ─────────────────────────────────
+  // ΓöÇΓöÇ CSV Download fallback ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const dlCsvBtn = $('#download-broadcast-csv-btn');
   if (dlCsvBtn) {
     dlCsvBtn.addEventListener('click', async () => {
@@ -1571,7 +1666,7 @@ function initAdmin() {
       const resultEl = $('#test-sms-result');
       if (!phone) { showAlert(resultEl, 'Enter a phone number to test', 'error'); return; }
       testSmsBtn.disabled = true;
-      testSmsBtn.textContent = '⏳ Sending...';
+      testSmsBtn.textContent = 'ΓÅ│ Sending...';
       hideAlert(resultEl);
       try {
         const res = await api('POST', '/guests/sms/test', { phone });
@@ -1580,12 +1675,12 @@ function initAdmin() {
         showAlert(resultEl, 'Failed: ' + e.message, 'error');
       } finally {
         testSmsBtn.disabled = false;
-        testSmsBtn.textContent = '📱 Test';
+        testSmsBtn.textContent = '≡ƒô▒ Test';
       }
     });
   }
 
-  // ── Send Invites ─────────────────────────────────────────
+  // ΓöÇΓöÇ Send Invites ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const sendAllSmsBtn = $('#send-all-sms-btn');
   if (sendAllSmsBtn) sendAllSmsBtn.addEventListener('click', sendAllSMS);
 
@@ -1607,7 +1702,7 @@ function initAdmin() {
   const sendCustomSmsBtn = $('#send-custom-sms-btn');
   if (sendCustomSmsBtn) sendCustomSmsBtn.addEventListener('click', sendCustomSMS);
 
-  // ── Activity Log Controls ────────────────────────────────
+  // ΓöÇΓöÇ Activity Log Controls ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const refreshActivityBtn = $('#refresh-activity-btn');
   const clearActivityBtn   = $('#clear-activity-btn');
   const activityFilter     = $('#activity-filter');
@@ -1643,7 +1738,7 @@ function initAdmin() {
   // Session warning
   // session warning disabled
 
-  // ── Change Admin Password ────────────────────────────────
+  // ΓöÇΓöÇ Change Admin Password ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const changeAdminPwBtn = $('#change-admin-pw-btn');
   if (changeAdminPwBtn) {
     changeAdminPwBtn.addEventListener('click', async () => {
@@ -1665,7 +1760,7 @@ function initAdmin() {
     });
   }
 
-  // ── Change Scanner Password ──────────────────────────────
+  // ΓöÇΓöÇ Change Scanner Password ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const changeScannerPwBtn = $('#change-scanner-pw-btn');
   if (changeScannerPwBtn) {
     changeScannerPwBtn.addEventListener('click', async () => {
@@ -1685,7 +1780,7 @@ function initAdmin() {
     });
   }
 
-  // ── Add Scanner Account ──────────────────────────────────
+  // ΓöÇΓöÇ Add Scanner Account ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const addScannerBtn = $('#add-scanner-btn');
   if (addScannerBtn) {
     addScannerBtn.addEventListener('click', async () => {
@@ -1706,7 +1801,7 @@ function initAdmin() {
     });
   }
 
-  // ── Socket.io — Real-time Updates ───────────────────────
+  // ΓöÇΓöÇ Socket.io ΓÇö Real-time Updates ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   socket.on('guest_checked_in', (guest) => {
     // Only update if this guest belongs to the currently open event
     if (!state.currentEvent) return;
@@ -1724,11 +1819,11 @@ function initAdmin() {
     fetchStats();
   });
 
-  // ── Keep-alive ping every 10 minutes ────────────────────
+  // ΓöÇΓöÇ Keep-alive ping every 10 minutes ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   setInterval(() => { fetch('/ping').catch(() => {}); }, 10 * 60 * 1000);
 }
 
-// ── PWA ──────────────────────────────────────────────────────
+// ΓöÇΓöÇ PWA ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 let deferredInstallPrompt = null;
 
 function initPWA() {
@@ -1776,7 +1871,7 @@ function initPWA() {
   });
 }
 
-// ── Boot ─────────────────────────────────────────────────────
+// ΓöÇΓöÇ Boot ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Lucide icons
   if (typeof lucide !== 'undefined') lucide.createIcons();
