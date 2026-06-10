@@ -823,18 +823,18 @@ async function sendAllWhatsApp() {
   const onlyUnsent = document.getElementById('wa-only-unsent') ? document.getElementById('wa-only-unsent').checked : true;
   const resultEl = document.getElementById('wa-send-result');
   const btn = document.getElementById('send-all-wa-btn');
-  if (!confirm('Send QR e-ticket via WhatsApp to all guests' + (onlyUnsent ? ' who have not received one yet' : '') + '?')) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  if (!confirm('Tuma QR e-ticket kwa WhatsApp kwa wageni wote' + (onlyUnsent ? ' ambao hawajapata bado' : '') + '?')) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Inatuma...'; }
   if (resultEl) resultEl.classList.add('hidden');
   try {
     const res = await api('POST', '/whatsapp/send-invites', { event_id: eventId, type: 'qr', only_unsent: onlyUnsent });
-    const msg = 'Sent: ' + res.sent + (res.failed > 0 ? ' | Failed: ' + res.failed : '');
+    const msg = 'Imetumwa: ' + res.sent + (res.failed > 0 ? ' | Imeshindwa: ' + res.failed : '');
     if (resultEl) { resultEl.textContent = msg; resultEl.className = 'alert ' + (res.failed === 0 ? 'alert-success' : 'alert-error'); resultEl.classList.remove('hidden'); }
     loadSendTab();
   } catch (e) {
-    if (resultEl) { resultEl.textContent = 'Failed: ' + e.message; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); }
+    if (resultEl) { resultEl.textContent = 'Imeshindwa: ' + e.message; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); }
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Send QR E-Ticket via WhatsApp'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Tuma QR E-Ticket via WhatsApp'; }
   }
 }
 
@@ -2336,51 +2336,72 @@ async function sendCustomSMS() {
 async function sendCardBroadcast(type, channel) {
   if (!state.currentEvent) return;
   const ev = state.currentEvent;
-  const template = type === 'invite'
-    ? { image: ev.invite_image, name_x: ev.invite_name_x, name_y: ev.invite_name_y, name_size: ev.invite_name_size || 5, name_color: ev.invite_name_color || '#000000' }
-    : { image: ev.thanks_image, name_x: ev.thanks_name_x, name_y: ev.thanks_name_y, name_size: ev.thanks_name_size || 5, name_color: ev.thanks_name_color || '#000000' };
 
-  if (!template.image) { alert('Please set up the card template first in Card Template tab.'); return; }
+  const typeName = type === 'invite' ? 'mwaliko' : 'asante';
+  const typeLabel = type === 'invite' ? 'Invitation' : 'Thank You';
+  const channelLabel = channel === 'wa' ? 'WhatsApp' : 'SMS';
+
+  if (channel === 'wa') {
+    // Use Fonnte API to send card images
+    const resultId = type === 'invite' ? 'invite-wa-result' : 'thanks-wa-result';
+    const btnId    = type === 'invite' ? 'send-invite-wa-btn' : 'send-thanks-wa-btn';
+    const resultEl = document.getElementById(resultId);
+    const btn      = document.getElementById(btnId);
+
+    if (!confirm(`Tuma kadi za ${typeName} kwa WhatsApp?`)) return;
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Inatuma...'; }
+    if (resultEl) resultEl.classList.add('hidden');
+
+    try {
+      const res = await api('POST', '/whatsapp/send-invites', {
+        event_id: gid(ev),
+        type
+      });
+      const msg = `Imetumwa: ${res.sent}${res.failed > 0 ? ` | Imeshindwa: ${res.failed}` : ''}`;
+      if (resultEl) {
+        resultEl.textContent = msg;
+        resultEl.className = 'alert ' + (res.failed === 0 ? 'alert-success' : 'alert-error');
+        resultEl.classList.remove('hidden');
+      }
+    } catch (e) {
+      if (resultEl) {
+        resultEl.textContent = 'Imeshindwa: ' + e.message;
+        resultEl.className = 'alert alert-error';
+        resultEl.classList.remove('hidden');
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = `Send via WhatsApp`; }
+    }
+    return;
+  }
+
+  // SMS path — use Beem
+  const template = type === 'invite'
+    ? { image: ev.invite_image }
+    : { image: ev.thanks_image };
+
+  if (!template.image) { alert('Tafadhali weka template kwenye Card Template tab kwanza.'); return; }
 
   const guests = await api('GET', `/guests?event_id=${gid(ev)}`);
   const withPhone = guests.filter(g => g.phone && g.phone.trim());
-  if (!withPhone.length) { alert('No guests with phone numbers found.'); return; }
+  if (!withPhone.length) { alert('Hakuna wageni wenye nambari za simu.'); return; }
 
-  const typeName = type === 'invite' ? 'invitation' : 'thank you';
-  if (!confirm(`Send ${typeName} cards to ${withPhone.length} guests via ${channel === 'wa' ? 'WhatsApp' : 'SMS'}?`)) return;
+  if (!confirm(`Tuma kadi za ${typeName} kwa SMS kwa wageni ${withPhone.length}? Gharama za Beem Africa zitatumika.`)) return;
 
-  if (channel === 'wa') {
-    // Build CSV with personalized card links
-    const origin = window.location.origin;
-    const rows = [['Name', 'Phone', 'Personal Card Link']];
-    withPhone.forEach(g => {
-      rows.push([g.name, g.phone.trim(), `${origin}/guest/${g.qr_token}`]);
-    });
-    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a    = document.createElement('a');
-    a.href     = URL.createObjectURL(blob);
-    a.download = `${ev.name.replace(/\s+/g,'-')}-${type}-cards.csv`;
-    a.click();
-    setTimeout(() => alert(`CSV downloaded!\n\nEach guest's personal page (${origin}/guest/...) now shows their ${typeName} card with their name.\n\nSend each guest their link from the CSV.`), 500);
-  } else {
-    // SMS — send link via Beem
-    if (!confirm(`This will send SMS to ${withPhone.length} guests. Beem Africa charges apply.`)) return;
-    const eventName = ev.name;
-    const baseUrl   = window.location.origin;
-    let sent = 0, failed = 0;
-    for (const g of withPhone) {
-      try {
-        const msg = type === 'invite'
-          ? `Dear ${g.name}, you are invited to ${eventName}. View your invitation: ${baseUrl}/guest/${g.qr_token}`
-          : `Dear ${g.name}, thank you for attending ${eventName}! View your card: ${baseUrl}/guest/${g.qr_token}`;
-        await api('POST', `/guests/${g._id}/sms`, { custom_message: msg });
-        sent++;
-        await new Promise(r => setTimeout(r, 200));
-      } catch (e) { failed++; }
-    }
-    alert(`Done! Sent: ${sent}, Failed: ${failed}`);
+  const baseUrl = window.location.origin;
+  let sent = 0, failed = 0;
+  for (const g of withPhone) {
+    try {
+      const msg = type === 'invite'
+        ? `Habari ${g.name}, unaalikwa kwenye ${ev.name}. Angalia mwaliko wako: ${baseUrl}/guest/${g.qr_token}`
+        : `Habari ${g.name}, asante kwa kuja kwenye ${ev.name}! Angalia kadi yako: ${baseUrl}/guest/${g.qr_token}`;
+      await api('POST', `/guests/${g._id}/sms`, { custom_message: msg });
+      sent++;
+      await new Promise(r => setTimeout(r, 200));
+    } catch (e) { failed++; }
   }
+  alert(`Imekamilika! Imetumwa: ${sent}, Imeshindwa: ${failed}`);
 }
 
 // ── Tab Navigation ───────────────────────────────────────────
@@ -2953,6 +2974,32 @@ function initAdmin() {
   if (sendInviteSmsBtn) sendInviteSmsBtn.addEventListener('click', () => sendCardBroadcast('invite', 'sms'));
   if (sendThanksWaBtn) sendThanksWaBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'wa'));
   if (sendThanksSmsBtn) sendThanksSmsBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'sms'));
+
+  // Download broadcast CSV
+  const dlBroadcastBtn = $('#download-broadcast-csv-btn');
+  if (dlBroadcastBtn) {
+    dlBroadcastBtn.addEventListener('click', async () => {
+      if (!state.currentEvent) { alert('Fungua event kwanza.'); return; }
+      try {
+        const guests = await api('GET', `/guests?event_id=${gid(state.currentEvent)}`);
+        const withPhone = guests.filter(g => g.phone && g.phone.trim());
+        if (!withPhone.length) { alert('Hakuna wageni wenye nambari za simu.'); return; }
+        const origin = window.location.origin;
+        const rows = [['Jina', 'Simu', 'Link ya Mwaliko (QR)']];
+        withPhone.forEach(g => rows.push([
+          g.name,
+          g.phone.trim(),
+          `${origin}/guest/${g.qr_token}`
+        ]));
+        const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = `${state.currentEvent.name.replace(/\s+/g,'-')}-broadcast.csv`;
+        a.click();
+      } catch (e) { alert('Imeshindwa: ' + e.message); }
+    });
+  }
 
   // Custom SMS
   const sendCustomSmsBtn = $('#send-custom-sms-btn');

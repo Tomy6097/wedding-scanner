@@ -1,5 +1,8 @@
 const express = require('express');
 const https   = require('https');
+const http    = require('http');
+const QRCode  = require('qrcode');
+const Jimp    = require('jimp');
 const { Guest, Event, Settings } = require('../db');
 const router  = express.Router();
 
@@ -9,21 +12,63 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ── Send via Fonnte API ───────────────────────────────────────
-async function sendFonnte(phone, message) {
-  const token = (await Settings.findOne({ key: 'fonnte_token' }))?.value;
-  if (!token || !token.trim()) throw new Error('Fonnte token not configured in Settings');
+// ── Generate card image with QR overlay ──────────────────────
+async function generateCardImage(guest, event) {
+  const appUrl = (await Settings.findOne({ key: 'app_url' }))?.value || 'https://wedding-scanner.onrender.com';
+  const link   = `${appUrl}/guest/${guest.qr_token}`;
 
+  // Generate QR code as buffer
+  const qrBuffer = await QRCode.toBuffer(guest.qr_token, {
+    width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' }
+  });
+
+  // If event has card template, overlay QR on it
+  if (event.card_image && event.card_qr_x != null) {
+    // Parse base64 image
+    const base64Data = event.card_image.replace(/^data:image\/\w+;base64,/, '');
+    const cardBuffer = Buffer.from(base64Data, 'base64');
+
+    const cardImg = await Jimp.read(cardBuffer);
+    const qrImg   = await Jimp.read(qrBuffer);
+
+    const W = cardImg.bitmap.width;
+    const H = cardImg.bitmap.height;
+    const qrSize = Math.round((event.card_qr_size || 20) / 100 * W);
+
+    qrImg.resize(qrSize, qrSize);
+
+    const qrX = Math.round((event.card_qr_x / 100) * W - qrSize / 2);
+    const qrY = Math.round((event.card_qr_y / 100) * H - qrSize / 2);
+
+    cardImg.composite(qrImg, qrX, qrY);
+
+    return await cardImg.getBufferAsync(Jimp.MIME_PNG);
+  }
+
+  // No template — return plain QR
+  return qrBuffer;
+}
+
+// ── Upload image to Fonnte and get URL ────────────────────────
+// Fonnte accepts direct base64 or URL in the 'url' parameter
+async function sendFonnteWithImage(phone, message, imageBuffer, token) {
   const cleanPhone = phone.replace(/\D/g, '');
-  if (!cleanPhone || cleanPhone.length < 9) throw new Error(`Invalid phone: ${phone}`);
+  const base64Img  = imageBuffer.toString('base64');
+  const dataUrl    = `data:image/png;base64,${base64Img}`;
 
-  const payload = new URLSearchParams({
+  // First send image
+  const imgPayload = new URLSearchParams({
     target:      cleanPhone,
     message:     message,
+    url:         dataUrl,
     delay:       '3',
     countryCode: '255'
   }).toString();
 
+  return sendFonnteRaw(imgPayload, token);
+}
+
+async function sendFonnteRaw(payload, token) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'api.fonnte.com',
@@ -38,11 +83,10 @@ async function sendFonnte(phone, message) {
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
-        console.log(`Fonnte [${res.statusCode}]:`, data);
         try {
           const parsed = JSON.parse(data);
           if (parsed.status === true || res.statusCode === 200) resolve(parsed);
-          else reject(new Error(parsed.reason || parsed.message || `Fonnte error ${res.statusCode}`));
+          else reject(new Error(parsed.reason || parsed.message || `Fonnte error ${res.statusCode}: ${data}`));
         } catch (e) { reject(new Error('Fonnte parse error: ' + data)); }
       });
     });
@@ -50,6 +94,16 @@ async function sendFonnte(phone, message) {
     req.write(payload);
     req.end();
   });
+}
+
+// ── Send via Fonnte (text only) ───────────────────────────────
+async function sendFonnte(phone, message) {
+  const token = (await Settings.findOne({ key: 'fonnte_token' }))?.value;
+  if (!token || !token.trim()) throw new Error('Fonnte token not configured in Settings');
+  const cleanPhone = phone.replace(/\D/g, '');
+  if (!cleanPhone || cleanPhone.length < 9) throw new Error(`Invalid phone: ${phone}`);
+  const payload = new URLSearchParams({ target: cleanPhone, message, delay: '3', countryCode: '255' }).toString();
+  return sendFonnteRaw(payload, token);
 }
 
 // POST /api/whatsapp/test
@@ -62,6 +116,54 @@ router.post('/test', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Generate invite/thanks card image with guest name overlay ─
+async function generateNameCardImage(guest, ev, type) {
+  const templateImage = type === 'invite' ? ev.invite_image : ev.thanks_image;
+  if (!templateImage) return null;
+
+  const nameX    = (type === 'invite' ? ev.invite_name_x    : ev.thanks_name_x)    ?? 50;
+  const nameY    = (type === 'invite' ? ev.invite_name_y    : ev.thanks_name_y)    ?? 50;
+  const nameSize = (type === 'invite' ? ev.invite_name_size : ev.thanks_name_size) ?? 5;
+  const nameColor= (type === 'invite' ? ev.invite_name_color: ev.thanks_name_color) || '#000000';
+
+  const base64Data = templateImage.replace(/^data:image\/\w+;base64,/, '');
+  const cardBuffer = Buffer.from(base64Data, 'base64');
+  const cardImg    = await Jimp.read(cardBuffer);
+
+  const W = cardImg.bitmap.width;
+  const H = cardImg.bitmap.height;
+
+  // Load a font from Jimp's built-in fonts (closest to name size)
+  const fontSize = Math.round((nameSize / 100) * W);
+  let font;
+  try {
+    // Pick closest built-in font size
+    const fontPath = fontSize >= 64 ? Jimp.FONT_SANS_64_BLACK
+                   : fontSize >= 32 ? Jimp.FONT_SANS_32_BLACK
+                   : fontSize >= 16 ? Jimp.FONT_SANS_16_BLACK
+                   :                  Jimp.FONT_SANS_14_BLACK;
+    font = await Jimp.loadFont(fontPath);
+  } catch (e) {
+    font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+  }
+
+  const textX = Math.round((nameX / 100) * W);
+  const textY = Math.round((nameY / 100) * H);
+
+  // If name color is not black, tint a white-version font
+  // For simplicity, print name using built-in font (always dark)
+  cardImg.print(
+    font,
+    textX - Math.round(Jimp.measureText(font, guest.name) / 2),
+    textY - Math.round(Jimp.measureTextHeight(font, guest.name, W) / 2),
+    { text: guest.name, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE },
+    W,
+    Math.round(Jimp.measureTextHeight(font, guest.name, W))
+  );
+
+  return await cardImg.getBufferAsync(Jimp.MIME_PNG);
+}
+
 // POST /api/whatsapp/send-invites
 router.post('/send-invites', requireAdmin, async (req, res) => {
   const { event_id, type, only_unsent, custom_message } = req.body;
@@ -71,10 +173,13 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     const ev = await Event.findById(event_id);
     if (!ev) return res.status(404).json({ error: 'Event not found' });
 
+    const token = (await Settings.findOne({ key: 'fonnte_token' }))?.value;
+    if (!token || !token.trim()) return res.status(400).json({ error: 'Fonnte token not configured in Settings' });
+
     const appUrl = (await Settings.findOne({ key: 'app_url' }))?.value
                    || 'https://wedding-scanner.onrender.com';
 
-    const filter = { event_id, phone: { $ne: null } };
+    const filter = { event_id, phone: { $exists: true, $nin: [null, ''] } };
     if (type === 'qr' && only_unsent) filter.sms_sent = { $ne: true };
     if (type === 'thanks') filter.status = 'used';
 
@@ -87,27 +192,70 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
       try {
         const link = `${appUrl}/guest/${g.qr_token}`;
         const code = g.unique_id.substring(0, 8).toUpperCase();
-        let msg = '';
 
         if (type === 'qr') {
-          msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nHii ndiyo tiketi yako ya QR:\n${link}\n\nNambari ya kuingia: *${code}*\n\nOnyesha QR code hii mlangoni.\nAsante!`;
-        } else if (type === 'invite') {
-          msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nAngalia mwaliko wako:\n${link}`;
-        } else if (type === 'thanks') {
-          msg = `Habari ${g.name},\n\nAsante kwa kuja kwenye *${ev.name}*! Ilikuwa furaha kubwa kuwa nawe.`;
-        } else if (custom_message) {
-          msg = `Ndugu ${g.name}, ${custom_message}`;
-        }
+          // Send card image with QR overlaid (or text-only if no template)
+          const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: *${code}*\n\nOnyesha QR code hii mlangoni.\nAsante!`;
 
-        if (!msg) { failed++; continue; }
+          try {
+            const cardBuf = await generateCardImage(g, ev);
+            await sendFonnteWithImage(g.phone, msg, cardBuf, token.trim());
+          } catch (imgErr) {
+            // Fallback to text-only if image fails
+            await sendFonnteRaw(
+              new URLSearchParams({ target: g.phone.replace(/\D/g,''), message: msg, delay:'3', countryCode:'255' }).toString(),
+              token.trim()
+            );
+          }
 
-        await sendFonnte(g.phone, msg);
-        sent++;
-
-        if (type === 'qr') {
           g.sms_sent    = true;
           g.sms_sent_at = new Date();
           await g.save();
+          sent++;
+
+        } else if (type === 'invite') {
+          const msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nTazama mwaliko wako:\n${link}`;
+          if (ev.invite_image) {
+            try {
+              const cardBuf = await generateNameCardImage(g, ev, 'invite');
+              if (cardBuf) {
+                await sendFonnteWithImage(g.phone, msg, cardBuf, token.trim());
+              } else {
+                await sendFonnte(g.phone, msg);
+              }
+            } catch (imgErr) {
+              await sendFonnte(g.phone, msg);
+            }
+          } else {
+            await sendFonnte(g.phone, msg);
+          }
+          sent++;
+
+        } else if (type === 'thanks') {
+          const msg = `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nIlikuwa furaha kubwa kushiriki nawe. Mungu akubariki!`;
+          if (ev.thanks_image) {
+            try {
+              const cardBuf = await generateNameCardImage(g, ev, 'thanks');
+              if (cardBuf) {
+                await sendFonnteWithImage(g.phone, msg, cardBuf, token.trim());
+              } else {
+                await sendFonnte(g.phone, msg);
+              }
+            } catch (imgErr) {
+              await sendFonnte(g.phone, msg);
+            }
+          } else {
+            await sendFonnte(g.phone, msg);
+          }
+          sent++;
+
+        } else if (custom_message) {
+          const msg = `Ndugu ${g.name}, ${custom_message}`;
+          await sendFonnte(g.phone, msg);
+          sent++;
+        } else {
+          failed++;
+          continue;
         }
 
         await new Promise(r => setTimeout(r, 1500));
