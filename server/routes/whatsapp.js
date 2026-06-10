@@ -31,7 +31,7 @@ function cleanPhone(raw) {
   return p;
 }
 
-// ── Core Fonnte POST (URL-encoded, no file) ───────────────────
+// ── Core Fonnte POST — text only (URL-encoded) ────────────────
 function fonntePost(fields, token) {
   return new Promise((resolve, reject) => {
     const payload = new URLSearchParams(fields).toString();
@@ -62,23 +62,31 @@ function fonntePost(fields, token) {
   });
 }
 
-// ── Fonnte POST with image file (multipart via form-data npm) ─
-function fonntePostWithFile(fields, imageBuffer, token) {
+// ── Fonnte POST with image — proper multipart with known length ─
+async function fonntePostWithFile(fields, imageBuffer, token) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) {
+    form.append(k, String(v));
+  }
+  form.append('file', imageBuffer, {
+    filename:    'card.jpg',
+    contentType: 'image/jpeg',
+    knownLength: imageBuffer.length
+  });
+
+  // getBuffer() gives us the complete buffer synchronously
+  const body    = form.getBuffer();
+  const headers = {
+    ...form.getHeaders(),
+    'Authorization':  token,
+    'Content-Length': body.length
+  };
+
   return new Promise((resolve, reject) => {
-    const form = new FormData();
-    for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
-    form.append('file', imageBuffer, { filename: 'card.jpg', contentType: 'image/jpeg' });
-
-    const headers = {
-      ...form.getHeaders(),
-      'Authorization': token
-    };
-
     const opts = {
       hostname: 'api.fonnte.com', port: 443, path: '/send', method: 'POST',
       headers
     };
-
     const req = https.request(opts, (res) => {
       let data = '';
       res.on('data', c => { data += c; });
@@ -92,7 +100,8 @@ function fonntePostWithFile(fields, imageBuffer, token) {
       });
     });
     req.on('error', e => reject(new Error('Network: ' + e.message)));
-    form.pipe(req);
+    req.write(body);
+    req.end();
   });
 }
 
@@ -103,7 +112,7 @@ async function sendFonnte(phone, message) {
   return fonntePost({ target: p, message, delay: '2', countryCode: '255' }, token);
 }
 
-// ── Generate QR card image ────────────────────────────────────
+// ── Generate QR card image buffer ────────────────────────────
 async function generateQRCard(guest, ev, appUrl) {
   const link  = `${appUrl}/guest/${guest.qr_token}`;
   const qrBuf = await QRCode.toBuffer(link, {
@@ -126,12 +135,11 @@ async function generateQRCard(guest, ev, appUrl) {
     return cardImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
   }
 
-  // No template — just QR code as JPEG
   const qrImg = await Jimp.read(qrBuf);
   return qrImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
 }
 
-// ── Generate invite/thanks name card image ────────────────────
+// ── Generate invite/thanks name card buffer ───────────────────
 async function generateNameCard(guest, ev, type) {
   const src = type === 'invite' ? ev.invite_image : ev.thanks_image;
   if (!src) return null;
@@ -190,7 +198,31 @@ router.post('/debug', requireAdmin, async (req, res) => {
     const result = await fonntePost({ target: p, message: 'DEBUG TEST', delay: '1', countryCode: '255' }, token);
     res.json({ success: true, raw: result, phone: p, token_length: token.length });
   } catch (err) {
-    res.json({ success: false, error: err.message, phone: (phone || '').replace(/\D/g, '') });
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/whatsapp/test-image — test file send to one phone ─
+router.post('/test-image', requireAdmin, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone required' });
+  try {
+    const token = await getToken();
+    const p     = cleanPhone(phone);
+
+    // Create a small test image with Jimp
+    const img = new Jimp(300, 300, 0xffffffff);
+    img.print(await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK), 50, 130, 'QR TEST');
+    const buf = await img.quality(90).getBufferAsync(Jimp.MIME_JPEG);
+
+    await fonntePostWithFile(
+      { target: p, message: 'Test image from TMJ Wedding Tech', delay: '1', countryCode: '255' },
+      buf, token
+    );
+    res.json({ success: true, message: 'Image test sent!', size_kb: Math.round(buf.length / 1024) });
+  } catch (err) {
+    console.error('[/test-image]', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -219,9 +251,9 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
       try {
         if (!g.phone || !g.phone.trim()) { failed++; continue; }
 
-        const phone = cleanPhone(g.phone);
-        const link  = `${appUrl}/guest/${g.qr_token}`;
-        const code  = g.unique_id.substring(0, 8).toUpperCase();
+        const phone  = cleanPhone(g.phone);
+        const link   = `${appUrl}/guest/${g.qr_token}`;
+        const code   = g.unique_id.substring(0, 8).toUpperCase();
         const fields = { target: phone, delay: '2', countryCode: '255' };
 
         if (type === 'qr') {
