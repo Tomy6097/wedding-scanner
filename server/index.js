@@ -15,6 +15,7 @@ const userRoutes      = require('./routes/users');
 const eventRoutes     = require('./routes/events');
 const dashboardRoutes = require('./routes/dashboard');
 const bookingRoutes   = require('./routes/bookings');
+const { router: whatsappRoutes } = require('./routes/whatsapp');
 
 const app    = express();
 const server = http.createServer(app);
@@ -53,14 +54,15 @@ app.get('/landing', (req, res) => {
 // ── Keep-alive ping endpoint (prevents Render free tier sleep) ──
 app.get('/ping', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
-app.use('/api/auth',      authRoutes);
-app.use('/api/guests',   guestRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/activity', activityRoutes);
-app.use('/api/users',    userRoutes);
-app.use('/api/events',   eventRoutes);
+app.use('/api/auth',       authRoutes);
+app.use('/api/guests',    guestRoutes);
+app.use('/api/settings',  settingsRoutes);
+app.use('/api/activity',  activityRoutes);
+app.use('/api/users',     userRoutes);
+app.use('/api/events',    eventRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/bookings', bookingRoutes);
+app.use('/api/bookings',  bookingRoutes);
+app.use('/api/whatsapp',  whatsappRoutes);
 
 // ── Public guest page route ──────────────────────────────────
 // Serves the SPA for /guest/:token — frontend handles the display

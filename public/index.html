@@ -353,14 +353,21 @@
 
           <!-- WhatsApp Broadcast -->
           <div class="card">
-            <h3>WhatsApp Broadcast</h3>
-            <p class="hint-text">Downloads a CSV with all guest links. Send each guest their personal link.</p>
-            <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.75rem;font-size:0.8rem;color:var(--gray-600);margin-bottom:0.75rem">
-              1. Click button — CSV downloads<br>
-              2. Open in Excel or Google Sheets<br>
-              3. Send each guest their personal link
+            <h3>Send via WhatsApp (Fonnte)</h3>
+            <p class="hint-text">Sends automatically to each guest's phone. Requires Fonnte token in Settings.</p>
+            <div id="wa-send-stats" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.65rem;margin-bottom:0.75rem;font-size:0.8rem;color:var(--gray-500)">Loading...</div>
+            <div class="form-group" style="margin-top:0.5rem">
+              <label><input type="checkbox" id="wa-only-unsent" checked /> Only send to guests who haven't received WhatsApp yet</label>
             </div>
-            <button class="btn btn-secondary btn-full" id="send-all-wa-btn">Download Broadcast CSV</button>
+            <div id="wa-send-result" class="alert hidden"></div>
+            <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn">Send QR E-Ticket via WhatsApp</button>
+          </div>
+
+          <!-- CSV Broadcast fallback -->
+          <div class="card">
+            <h3>WhatsApp Broadcast (Manual)</h3>
+            <p class="hint-text">Download a CSV with all guest links. Use if Fonnte is not configured.</p>
+            <button class="btn btn-outline btn-full" id="download-broadcast-csv-btn">Download Broadcast CSV</button>
           </div>
 
           <!-- Custom SMS Message -->
@@ -576,6 +583,22 @@
             <div id="scanner-pw-error" class="alert alert-error hidden"></div>
             <div id="scanner-pw-success" class="alert alert-success hidden"></div>
             <button class="btn btn-primary btn-full" id="change-scanner-pw-btn">Change Scanner Password</button>
+          </div>
+
+          <div class="card">
+            <h3>WhatsApp (Fonnte)</h3>
+            <p class="hint-text">Connect your WhatsApp via <strong>fonnte.com</strong>. Link your device first, then paste your token here.</p>
+            <div class="form-group"><label>Fonnte API Token</label><input type="text" id="fonnte-token" placeholder="e.g. u8C3j3bFp4QmfN6UgRw3" /></div>
+            <div class="form-group">
+              <label>Test — send to this number</label>
+              <div style="display:flex;gap:0.5rem">
+                <input type="tel" id="fonnte-test-phone" placeholder="e.g. 255754696878" style="flex:1" />
+                <button class="btn btn-outline btn-sm" id="fonnte-test-btn">Test</button>
+              </div>
+              <div id="fonnte-test-result" class="alert hidden" style="margin-top:0.5rem"></div>
+            </div>
+            <div id="fonnte-success" class="alert alert-success hidden"></div>
+            <button class="btn btn-primary btn-full" id="save-fonnte-btn">Save WhatsApp Settings</button>
           </div>
 
           <div class="card">
