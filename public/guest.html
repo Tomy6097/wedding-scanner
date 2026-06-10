@@ -57,11 +57,11 @@
 </head>
 <body>
   <div class="container">
-    <div id="loading" class="loading">Loading your invitation...</div>
+    <div id="loading" class="loading">Inapakia mwaliko wako...</div>
     <div id="content" style="display:none">
 
       <!-- QR Check-in Card -->
-      <div class="section-title" id="qr-section-title">Check-in QR Code</div>
+      <div class="section-title" id="qr-section-title">QR Code ya Kuingia</div>
       <div class="card" id="qr-card">
         <div class="card-img-wrap" id="qr-card-wrap"></div>
         <div class="guest-info">
@@ -70,33 +70,33 @@
           <div id="status-badge-el"></div>
         </div>
         <div class="actions">
-          <button class="btn btn-primary" onclick="downloadQRCard()">Save QR Card</button>
-          <button class="btn btn-wa" onclick="shareWhatsApp('qr')">Share via WhatsApp</button>
+          <button class="btn btn-primary" onclick="downloadQRCard()">Hifadhi QR Code</button>
+          <button class="btn btn-wa" onclick="shareWhatsApp('qr')">Shiriki WhatsApp</button>
         </div>
       </div>
 
-      <!-- Invitation Card (if set) -->
+      <!-- Kadi ya Mwaliko (if set) -->
       <div id="invite-section" style="display:none">
-        <div class="section-title">Invitation Card</div>
+        <div class="section-title">Kadi ya Mwaliko</div>
         <div class="card">
           <div class="card-img-wrap" id="invite-card-wrap"></div>
           <div class="actions">
-            <button class="btn btn-primary" onclick="downloadCard('invite')">Save Invitation</button>
-            <button class="btn btn-wa" onclick="shareWhatsApp('invite')">Share via WhatsApp</button>
-            <button class="btn btn-outline" onclick="shareViaSMS('invite')">Share via SMS</button>
+            <button class="btn btn-primary" onclick="downloadCard('invite')">Hifadhi Mwaliko</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('invite')">Shiriki WhatsApp</button>
+            <button class="btn btn-outline" onclick="shareViaSMS('invite')">Tuma SMS</button>
           </div>
         </div>
       </div>
 
-      <!-- Thank You Card (if set) -->
+      <!-- Kadi ya Shukrani (if set) -->
       <div id="thanks-section" style="display:none">
-        <div class="section-title">Thank You Card</div>
+        <div class="section-title">Kadi ya Shukrani</div>
         <div class="card">
           <div class="card-img-wrap" id="thanks-card-wrap"></div>
           <div class="actions">
-            <button class="btn btn-primary" onclick="downloadCard('thanks')">Save Thank You Card</button>
-            <button class="btn btn-wa" onclick="shareWhatsApp('thanks')">Share via WhatsApp</button>
-            <button class="btn btn-outline" onclick="shareViaSMS('thanks')">Share via SMS</button>
+            <button class="btn btn-primary" onclick="downloadCard('thanks')">Save Kadi ya Shukrani</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('thanks')">Shiriki WhatsApp</button>
+            <button class="btn btn-outline" onclick="shareViaSMS('thanks')">Tuma SMS</button>
           </div>
         </div>
       </div>
@@ -125,7 +125,7 @@
         document.getElementById('loading').style.display = 'none';
         const errDiv = document.getElementById('error-div');
         errDiv.style.display = 'block';
-        errDiv.innerHTML = `Invitation not found.<br><small>Please contact the event organizer.</small>`;
+        errDiv.innerHTML = `Mwaliko haupatikani.<br><small>Wasiliana na msimamizi wa tukio.</small>`;
       }
     }
 
@@ -140,8 +140,8 @@
       document.getElementById('guest-meta-el').textContent = meta;
       const badge = document.getElementById('status-badge-el');
       badge.innerHTML = data.status === 'used'
-        ? '<span class="status-badge">Checked In</span>'
-        : '<span class="status-badge pending">Not yet checked in</span>';
+        ? '<span class="status-badge">Ameingia</span>'
+        : '<span class="status-badge pending">Bado hajaingia</span>';
 
       // QR card
       buildQRCard(data);
@@ -244,7 +244,7 @@
       const lookupCode = (_data.unique_id || '').substring(0, 8).toUpperCase();
       let msg;
       if (type === 'qr') {
-        msg = `Dear ${_data.name}, you are invited to ${_data.eventName}!\n\nYour check-in QR code: ${window.location.href}\n\nCode: ${lookupCode}`;
+        msg = `Habari ${_data.name}, umealikwa kwenye *${_data.eventName}!\n\nYour check-in QR code: ${window.location.href}\n\nCode: ${lookupCode}`;
       } else if (type === 'invite') {
         msg = `Dear ${_data.name}, you are cordially invited to ${_data.eventName}!\n\nView your invitation: ${window.location.href}`;
       } else {
@@ -257,7 +257,7 @@
       const lookupCode = (_data.unique_id || '').substring(0, 8).toUpperCase();
       let msg;
       if (type === 'invite') {
-        msg = `Dear ${_data.name}, you are invited to ${_data.eventName}. View: ${window.location.href}`;
+        msg = `Habari ${_data.name}, umealikwa kwenye *${_data.eventName}. View: ${window.location.href}`;
       } else {
         msg = `Dear ${_data.name}, thank you for attending ${_data.eventName}!`;
       }

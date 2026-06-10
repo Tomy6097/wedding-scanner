@@ -90,13 +90,13 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         let msg = '';
 
         if (type === 'qr') {
-          msg = `Dear ${g.name},\n\nYou are invited to *${ev.name}*!\n\nYour QR e-ticket:\n${link}\n\nCheck-in code: *${code}*\n\nShow this at the entrance.`;
+          msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nHii ndiyo tiketi yako ya QR:\n${link}\n\nNambari ya kuingia: *${code}*\n\nOnyesha QR code hii mlangoni.\nAsante!`;
         } else if (type === 'invite') {
-          msg = `Dear ${g.name},\n\nYou are cordially invited to *${ev.name}*.\n\nView your invitation:\n${link}`;
+          msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nAngalia mwaliko wako:\n${link}`;
         } else if (type === 'thanks') {
-          msg = `Dear ${g.name},\n\nThank you for attending *${ev.name}*! It was a pleasure having you with us.`;
+          msg = `Habari ${g.name},\n\nAsante kwa kuja kwenye *${ev.name}*! Ilikuwa furaha kubwa kuwa nawe.`;
         } else if (custom_message) {
-          msg = `Dear ${g.name}, ${custom_message}`;
+          msg = `Ndugu ${g.name}, ${custom_message}`;
         }
 
         if (!msg) { failed++; continue; }
