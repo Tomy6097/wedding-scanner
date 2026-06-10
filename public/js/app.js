@@ -1,3 +1,121 @@
+// ── Settings ─────────────────────────────────────────────
+async function fetchSettings() {
+  try {
+    const s = await api('GET', '/settings');
+    const set = (id, v) => { const e = document.getElementById(id); if (e && v) e.value = v; };
+    set('beem-api-key', s.beem_api_key);
+    set('beem-secret-key', s.beem_secret_key);
+    set('beem-sender-id', s.beem_sender_id);
+    set('app-url', s.app_url);
+    set('fonnte-token', s.fonnte_token);
+  } catch (e) { console.error('Settings error:', e); }
+}
+
+async function saveFonnteSettings() {
+  const btn=document.getElementById('save-fonnte-btn');
+  const sucEl=document.getElementById('fonnte-success');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  try {
+    const token=(document.getElementById('fonnte-token')||{}).value||'';
+    await api('POST', '/settings/bulk', { settings: { fonnte_token: token }});
+    if(sucEl){sucEl.textContent='WhatsApp settings saved!';sucEl.className='alert alert-success';sucEl.classList.remove('hidden');setTimeout(()=>sucEl.classList.add('hidden'),4000);}
+  } catch(e){alert('Failed: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Save WhatsApp Settings';}}
+}
+
+async function testFonnte() {
+  const phone=(document.getElementById('fonnte-test-phone')||{}).value||'';
+  const resEl=document.getElementById('fonnte-test-result');
+  const btn=document.getElementById('fonnte-test-btn');
+  if(!phone){if(resEl){resEl.textContent='Enter a phone number';resEl.className='alert alert-error';resEl.classList.remove('hidden');}return;}
+  if(btn){btn.disabled=true;btn.textContent='Sending...';}
+  if(resEl)resEl.classList.add('hidden');
+  try {
+    const r=await api('POST','/whatsapp/test',{phone});
+    if(resEl){resEl.textContent=r.message;resEl.className='alert alert-success';resEl.classList.remove('hidden');}
+  } catch(e){
+    if(resEl){resEl.textContent=e.message;resEl.className='alert alert-error';resEl.classList.remove('hidden');}
+  } finally{if(btn){btn.disabled=false;btn.textContent='Test';}}
+}
+
+async function saveBeemSettings() {
+  const sucEl = document.getElementById('beem-success');
+  try {
+    await api('POST', '/settings/bulk', { settings: {
+      beem_api_key:    (document.getElementById('beem-api-key')||{}).value||'',
+      beem_secret_key: (document.getElementById('beem-secret-key')||{}).value||'',
+      beem_sender_id:  (document.getElementById('beem-sender-id')||{}).value||'',
+      app_url:         (document.getElementById('app-url')||{}).value||''
+    }});
+    if (sucEl) { sucEl.textContent='SMS settings saved!'; sucEl.className='alert alert-success'; sucEl.classList.remove('hidden'); setTimeout(()=>sucEl.classList.add('hidden'),4000); }
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function saveFonnteSettings() {
+  const btn=document.getElementById('save-fonnte-btn');
+  const sucEl=document.getElementById('fonnte-success');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  try {
+    const token=(document.getElementById('fonnte-token')||{}).value||'';
+    await api('POST', '/settings/bulk', { settings: { fonnte_token: token }});
+    if(sucEl){sucEl.textContent='WhatsApp settings saved!';sucEl.className='alert alert-success';sucEl.classList.remove('hidden');setTimeout(()=>sucEl.classList.add('hidden'),4000);}
+  } catch(e){alert('Failed: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Save WhatsApp Settings';}}
+}
+
+async function testFonnte() {
+  const phone=(document.getElementById('fonnte-test-phone')||{}).value||'';
+  const resEl=document.getElementById('fonnte-test-result');
+  const btn=document.getElementById('fonnte-test-btn');
+  if(!phone){if(resEl){resEl.textContent='Enter a phone number';resEl.className='alert alert-error';resEl.classList.remove('hidden');}return;}
+  if(btn){btn.disabled=true;btn.textContent='Sending...';}
+  if(resEl)resEl.classList.add('hidden');
+  try {
+    const r=await api('POST','/whatsapp/test',{phone});
+    if(resEl){resEl.textContent=r.message;resEl.className='alert alert-success';resEl.classList.remove('hidden');}
+  } catch(e){
+    if(resEl){resEl.textContent=e.message;resEl.className='alert alert-error';resEl.classList.remove('hidden');}
+  } finally{if(btn){btn.disabled=false;btn.textContent='Test';}}
+}
+async function saveBeemSettings() {
+  const vals = {
+    beem_api_key:    document.getElementById('beem-api-key')    ? document.getElementById('beem-api-key').value.trim()    : '',
+    beem_secret_key: document.getElementById('beem-secret-key') ? document.getElementById('beem-secret-key').value.trim() : '',
+    beem_sender_id:  document.getElementById('beem-sender-id')  ? document.getElementById('beem-sender-id').value.trim()  : '',
+    app_url:         document.getElementById('app-url')         ? document.getElementById('app-url').value.trim()         : ''
+  };
+  const sucEl = document.getElementById('beem-success');
+  try {
+    await api('POST', '/settings/bulk', { settings: vals });
+    if (sucEl) { sucEl.textContent = 'SMS settings saved!'; sucEl.className = 'alert alert-success'; sucEl.classList.remove('hidden'); setTimeout(() => sucEl.classList.add('hidden'), 4000); }
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+async function saveFonnteSettings() {
+  const token = document.getElementById('fonnte-token') ? document.getElementById('fonnte-token').value.trim() : '';
+  const sucEl = document.getElementById('fonnte-success');
+  const btn = document.getElementById('save-fonnte-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    await api('POST', '/settings/bulk', { settings: { fonnte_token: token } });
+    if (sucEl) { sucEl.textContent = 'WhatsApp settings saved!'; sucEl.className = 'alert alert-success'; sucEl.classList.remove('hidden'); setTimeout(() => sucEl.classList.add('hidden'), 4000); }
+  } catch (e) { alert('Failed: ' + e.message); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Save WhatsApp Settings'; } }
+}
+
+async function testFonnte() {
+  const phone = document.getElementById('fonnte-test-phone') ? document.getElementById('fonnte-test-phone').value.trim() : '';
+  const resEl = document.getElementById('fonnte-test-result');
+  const btn = document.getElementById('fonnte-test-btn');
+  if (!phone) { if (resEl) { resEl.textContent = 'Enter a phone number'; resEl.className = 'alert alert-error'; resEl.classList.remove('hidden'); } return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  if (resEl) resEl.classList.add('hidden');
+  try {
+    const r = await api('POST', '/whatsapp/test', { phone });
+    if (resEl) { resEl.textContent = r.message; resEl.className = 'alert alert-success'; resEl.classList.remove('hidden'); }
+  } catch (e) { if (resEl) { resEl.textContent = e.message; resEl.className = 'alert alert-error'; resEl.classList.remove('hidden'); } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Test'; } }
+}
 /* ============================================================
    Multi-Event Wedding Check-in System — Frontend Application
    ============================================================ */

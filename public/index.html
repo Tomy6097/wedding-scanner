@@ -593,12 +593,12 @@
               <label>Test — send to this number</label>
               <div style="display:flex;gap:0.5rem">
                 <input type="tel" id="fonnte-test-phone" placeholder="e.g. 255754696878" style="flex:1" />
-                <button class="btn btn-outline btn-sm" id="fonnte-test-btn">Test</button>
+                <button class="btn btn-outline btn-sm" id="fonnte-test-btn" onclick="testFonnte()">Test</button>
               </div>
               <div id="fonnte-test-result" class="alert hidden" style="margin-top:0.5rem"></div>
             </div>
             <div id="fonnte-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary btn-full" id="save-fonnte-btn">Save WhatsApp Settings</button>
+            <button class="btn btn-primary btn-full" id="save-fonnte-btn" onclick="saveFonnteSettings()">Save WhatsApp Settings</button>
           </div>
 
           <div class="card">
@@ -617,7 +617,7 @@
               <div id="test-sms-result" class="alert hidden" style="margin-top:0.5rem"></div>
             </div>
             <div id="beem-success" class="alert alert-success hidden"></div>
-            <button class="btn btn-primary btn-full" id="save-beem-btn">Save SMS Settings</button>
+            <button class="btn btn-primary btn-full" id="save-beem-btn" onclick="saveBeemSettings()">Save SMS Settings</button>
           </div>
 
           <div class="card" style="grid-column:1/-1">
