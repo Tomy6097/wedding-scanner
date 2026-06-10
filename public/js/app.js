@@ -1416,34 +1416,35 @@ function initAdmin() {
   if (saveBeemBtn) saveBeemBtn.addEventListener('click', saveBeemSettings);
 
   // ── Fonnte Settings ───────────────────────────────────────
-  const saveFonnteBtn = $('#save-fonnte-btn');
-  if (saveFonnteBtn) {
-    saveFonnteBtn.addEventListener('click', async () => {
-      const token = $('#fonnte-token') ? $('#fonnte-token').value.trim() : '';
-      const sucEl = $('#fonnte-success');
+  // Use document-level delegation to handle dynamically rendered settings
+  document.addEventListener('click', async (e) => {
+    // Save Fonnte token
+    if (e.target && e.target.id === 'save-fonnte-btn') {
+      const token = document.getElementById('fonnte-token') ? document.getElementById('fonnte-token').value.trim() : '';
+      const sucEl = document.getElementById('fonnte-success');
+      e.target.disabled = true; e.target.textContent = 'Saving...';
       try {
         await api('POST', '/settings/bulk', { settings: { fonnte_token: token } });
-        showAlert(sucEl, 'WhatsApp (Fonnte) settings saved!', 'success');
-      } catch (e) { alert('Failed: ' + e.message); }
-    });
-  }
-
-  // ── Fonnte Test ───────────────────────────────────────────
-  const fonnteTestBtn = $('#fonnte-test-btn');
-  if (fonnteTestBtn) {
-    fonnteTestBtn.addEventListener('click', async () => {
-      const phone   = $('#fonnte-test-phone') ? $('#fonnte-test-phone').value.trim() : '';
-      const resultEl = $('#fonnte-test-result');
-      if (!phone) { showAlert(resultEl, 'Enter a phone number', 'error'); return; }
-      fonnteTestBtn.disabled = true; fonnteTestBtn.textContent = 'Sending...';
-      hideAlert(resultEl);
+        if (sucEl) { sucEl.textContent = 'WhatsApp settings saved!'; sucEl.className = 'alert alert-success'; sucEl.classList.remove('hidden'); setTimeout(() => sucEl.classList.add('hidden'), 4000); }
+      } catch (err) { alert('Failed: ' + err.message); }
+      finally { e.target.disabled = false; e.target.textContent = 'Save WhatsApp Settings'; }
+    }
+    // Test Fonnte
+    if (e.target && e.target.id === 'fonnte-test-btn') {
+      const phone = document.getElementById('fonnte-test-phone') ? document.getElementById('fonnte-test-phone').value.trim() : '';
+      const resultEl = document.getElementById('fonnte-test-result');
+      if (!phone) { if (resultEl) { resultEl.textContent = 'Enter a phone number'; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); } return; }
+      e.target.disabled = true; e.target.textContent = 'Sending...';
+      if (resultEl) resultEl.classList.add('hidden');
       try {
         const res = await api('POST', '/whatsapp/test', { phone });
-        showAlert(resultEl, '✓ ' + res.message, 'success');
-      } catch (e) { showAlert(resultEl, e.message, 'error'); }
-      finally { fonnteTestBtn.disabled = false; fonnteTestBtn.textContent = 'Test'; }
-    });
-  }
+        if (resultEl) { resultEl.textContent = res.message; resultEl.className = 'alert alert-success'; resultEl.classList.remove('hidden'); }
+      } catch (err) {
+        if (resultEl) { resultEl.textContent = err.message; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); }
+      }
+      finally { e.target.disabled = false; e.target.textContent = 'Test'; }
+    }
+  }, true); // capture phase ensures it fires
 
   // ── CSV Download fallback ─────────────────────────────────
   const dlCsvBtn = $('#download-broadcast-csv-btn');
