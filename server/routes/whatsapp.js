@@ -1,10 +1,11 @@
 const express  = require('express');
 const https    = require('https');
-const FormData = require('form-data');
 const QRCode   = require('qrcode');
 const Jimp     = require('jimp');
 const { Guest, Event, Settings } = require('../db');
 const router   = express.Router();
+
+const IMGBB_KEY = '33c31308c29e8917b836888ce76957f4';
 
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== 'admin')
@@ -31,7 +32,49 @@ function cleanPhone(raw) {
   return p;
 }
 
-// ── Core Fonnte POST — text only (URL-encoded) ────────────────
+// ── Upload image buffer to ImgBB → returns public URL ─────────
+async function uploadToImgBB(imageBuffer) {
+  const base64 = imageBuffer.toString('base64');
+  const payload = new URLSearchParams({
+    key:   IMGBB_KEY,
+    image: base64,
+    expiration: '3600'   // expire in 1 hour — enough for Fonnte to fetch
+  }).toString();
+  const buf = Buffer.from(payload, 'utf8');
+
+  return new Promise((resolve, reject) => {
+    const opts = {
+      hostname: 'api.imgbb.com',
+      port: 443,
+      path: '/1/upload',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': buf.length
+      }
+    };
+    const req = https.request(opts, (res) => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => {
+        try {
+          const j = JSON.parse(data);
+          if (j.success && j.data && j.data.url) {
+            console.log('[ImgBB] uploaded:', j.data.url);
+            resolve(j.data.url);
+          } else {
+            reject(new Error('ImgBB error: ' + JSON.stringify(j)));
+          }
+        } catch (e) { reject(new Error('ImgBB parse error: ' + data)); }
+      });
+    });
+    req.on('error', e => reject(new Error('ImgBB network: ' + e.message)));
+    req.write(buf);
+    req.end();
+  });
+}
+
+// ── Fonnte POST (URL-encoded) ─────────────────────────────────
 function fonntePost(fields, token) {
   return new Promise((resolve, reject) => {
     const payload = new URLSearchParams(fields).toString();
@@ -48,7 +91,7 @@ function fonntePost(fields, token) {
       let data = '';
       res.on('data', c => { data += c; });
       res.on('end', () => {
-        console.log('[Fonnte text]', data);
+        console.log('[Fonnte]', data);
         try {
           const j = JSON.parse(data);
           if (j.status === true) resolve(j);
@@ -62,47 +105,15 @@ function fonntePost(fields, token) {
   });
 }
 
-// ── Fonnte POST with image — proper multipart with known length ─
-async function fonntePostWithFile(fields, imageBuffer, token) {
-  const form = new FormData();
-  for (const [k, v] of Object.entries(fields)) {
-    form.append(k, String(v));
-  }
-  form.append('file', imageBuffer, {
-    filename:    'card.jpg',
-    contentType: 'image/jpeg',
-    knownLength: imageBuffer.length
-  });
-
-  // getBuffer() gives us the complete buffer synchronously
-  const body    = form.getBuffer();
-  const headers = {
-    ...form.getHeaders(),
-    'Authorization':  token,
-    'Content-Length': body.length
-  };
-
-  return new Promise((resolve, reject) => {
-    const opts = {
-      hostname: 'api.fonnte.com', port: 443, path: '/send', method: 'POST',
-      headers
-    };
-    const req = https.request(opts, (res) => {
-      let data = '';
-      res.on('data', c => { data += c; });
-      res.on('end', () => {
-        console.log('[Fonnte file]', data);
-        try {
-          const j = JSON.parse(data);
-          if (j.status === true) resolve(j);
-          else reject(new Error(j.reason || j.message || JSON.stringify(j)));
-        } catch (e) { reject(new Error('Parse error: ' + data)); }
-      });
-    });
-    req.on('error', e => reject(new Error('Network: ' + e.message)));
-    req.write(body);
-    req.end();
-  });
+// ── Send via Fonnte with image URL ────────────────────────────
+async function fonntePostWithImageUrl(phone, message, imageUrl, token) {
+  return fonntePost({
+    target:      phone,
+    message:     message,
+    url:         imageUrl,
+    delay:       '2',
+    countryCode: '255'
+  }, token);
 }
 
 // ── Public text-only send ─────────────────────────────────────
@@ -175,6 +186,18 @@ async function generateNameCard(guest, ev, type) {
   return cardImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
 }
 
+// ── Helper: generate image + upload to ImgBB + send via Fonnte ─
+async function sendWithImage(phone, message, imgBuf, token) {
+  try {
+    const imgUrl = await uploadToImgBB(imgBuf);
+    await fonntePostWithImageUrl(phone, message, imgUrl, token);
+  } catch (e) {
+    // Fallback: send text + link only
+    console.error('[sendWithImage fallback]', e.message);
+    await fonntePost({ target: phone, message, delay: '2', countryCode: '255' }, token);
+  }
+}
+
 // ── POST /api/whatsapp/test ───────────────────────────────────
 router.post('/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;
@@ -183,26 +206,11 @@ router.post('/test', requireAdmin, async (req, res) => {
     await sendFonnte(phone, 'Test from TMJ Wedding Tech. WhatsApp is working!');
     res.json({ success: true, message: 'Test message sent!' });
   } catch (err) {
-    console.error('[/test]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── POST /api/whatsapp/debug ──────────────────────────────────
-router.post('/debug', requireAdmin, async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ error: 'Phone required' });
-  try {
-    const token = await getToken();
-    const p     = cleanPhone(phone);
-    const result = await fonntePost({ target: p, message: 'DEBUG TEST', delay: '1', countryCode: '255' }, token);
-    res.json({ success: true, raw: result, phone: p, token_length: token.length });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
-  }
-});
-
-// ── POST /api/whatsapp/test-image — test file send to one phone ─
+// ── POST /api/whatsapp/test-image ─────────────────────────────
 router.post('/test-image', requireAdmin, async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone required' });
@@ -210,18 +218,18 @@ router.post('/test-image', requireAdmin, async (req, res) => {
     const token = await getToken();
     const p     = cleanPhone(phone);
 
-    // Create a small test image with Jimp
-    const img = new Jimp(300, 300, 0xffffffff);
-    img.print(await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK), 50, 130, 'QR TEST');
+    // Small test image
+    const img = new Jimp(400, 200, 0xffffffff);
+    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+    img.print(font, 40, 80, 'TMJ Wedding Tech');
     const buf = await img.quality(90).getBufferAsync(Jimp.MIME_JPEG);
 
-    await fonntePostWithFile(
-      { target: p, message: 'Test image from TMJ Wedding Tech', delay: '1', countryCode: '255' },
-      buf, token
-    );
-    res.json({ success: true, message: 'Image test sent!', size_kb: Math.round(buf.length / 1024) });
+    const imgUrl = await uploadToImgBB(buf);
+    await fonntePostWithImageUrl(p, 'Test image from TMJ Wedding Tech', imgUrl, token);
+
+    res.json({ success: true, message: 'Image sent!', url: imgUrl });
   } catch (err) {
-    console.error('[/test-image]', err.message);
+    console.error('[test-image]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -254,17 +262,11 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         const phone  = cleanPhone(g.phone);
         const link   = `${appUrl}/guest/${g.qr_token}`;
         const code   = g.unique_id.substring(0, 8).toUpperCase();
-        const fields = { target: phone, delay: '2', countryCode: '255' };
 
         if (type === 'qr') {
           const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: *${code}*\n\nOnyesha QR code hii mlangoni.\nAsante!`;
-          try {
-            const imgBuf = await generateQRCard(g, ev, appUrl);
-            await fonntePostWithFile({ ...fields, message: msg }, imgBuf, token);
-          } catch (imgErr) {
-            console.error(`[QR img failed ${g.name}]:`, imgErr.message);
-            await fonntePost({ ...fields, message: msg }, token);
-          }
+          const imgBuf = await generateQRCard(g, ev, appUrl);
+          await sendWithImage(phone, msg, imgBuf, token);
           g.sms_sent    = true;
           g.sms_sent_at = new Date();
           await g.save();
@@ -272,30 +274,20 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
 
         } else if (type === 'invite') {
           const msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nTazama mwaliko wako:\n${link}`;
-          try {
-            const imgBuf = await generateNameCard(g, ev, 'invite');
-            if (imgBuf) await fonntePostWithFile({ ...fields, message: msg }, imgBuf, token);
-            else        await fonntePost({ ...fields, message: msg }, token);
-          } catch (e) {
-            console.error(`[invite img failed ${g.name}]:`, e.message);
-            await fonntePost({ ...fields, message: msg }, token);
-          }
+          const imgBuf = await generateNameCard(g, ev, 'invite');
+          if (imgBuf) await sendWithImage(phone, msg, imgBuf, token);
+          else        await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
           sent++;
 
         } else if (type === 'thanks') {
           const msg = `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nIlikuwa furaha kubwa kushiriki nawe. Mungu akubariki!`;
-          try {
-            const imgBuf = await generateNameCard(g, ev, 'thanks');
-            if (imgBuf) await fonntePostWithFile({ ...fields, message: msg }, imgBuf, token);
-            else        await fonntePost({ ...fields, message: msg }, token);
-          } catch (e) {
-            console.error(`[thanks img failed ${g.name}]:`, e.message);
-            await fonntePost({ ...fields, message: msg }, token);
-          }
+          const imgBuf = await generateNameCard(g, ev, 'thanks');
+          if (imgBuf) await sendWithImage(phone, msg, imgBuf, token);
+          else        await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
           sent++;
 
         } else if (custom_message) {
-          await fonntePost({ ...fields, message: `Ndugu ${g.name}, ${custom_message}` }, token);
+          await fonntePost({ target: phone, message: `Ndugu ${g.name}, ${custom_message}`, delay: '2', countryCode: '255' }, token);
           sent++;
 
         } else {
