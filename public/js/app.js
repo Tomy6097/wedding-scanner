@@ -1641,7 +1641,7 @@ function initAdmin() {
   if (printSummaryBtn) printSummaryBtn.addEventListener('click', printEventSummary);
 
   // Session warning
-  initSessionWarning();
+  // session warning disabled
 
   // ── Change Admin Password ────────────────────────────────
   const changeAdminPwBtn = $('#change-admin-pw-btn');
