@@ -1873,6 +1873,11 @@ function initPWA() {
 
 // ΓöÇΓöÇ Boot ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 document.addEventListener('DOMContentLoaded', () => {
+  // Catch ALL JS errors and show them
+  window.onerror = function(msg, src, line, col, err) {
+    document.body.innerHTML = '<div style="font-family:monospace;padding:2rem;background:#fee2e2;color:#991b1b;font-size:14px"><h2>JavaScript Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p><p>' + (err ? err.stack : '') + '</p></div>';
+    return true;
+  };
   // Initialize Lucide icons
   if (typeof lucide !== 'undefined') lucide.createIcons();
   initPWA();
