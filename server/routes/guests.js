@@ -440,10 +440,14 @@ router.get('/allqr', requireAdmin, async (req, res) => {
       const ev = await Event.findById(event_id);
       if (ev && ev.card_image) {
         cardTemplate = {
-          image:   ev.card_image,
-          qr_x:    ev.card_qr_x,
-          qr_y:    ev.card_qr_y,
-          qr_size: ev.card_qr_size || 20
+          image:      ev.card_image,
+          qr_x:       ev.card_qr_x,
+          qr_y:       ev.card_qr_y,
+          qr_size:    ev.card_qr_size  || 20,
+          name_x:     ev.card_name_x   ?? null,
+          name_y:     ev.card_name_y   ?? null,
+          name_size:  ev.card_name_size || 5,
+          name_color: ev.card_name_color || '#000000'
         };
       }
     }
