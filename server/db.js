@@ -35,6 +35,11 @@ const eventSchema = new mongoose.Schema({
   card_qr_x:        { type: Number, default: null },
   card_qr_y:        { type: Number, default: null },
   card_qr_size:     { type: Number, default: 20 },
+  // Name on QR card
+  card_name_x:      { type: Number, default: null },
+  card_name_y:      { type: Number, default: null },
+  card_name_size:   { type: Number, default: 5 },
+  card_name_color:  { type: String, default: '#000000' },
   // Invitation card template
   invite_image:     { type: String, default: null },
   invite_name_x:    { type: Number, default: null },

@@ -400,15 +400,41 @@
         <div class="add-grid">
           <div class="card">
             <h3>Upload Card Design</h3>
-            <p class="hint-text">Upload your card image (PNG/JPG, max 2MB). Then click on the preview to position the QR code.</p>
+            <p class="hint-text">Upload your card image (PNG/JPG, max 2MB). Click preview to position the QR code, then click again to position the guest name.</p>
             <div class="file-drop-zone" id="card-drop-zone" style="min-height:90px">
-              <span id="card-drop-label">📂 Drop card image here or click to browse</span>
+              <span id="card-drop-label"><i data-lucide="image-plus" style="width:16px;height:16px"></i> Drop card image here or click to browse</span>
               <input type="file" id="card-file" accept="image/png,image/jpeg,image/jpg" class="file-input" />
             </div>
-            <div class="form-group" style="margin-top:0.5rem">
+
+            <!-- QR position controls -->
+            <div class="form-group" style="margin-top:0.75rem">
+              <label style="font-weight:600;font-size:0.8rem">Step 1 — Position QR Code</label>
+              <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.5rem;font-size:0.78rem;color:var(--gray-500);margin-bottom:0.4rem">
+                Click on the preview image to set where the QR code appears
+              </div>
               <label>QR Size: <span id="qr-size-label">20%</span> of card width</label>
               <input type="range" id="qr-size-slider" min="10" max="50" value="20" style="width:100%;accent-color:var(--primary)" />
             </div>
+
+            <!-- Name position controls -->
+            <div class="form-group" style="margin-top:0.5rem;border-top:1px solid var(--gray-200);padding-top:0.75rem">
+              <label style="font-weight:600;font-size:0.8rem">Step 2 — Position Guest Name <span style="font-weight:400;color:var(--gray-400)">(optional)</span></label>
+              <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.5rem;font-size:0.78rem;color:var(--gray-500);margin-bottom:0.4rem">
+                After placing QR, click again on the preview to set where the guest name appears
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
+                <label style="white-space:nowrap">Name Size: <span id="card-name-size-label">5%</span></label>
+                <input type="range" id="card-name-size" min="2" max="15" value="5" style="flex:1;accent-color:var(--primary)" />
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <label>Name Color:</label>
+                <input type="color" id="card-name-color" value="#000000" style="width:50px;height:28px;padding:2px;border:1px solid var(--gray-300);border-radius:4px" />
+                <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.8rem">
+                  <input type="checkbox" id="card-name-enabled" /> Show name on card
+                </label>
+              </div>
+            </div>
+
             <div id="card-upload-error" class="alert alert-error hidden"></div>
             <div id="card-upload-success" class="alert alert-success hidden"></div>
             <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
@@ -417,16 +443,21 @@
             </div>
           </div>
           <div class="card">
-            <h3>Preview — Click to Position QR</h3>
-            <p class="hint-text" id="card-preview-hint">Upload a card to see preview. Click where you want the QR code.</p>
+            <h3>Preview — Click to Position</h3>
+            <p class="hint-text" id="card-preview-hint">Upload a card to see preview. <strong>1st click</strong> = QR position. <strong>2nd click</strong> = Name position.</p>
             <div id="card-preview-wrap" style="position:relative;display:inline-block;max-width:100%;cursor:crosshair">
               <img id="card-preview-img" src="" alt="Card Preview" style="display:none;max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--gray-200)" />
+              <!-- QR marker -->
               <div id="qr-position-marker" style="display:none;position:absolute;border:2px dashed var(--primary);border-radius:4px;background:rgba(124,58,237,0.12);pointer-events:none;transform:translate(-50%,-50%)">
                 <span style="font-size:0.6rem;color:var(--primary);padding:2px;white-space:nowrap">QR</span>
               </div>
+              <!-- Name marker -->
+              <div id="card-name-marker" style="display:none;position:absolute;background:rgba(124,58,237,0.8);color:white;font-size:0.65rem;padding:2px 5px;border-radius:3px;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap">Jina</div>
             </div>
+            <!-- Click mode indicator -->
+            <div id="card-click-mode" style="display:none;margin-top:0.5rem;font-size:0.78rem;font-weight:600;color:var(--primary);text-align:center;padding:0.3rem;background:var(--primary-light, #f5f3ff);border-radius:4px"></div>
             <div id="card-sample-wrap" style="display:none;margin-top:1rem">
-              <p class="hint-text">Sample with QR:</p>
+              <p class="hint-text" style="margin-bottom:0.4rem">Preview (sample guest):</p>
               <canvas id="card-sample-canvas" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--gray-200)"></canvas>
               <button class="btn btn-outline btn-sm" style="margin-top:0.5rem" id="download-sample-btn"><i data-lucide="download" style="width:14px;height:14px"></i> Download Sample</button>
             </div>

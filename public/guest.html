@@ -162,7 +162,6 @@
     function buildQRCard(data) {
       const wrap = document.getElementById('qr-card-wrap');
       if (data.cardTemplate && data.cardTemplate.image && data.cardTemplate.qr_x != null) {
-        // Draw card template with QR overlay on canvas
         const canvas = document.createElement('canvas');
         const ctx    = canvas.getContext('2d');
         const cardImg = new Image();
@@ -172,12 +171,23 @@
           ctx.drawImage(cardImg, 0, 0);
           const qrImg = new Image();
           qrImg.onload = () => {
-            const W    = canvas.width;
-            const H    = canvas.height;
-            const qrW  = (data.cardTemplate.qr_size / 100) * W;
-            const qrX  = (data.cardTemplate.qr_x / 100) * W - qrW / 2;
-            const qrY  = (data.cardTemplate.qr_y / 100) * H - qrW / 2;
+            const W   = canvas.width;
+            const H   = canvas.height;
+            const qrW = (data.cardTemplate.qr_size / 100) * W;
+            const qrX = (data.cardTemplate.qr_x / 100) * W - qrW / 2;
+            const qrY = (data.cardTemplate.qr_y / 100) * H - qrW / 2;
             ctx.drawImage(qrImg, qrX, qrY, qrW, qrW);
+
+            // Draw guest name if position is set
+            if (data.cardTemplate.name_x != null && data.cardTemplate.name_y != null) {
+              const fontSize = Math.round((data.cardTemplate.name_size / 100) * W);
+              ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+              ctx.fillStyle    = data.cardTemplate.name_color || '#000000';
+              ctx.textAlign    = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(data.name, (data.cardTemplate.name_x / 100) * W, (data.cardTemplate.name_y / 100) * H);
+            }
+
             _canvases['qr'] = canvas;
           };
           qrImg.src = data.qrDataUrl;
@@ -185,9 +195,8 @@
         cardImg.src = data.cardTemplate.image;
         wrap.appendChild(canvas);
       } else {
-        // Plain QR
         wrap.innerHTML = `<div class="plain-qr"><img src="${data.qrDataUrl}" alt="QR Code" /></div>`;
-        _canvases['qr'] = null; // will use img src directly
+        _canvases['qr'] = null;
       }
     }
 

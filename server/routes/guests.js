@@ -147,7 +147,9 @@ router.get('/view/:token', async (req, res) => {
 
     // Include card templates if set
     const cardTemplate = (ev && ev.card_image && ev.card_qr_x != null) ? {
-      image: ev.card_image, qr_x: ev.card_qr_x, qr_y: ev.card_qr_y, qr_size: ev.card_qr_size || 20
+      image: ev.card_image, qr_x: ev.card_qr_x, qr_y: ev.card_qr_y, qr_size: ev.card_qr_size || 20,
+      name_x: ev.card_name_x ?? null, name_y: ev.card_name_y ?? null,
+      name_size: ev.card_name_size || 5, name_color: ev.card_name_color || '#000000'
     } : null;
 
     const inviteTemplate = (ev && ev.invite_image && ev.invite_name_x != null) ? {

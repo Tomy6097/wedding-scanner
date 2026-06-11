@@ -102,6 +102,21 @@ async function generateQRCard(guest, ev, appUrl) {
     const sz = Math.round((ev.card_qr_size || 20) / 100 * W);
     qrImg.resize(sz, sz);
     cardImg.composite(qrImg, Math.round(ev.card_qr_x / 100 * W - sz / 2), Math.round(ev.card_qr_y / 100 * H - sz / 2));
+
+    // Print guest name on card if position is set
+    if (ev.card_name_x != null && ev.card_name_y != null) {
+      const fontSize = Math.round(((ev.card_name_size || 5) / 100) * W);
+      let font;
+      try {
+        font = await Jimp.loadFont(fontSize >= 64 ? Jimp.FONT_SANS_64_BLACK : fontSize >= 32 ? Jimp.FONT_SANS_32_BLACK : fontSize >= 16 ? Jimp.FONT_SANS_16_BLACK : Jimp.FONT_SANS_14_BLACK);
+      } catch (_) { font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK); }
+      cardImg.print(font,
+        Math.round(ev.card_name_x / 100 * W - Jimp.measureText(font, guest.name) / 2),
+        Math.round(ev.card_name_y / 100 * H - Jimp.measureTextHeight(font, guest.name, W) / 2),
+        guest.name
+      );
+    }
+
     return cardImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
   }
   const qrImg = await Jimp.read(qrBuf);

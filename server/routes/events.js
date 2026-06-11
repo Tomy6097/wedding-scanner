@@ -120,13 +120,20 @@ router.get('/sample-qr', requireAuth, async (req, res) => {
 // POST /api/events/:id/card — upload QR card template
 router.post('/:id/card', requireAdmin, async (req, res) => {
   try {
-    const { card_image, card_qr_x, card_qr_y, card_qr_size } = req.body;
+    const { card_image, card_qr_x, card_qr_y, card_qr_size,
+            card_name_x, card_name_y, card_name_size, card_name_color } = req.body;
     if (!card_image) return res.status(400).json({ error: 'Card image is required' });
     if (!card_image.startsWith('data:image/')) return res.status(400).json({ error: 'Invalid image format' });
     const sizeBytes = Math.ceil((card_image.length * 3) / 4);
     if (sizeBytes > 2 * 1024 * 1024) return res.status(400).json({ error: 'Image too large. Maximum size is 2MB.' });
     const event = await Event.findByIdAndUpdate(req.params.id,
-      { $set: { card_image, card_qr_x, card_qr_y, card_qr_size: card_qr_size || 20 } },
+      { $set: {
+          card_image, card_qr_x, card_qr_y, card_qr_size: card_qr_size || 20,
+          card_name_x:    card_name_x    ?? null,
+          card_name_y:    card_name_y    ?? null,
+          card_name_size: card_name_size || 5,
+          card_name_color: card_name_color || '#000000'
+      }},
       { new: true });
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json({ success: true, message: 'QR card template saved' });
@@ -136,7 +143,10 @@ router.post('/:id/card', requireAdmin, async (req, res) => {
 // DELETE /api/events/:id/card
 router.delete('/:id/card', requireAdmin, async (req, res) => {
   try {
-    await Event.findByIdAndUpdate(req.params.id, { $set: { card_image: null, card_qr_x: null, card_qr_y: null } });
+    await Event.findByIdAndUpdate(req.params.id, {
+      $set: { card_image: null, card_qr_x: null, card_qr_y: null,
+              card_name_x: null, card_name_y: null }
+    });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });

@@ -1745,7 +1745,15 @@ let cardState = {
   imageDataUrl: null,
   qrX: null,
   qrY: null,
-  qrSize: 20
+  qrSize: 20,
+  // Name on QR card
+  nameX: null,
+  nameY: null,
+  nameSize: 5,
+  nameColor: '#000000',
+  nameEnabled: false,
+  // click mode: 'qr' first, then 'name'
+  _clickMode: 'qr'
 };
 
 // Name card state for invite and thanks
@@ -1879,17 +1887,35 @@ function loadCardTabData(ev) {
   // QR card
   if (ev.card_image) {
     cardState.imageDataUrl = ev.card_image;
-    cardState.qrX   = ev.card_qr_x;
-    cardState.qrY   = ev.card_qr_y;
+    cardState.qrX    = ev.card_qr_x;
+    cardState.qrY    = ev.card_qr_y;
     cardState.qrSize = ev.card_qr_size || 20;
+    // Name on QR card
+    cardState.nameX       = ev.card_name_x    ?? null;
+    cardState.nameY       = ev.card_name_y    ?? null;
+    cardState.nameSize    = ev.card_name_size  || 5;
+    cardState.nameColor   = ev.card_name_color || '#000000';
+    cardState.nameEnabled = !!(ev.card_name_x != null);
+
     showCardPreview(ev.card_image);
     if (ev.card_qr_x != null) updateQRMarker(ev.card_qr_x, ev.card_qr_y);
+    if (cardState.nameEnabled) updateCardNameMarker(cardState.nameX, cardState.nameY);
+
     const removeBtn = $('#remove-card-btn');
     if (removeBtn) removeBtn.style.display = 'inline-flex';
     const saveBtn = $('#save-card-btn');
     if (saveBtn) saveBtn.disabled = false;
     const slider = $('#qr-size-slider');
     if (slider) { slider.value = cardState.qrSize; $('#qr-size-label').textContent = cardState.qrSize + '%'; }
+
+    // Restore name controls
+    const nameEnabled = $('#card-name-enabled');
+    if (nameEnabled) nameEnabled.checked = cardState.nameEnabled;
+    const nameSizeSlider = $('#card-name-size');
+    if (nameSizeSlider) { nameSizeSlider.value = cardState.nameSize; $('#card-name-size-label').textContent = cardState.nameSize + '%'; }
+    const nameColorPicker = $('#card-name-color');
+    if (nameColorPicker) nameColorPicker.value = cardState.nameColor;
+
     renderCardSample();
   }
 
@@ -1932,23 +1958,52 @@ function showCardPreview(dataUrl) {
   if (!img) return;
   img.src = dataUrl;
   img.style.display = 'block';
-  if (hint) hint.textContent = 'Click on the card to position the QR code';
 
-  // Wire up click handler
+  // Wire up click handler — 1st click = QR, 2nd click = Name (if enabled)
   const wrap = $('#card-preview-wrap');
   if (wrap) {
     wrap.onclick = (e) => {
       const rect = img.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width)  * 100;
-      const y = ((e.clientY - rect.top)  / rect.height) * 100;
-      cardState.qrX = Math.round(x * 10) / 10;
-      cardState.qrY = Math.round(y * 10) / 10;
-      updateQRMarker(cardState.qrX, cardState.qrY);
+      const x = Math.round(((e.clientX - rect.left) / rect.width)  * 100 * 10) / 10;
+      const y = Math.round(((e.clientY - rect.top)  / rect.height) * 100 * 10) / 10;
+
+      const nameEnabled = $('#card-name-enabled') ? $('#card-name-enabled').checked : false;
+      const modeEl = $('#card-click-mode');
+
+      if (cardState._clickMode === 'qr' || !nameEnabled) {
+        // Set QR position
+        cardState.qrX = x;
+        cardState.qrY = y;
+        updateQRMarker(x, y);
+        if (nameEnabled) {
+          cardState._clickMode = 'name';
+          if (modeEl) { modeEl.style.display = 'block'; modeEl.textContent = 'QR positioned. Now click to set name position.'; }
+        } else {
+          cardState._clickMode = 'qr';
+          if (modeEl) { modeEl.style.display = 'block'; modeEl.textContent = 'QR positioned. Click again to reposition.'; }
+        }
+      } else {
+        // Set Name position
+        cardState.nameX = x;
+        cardState.nameY = y;
+        updateCardNameMarker(x, y);
+        cardState._clickMode = 'qr';
+        if (modeEl) { modeEl.style.display = 'block'; modeEl.textContent = 'Name positioned. Click to reposition QR.'; }
+      }
+
       const saveBtn = $('#save-card-btn');
       if (saveBtn) saveBtn.disabled = false;
       renderCardSample();
     };
   }
+}
+
+function updateCardNameMarker(xPct, yPct) {
+  const marker = $('#card-name-marker');
+  if (!marker) return;
+  marker.style.display = 'block';
+  marker.style.left    = xPct + '%';
+  marker.style.top     = yPct + '%';
 }
 
 function updateQRMarker(xPct, yPct) {
@@ -1971,13 +2026,8 @@ async function renderCardSample() {
   const canvas     = $('#card-sample-canvas');
   if (!canvas) return;
 
-  // Get a sample QR — use a placeholder token
-  const sampleToken = 'SAMPLE-QR-PREVIEW';
   let qrDataUrl;
-  try {
-    // Generate QR on client side using a simple approach
-    qrDataUrl = await generateQRDataUrl(sampleToken);
-  } catch (e) { return; }
+  try { qrDataUrl = await generateQRDataUrl('SAMPLE'); } catch (e) { return; }
 
   const cardImg = new Image();
   cardImg.onload = () => {
@@ -1992,10 +2042,21 @@ async function renderCardSample() {
     const qrImg = new Image();
     qrImg.onload = () => {
       const qrW = (cardState.qrSize / 100) * W;
-      const qrH = qrW;
       const qrX = (cardState.qrX / 100) * W - qrW / 2;
-      const qrY = (cardState.qrY / 100) * H - qrH / 2;
-      ctx.drawImage(qrImg, qrX, qrY, qrW, qrH);
+      const qrY = (cardState.qrY / 100) * H - qrW / 2;
+      ctx.drawImage(qrImg, qrX, qrY, qrW, qrW);
+
+      // Draw name if enabled
+      const nameEnabled = $('#card-name-enabled') ? $('#card-name-enabled').checked : cardState.nameEnabled;
+      if (nameEnabled && cardState.nameX != null) {
+        const fontSize = Math.round((cardState.nameSize / 100) * W);
+        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+        ctx.fillStyle    = cardState.nameColor || '#000000';
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Jina la Mgeni', (cardState.nameX / 100) * W, (cardState.nameY / 100) * H);
+      }
+
       if (sampleWrap) sampleWrap.style.display = 'block';
     };
     qrImg.src = qrDataUrl;
@@ -2034,31 +2095,43 @@ async function saveCardTemplate() {
   if (!cardState.imageDataUrl) { alert('Please upload a card image first'); return; }
   if (cardState.qrX == null)   { alert('Please click on the card to set QR position'); return; }
 
+  const nameEnabled = $('#card-name-enabled') ? $('#card-name-enabled').checked : false;
+  if (nameEnabled && cardState.nameX == null) {
+    alert('Please click on the card to set the name position (after enabling "Show name on card")');
+    return;
+  }
+
   const errEl = $('#card-upload-error');
   const sucEl = $('#card-upload-success');
   hideAlert(errEl); hideAlert(sucEl);
   const saveBtn = $('#save-card-btn');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving...'; }
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
   try {
-    await api('POST', `/events/${gid(state.currentEvent)}/card`, {
+    const body = {
       card_image:   cardState.imageDataUrl,
       card_qr_x:    cardState.qrX,
       card_qr_y:    cardState.qrY,
-      card_qr_size: cardState.qrSize
-    });
+      card_qr_size: cardState.qrSize,
+      // Name fields
+      card_name_x:     nameEnabled ? cardState.nameX    : null,
+      card_name_y:     nameEnabled ? cardState.nameY    : null,
+      card_name_size:  cardState.nameSize,
+      card_name_color: cardState.nameColor
+    };
+    await api('POST', `/events/${gid(state.currentEvent)}/card`, body);
+
     // Update local state
-    state.currentEvent.card_image  = cardState.imageDataUrl;
-    state.currentEvent.card_qr_x   = cardState.qrX;
-    state.currentEvent.card_qr_y   = cardState.qrY;
-    state.currentEvent.card_qr_size = cardState.qrSize;
-    showAlert(sucEl, '✅ Card template saved! QR codes will now use this card.', 'success');
+    Object.assign(state.currentEvent, body);
+    cardState.nameEnabled = nameEnabled;
+
+    showAlert(sucEl, 'Card template saved!', 'success');
     const removeBtn = $('#remove-card-btn');
     if (removeBtn) removeBtn.style.display = 'inline-flex';
   } catch (e) {
     showAlert(errEl, e.message);
   } finally {
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save Template'; }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Template'; }
   }
 }
 
@@ -2101,13 +2174,23 @@ function generateGuestCard(guest, qrDataUrl, cardTemplate) {
       const qrImg = new Image();
       qrImg.onload = () => {
         const qrW = (cardTemplate.qr_size / 100) * W;
-        const qrH = qrW;
         const qrX = (cardTemplate.qr_x / 100) * W - qrW / 2;
-        const qrY = (cardTemplate.qr_y / 100) * H - qrH / 2;
-        ctx.drawImage(qrImg, qrX, qrY, qrW, qrH);
+        const qrY = (cardTemplate.qr_y / 100) * H - qrW / 2;
+        ctx.drawImage(qrImg, qrX, qrY, qrW, qrW);
+
+        // Draw guest name if position is set
+        if (cardTemplate.name_x != null && cardTemplate.name_y != null) {
+          const fontSize = Math.round(((cardTemplate.name_size || 5) / 100) * W);
+          ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+          ctx.fillStyle    = cardTemplate.name_color || '#000000';
+          ctx.textAlign    = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(guest.name, (cardTemplate.name_x / 100) * W, (cardTemplate.name_y / 100) * H);
+        }
+
         resolve(canvas.toDataURL('image/png'));
       };
-      qrImg.onerror = () => resolve(qrDataUrl); // fallback to plain QR
+      qrImg.onerror = () => resolve(qrDataUrl);
       qrImg.src = qrDataUrl;
     };
     cardImg.onerror = () => resolve(qrDataUrl);
@@ -2715,6 +2798,45 @@ function initAdmin() {
         updateQRMarker(cardState.qrX, cardState.qrY);
         renderCardSample();
       }
+    });
+  }
+
+  // Name on card controls
+  const cardNameEnabled = $('#card-name-enabled');
+  const cardNameSize    = $('#card-name-size');
+  const cardNameColor   = $('#card-name-color');
+
+  if (cardNameEnabled) {
+    cardNameEnabled.addEventListener('change', (e) => {
+      cardState.nameEnabled = e.target.checked;
+      cardState._clickMode = 'qr'; // reset click mode
+      const modeEl = $('#card-click-mode');
+      if (modeEl) {
+        if (e.target.checked && cardState.qrX != null) {
+          modeEl.style.display = 'block';
+          modeEl.textContent = 'QR set. Now click to position the guest name.';
+          cardState._clickMode = 'name';
+        } else {
+          modeEl.style.display = 'none';
+        }
+      }
+      renderCardSample();
+    });
+  }
+
+  if (cardNameSize) {
+    cardNameSize.addEventListener('input', (e) => {
+      cardState.nameSize = parseInt(e.target.value);
+      const lbl = $('#card-name-size-label');
+      if (lbl) lbl.textContent = cardState.nameSize + '%';
+      renderCardSample();
+    });
+  }
+
+  if (cardNameColor) {
+    cardNameColor.addEventListener('input', (e) => {
+      cardState.nameColor = e.target.value;
+      renderCardSample();
     });
   }
 
