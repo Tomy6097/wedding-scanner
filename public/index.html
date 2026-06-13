@@ -365,15 +365,14 @@
           <!-- Invitation Card Send -->
           <div class="card" id="invite-send-section">
             <h3>Send Invitation Cards</h3>
-            <p class="hint-text">Send personalized invitation cards. Set up the template in Card Template tab first.</p>
+            <p class="hint-text">Send personalized invitation cards with guest name. Set up the template in Card Template tab first.</p>
             <div id="invite-template-status" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.6rem;font-size:0.8rem;color:var(--gray-500);margin-bottom:0.75rem">
               No invitation template set. Go to Card Template tab to upload one.
             </div>
             <div id="invite-wa-result" class="alert hidden"></div>
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-              <button class="btn btn-secondary btn-full" id="send-invite-wa-btn">Send via WhatsApp</button>
-              <button class="btn btn-outline btn-full" id="send-invite-sms-btn">Send via SMS</button>
-            </div>
+            <button class="btn btn-secondary btn-full" id="send-invite-wa-btn">
+              <i data-lucide="message-circle" style="width:14px;height:14px"></i> Send via WhatsApp
+            </button>
           </div>
 
           <!-- Thank You Card Send -->
@@ -384,10 +383,9 @@
               No thank you template set. Go to Card Template tab to upload one.
             </div>
             <div id="thanks-wa-result" class="alert hidden"></div>
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-              <button class="btn btn-secondary btn-full" id="send-thanks-wa-btn">Send via WhatsApp</button>
-              <button class="btn btn-outline btn-full" id="send-thanks-sms-btn">Send via SMS</button>
-            </div>
+            <button class="btn btn-secondary btn-full" id="send-thanks-wa-btn">
+              <i data-lucide="message-circle" style="width:14px;height:14px"></i> Send via WhatsApp
+            </button>
           </div>
 
         </div>

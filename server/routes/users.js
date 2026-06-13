@@ -28,18 +28,21 @@ router.post('/', requireAdmin, async (req, res) => {
   if (!password || password.length < 6)
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
-  // Only allow creating scanner accounts (not admin)
   try {
-    const exists = await User.findOne({ username: username.trim().toLowerCase() });
-    if (exists) return res.status(400).json({ error: 'Username already exists' });
+    const cleanUsername = username.trim().toLowerCase();
+    const exists = await User.findOne({ username: cleanUsername });
+    if (exists) return res.status(400).json({ error: `Username "${cleanUsername}" already exists` });
 
     const user = await User.create({
-      username: username.trim().toLowerCase(),
+      username: cleanUsername,
       password: bcrypt.hashSync(password, 10),
       role: 'scanner'
     });
     res.status(201).json({ id: user._id, username: user.username, role: user.role });
-  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+  } catch (err) {
+    console.error('Create user error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // DELETE /api/users/:id — delete a scanner account
