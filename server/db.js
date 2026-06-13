@@ -7,10 +7,32 @@ async function connectDB() {
   try {
     await mongoose.connect(MONGO_URI);
     console.log('MongoDB connected');
+    // Drop stale indexes that may cause duplicate key errors
+    await dropStaleIndexes();
     await seedDefaults();
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
     process.exit(1);
+  }
+}
+
+// ── Drop any leftover indexes not in current schema ───────────
+async function dropStaleIndexes() {
+  try {
+    const userCollection = mongoose.connection.collection('users');
+    const indexes = await userCollection.indexes();
+    for (const idx of indexes) {
+      const fields = Object.keys(idx.key);
+      // Drop any index on fields not in our schema (e.g. externalId)
+      const validFields = ['_id', 'username'];
+      const hasStaleField = fields.some(f => !validFields.includes(f));
+      if (hasStaleField && idx.name !== '_id_') {
+        console.log(`Dropping stale index: ${idx.name}`);
+        await userCollection.dropIndex(idx.name);
+      }
+    }
+  } catch (e) {
+    console.warn('dropStaleIndexes warning:', e.message);
   }
 }
 
