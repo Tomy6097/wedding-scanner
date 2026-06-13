@@ -1324,9 +1324,9 @@ function setScanResult(type, icon, message, name, time) {
   popup.classList.remove('hidden');
   popup.style.display = 'flex';
 
-  // Auto-close after 4 seconds if user doesn't press OK
+  // Auto-close after 10 seconds if user doesn't press OK
   clearTimeout(popup._autoClose);
-  popup._autoClose = setTimeout(() => closeScanPopup(), 4000);
+  popup._autoClose = setTimeout(() => closeScanPopup(), 10000);
 }
 
 function closeScanPopup() {
