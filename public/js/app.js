@@ -1179,24 +1179,41 @@ async function onScanSuccess(token) {
 function handleScanResult(result) {
   hideScanPerson2Button();
   if (result.result === 'double_first') {
-    const name  = result.guest ? result.guest.name : '';
-    const table = result.guest && result.guest.table_number ? ' · ' + result.guest.table_number : '';
-    setScanResult('double', '<i data-lucide="check-circle"></i>', 'Double Ticket — Person 1 of 2 Entered', name + table, result.guest ? result.guest.checked_in_at : '');
+    const g     = result.guest || {};
+    const name  = g.name || '';
+    const table = g.table_number ? `Meza: ${g.table_number}` : '';
+    setScanResult('double',
+      '<i data-lucide="check-circle"></i>',
+      'Double Ticket — Mtu 1 kati ya 2 ameingia',
+      name,
+      g.checked_in_at || ''
+    );
+    // Add table to popup details
+    const dets = $('#scan-popup-details');
+    if (dets) dets.innerHTML = `<strong>Double Ticket</strong><br>${table ? table + '<br>' : ''}Scan tena QR hiyo kwa Mtu wa 2`;
     playSound('success');
     fetchScannerStats();
     showScanPerson2Button(result.guest);
   } else if (result.result === 'granted') {
-    const name  = result.guest ? result.guest.name : '';
-    const table = result.guest && result.guest.table_number ? '  ' + result.guest.table_number : '';
-    const msg   = result.guest && result.guest.ticket_type === 'D' ? 'Double Ticket — Both Entered' : 'Access Granted';
-    setScanResult('granted', '<i data-lucide="check-circle"></i>', msg, name + table, result.guest ? result.guest.checked_in_at : '');
+    const g     = result.guest || {};
+    const name  = g.name || '';
+    const table = g.table_number ? `Meza: ${g.table_number}` : '';
+    const type  = g.ticket_type === 'D' ? 'Double Ticket — Wote wawili wameingia' : 'Ruhusiwa Kuingia';
+    setScanResult('granted', '<i data-lucide="check-circle"></i>', type, name, g.checked_in_at || '');
+    const dets = $('#scan-popup-details');
+    if (dets) dets.innerHTML = `${table ? table + '<br>' : ''}${g.ticket_type === 'D' ? '<strong>Double Ticket</strong>' : 'Single Ticket'}`;
     playSound('success');
     fetchScannerStats();
   } else if (result.result === 'used') {
-    setScanResult('used', '<i data-lucide="x-circle"></i>', result.message || 'Already Checked In', result.guest ? result.guest.name : '', result.guest ? result.guest.checked_in_at : '');
+    const g = result.guest || {};
+    setScanResult('used', '<i data-lucide="x-circle"></i>', result.message || 'Tayari Ameingia', g.name || '', g.checked_in_at || '');
+    const dets = $('#scan-popup-details');
+    if (dets) dets.innerHTML = g.checked_in_at ? `Aliingia: ${formatDateTime(g.checked_in_at)}` : '';
     playSound('error');
   } else {
-    setScanResult('invalid', '<i data-lucide="help-circle"></i>', 'Invalid QR Code', 'This QR code is not recognized');
+    setScanResult('invalid', '<i data-lucide="help-circle"></i>', 'QR Code Haitambuliwi', 'Hakuna mgeni aliyepatikana');
+    const dets = $('#scan-popup-details');
+    if (dets) dets.textContent = 'QR code hii haipo kwenye mfumo';
     playSound('error');
   }
 }
@@ -1253,26 +1270,79 @@ function hideScanPerson2Button() {
 function setScanResult(type, icon, message, name, time) {
   name = name || '';
   time = time || '';
+
+  // Also update the small inline result bar (stays idle)
   const el     = $('#scan-result');
   const iconEl = $('#scan-icon');
   const msgEl  = $('#scan-message');
   const nameEl = $('#scan-name');
   const timeEl = $('#scan-time');
-  if (!el) return;
-  el.className       = `scan-result scan-${type}`;
-  iconEl.innerHTML = icon;
+  if (el) {
+    el.className       = `scan-result scan-${type}`;
+    if (iconEl) { iconEl.innerHTML = icon; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+    if (msgEl)  msgEl.textContent  = message;
+    if (nameEl) nameEl.textContent = name;
+    if (timeEl) timeEl.textContent = time ? `at ${formatDateTime(time)}` : '';
+  }
+
+  // Show popup for non-idle states
+  if (type === 'idle') return;
+
+  const popup     = $('#scan-popup');
+  const popupIcon = $('#scan-popup-icon');
+  const popupStat = $('#scan-popup-status');
+  const popupName = $('#scan-popup-name');
+  const popupDets = $('#scan-popup-details');
+  const popupOK   = $('#scan-popup-ok');
+  if (!popup) return;
+
+  // Style by type
+  const styles = {
+    granted: { bg: '#dcfce7', color: '#166534', btnBg: '#16a34a' },
+    double:  { bg: '#dbeafe', color: '#1d4ed8', btnBg: '#2563eb' },
+    used:    { bg: '#fee2e2', color: '#991b1b', btnBg: '#dc2626' },
+    invalid: { bg: '#fef3c7', color: '#92400e', btnBg: '#d97706' }
+  };
+  const s = styles[type] || { bg: '#f3f4f6', color: '#374151', btnBg: '#7c3aed' };
+
+  popupIcon.style.background = s.bg;
+  popupIcon.style.color      = s.color;
+  popupIcon.innerHTML        = icon;
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  msgEl.textContent  = message;
-  nameEl.textContent = name;
-  timeEl.textContent = time ? `at ${formatDateTime(time)}` : '';
-  setTimeout(() => {
-    el.className       = 'scan-result scan-idle';
-    iconEl.innerHTML = '<i data-lucide="scan-line"></i>';
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-    msgEl.textContent  = 'Ready to Scan';
-    nameEl.textContent = '';
-    timeEl.textContent = '';
-  }, 3000);
+
+  popupStat.style.color = s.color;
+  popupStat.textContent = message;
+  popupName.textContent = name;
+  popupOK.style.background = s.btnBg;
+
+  if (time) {
+    popupDets.textContent = `Wakati: ${formatDateTime(time)}`;
+  } else {
+    popupDets.textContent = '';
+  }
+
+  popup.classList.remove('hidden');
+  popup.style.display = 'flex';
+
+  // Auto-close after 4 seconds if user doesn't press OK
+  clearTimeout(popup._autoClose);
+  popup._autoClose = setTimeout(() => closeScanPopup(), 4000);
+}
+
+function closeScanPopup() {
+  const popup = $('#scan-popup');
+  if (!popup) return;
+  clearTimeout(popup._autoClose);
+  popup.classList.add('hidden');
+  popup.style.display = 'none';
+  // Reset inline bar to idle
+  const el = $('#scan-result');
+  if (el) el.className = 'scan-result scan-idle';
+  const iconEl = $('#scan-icon');
+  if (iconEl) { iconEl.innerHTML = '<i data-lucide="scan-line"></i>'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+  const msgEl = $('#scan-message'); if (msgEl) msgEl.textContent = 'Ready to Scan';
+  const nameEl = $('#scan-name');   if (nameEl) nameEl.textContent = '';
+  const timeEl = $('#scan-time');   if (timeEl) timeEl.textContent = '';
 }
 
 // ── Manual Search ────────────────────────────────────────────

@@ -733,6 +733,22 @@
   </div>
 </div>
 
+<!-- ===== SCAN RESULT POPUP ===== -->
+<div id="scan-popup" style="display:none;position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)" class="hidden">
+  <div id="scan-popup-card" style="background:#fff;border-radius:20px;padding:2rem 1.5rem;width:100%;max-width:340px;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,0.4)">
+    <!-- Icon -->
+    <div id="scan-popup-icon" style="width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:2rem"></div>
+    <!-- Status -->
+    <div id="scan-popup-status" style="font-size:1.1rem;font-weight:800;margin-bottom:0.25rem"></div>
+    <!-- Guest Name -->
+    <div id="scan-popup-name" style="font-size:1.5rem;font-weight:800;color:#1a1a2e;margin-bottom:0.5rem"></div>
+    <!-- Details -->
+    <div id="scan-popup-details" style="font-size:0.85rem;color:#6b7280;margin-bottom:1.25rem;line-height:1.6"></div>
+    <!-- OK Button -->
+    <button id="scan-popup-ok" onclick="closeScanPopup()" style="width:100%;padding:0.85rem;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;color:#fff;background:#7c3aed;letter-spacing:0.02em">OK</button>
+  </div>
+</div>
+
 <!-- ===== SCANNER PAGE ===== -->
 <div id="page-scanner" class="page hidden" style="display:block;min-height:100vh;background:var(--gray-50)">
   <div class="scanner-topbar">
