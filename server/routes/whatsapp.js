@@ -61,7 +61,8 @@ async function uploadToImgBB(imageBuffer) {
 // ── Fonnte POST ───────────────────────────────────────────────
 function fonntePost(fields, token) {
   return new Promise((resolve, reject) => {
-    const payload = new URLSearchParams(fields).toString();
+    // preview:false = show links as clickable text, not parsed previews
+    const payload = new URLSearchParams({ preview: 'false', ...fields }).toString();
     const buf     = Buffer.from(payload, 'utf8');
     const opts    = {
       hostname: 'api.fonnte.com', port: 443, path: '/send', method: 'POST',
@@ -142,19 +143,11 @@ async function generateNameCard(guest, ev, type) {
 }
 
 // ── Send message with image via ImgBB + Fonnte ───────────────
-// Strategy: upload to ImgBB → combine image URL + text in ONE message
-// WhatsApp shows link preview for the image URL automatically
+// ── Send text message with guest link via Fonnte ─────────────
 async function sendWithImage(phone, message, guestLink, imgBuf, token) {
-  try {
-    const imgUrl = await uploadToImgBB(imgBuf);
-    // Put image URL at TOP of message — WhatsApp renders it as image preview
-    const fullMsg = `${imgUrl}\n\n${message}`;
-    await fonntePost({ target: phone, message: fullMsg, delay: '2', countryCode: '255' }, token);
-  } catch (e) {
-    console.error('[sendWithImage fallback]', e.message);
-    // Fallback: text + guest link only
-    await fonntePost({ target: phone, message, delay: '2', countryCode: '255' }, token);
-  }
+  // On free plan — just send the text message with the guest link
+  // The guest link opens the card page directly
+  await fonntePost({ target: phone, message, delay: '2', countryCode: '255' }, token);
 }
 
 // ── POST /api/whatsapp/test ───────────────────────────────────
