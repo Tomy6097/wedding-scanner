@@ -61,8 +61,7 @@ async function uploadToImgBB(imageBuffer) {
 // ── Fonnte POST ───────────────────────────────────────────────
 function fonntePost(fields, token) {
   return new Promise((resolve, reject) => {
-    // preview:false = show links as clickable text, not parsed previews
-    const payload = new URLSearchParams({ preview: 'false', ...fields }).toString();
+    const payload = new URLSearchParams(fields).toString();
     const buf     = Buffer.from(payload, 'utf8');
     const opts    = {
       hostname: 'api.fonnte.com', port: 443, path: '/send', method: 'POST',
@@ -205,25 +204,20 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         const code   = g.unique_id.substring(0, 8).toUpperCase();
 
         if (type === 'qr') {
-          const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nFungua tiketi yako ya QR:\n${link}\n\nNambari ya kuingia: *${code}*\n\nOnyesha QR code hii mlangoni.\nAsante!`;
-          const imgBuf = await generateQRCard(g, ev, appUrl);
-          await sendWithImage(phone, msg, link, imgBuf, token);
+          const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: ${code}\n\nOnyesha QR code hii mlangoni.\nAsante!`;
+          await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
           g.sms_sent = true; g.sms_sent_at = new Date();
           await g.save();
           sent++;
 
         } else if (type === 'invite') {
-          const msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nAngalia mwaliko wako:\n${link}`;
-          const imgBuf = await generateNameCard(g, ev, 'invite');
-          if (imgBuf) await sendWithImage(phone, msg, link, imgBuf, token);
-          else await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
+          const msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nMwaliko wako:\n${link}`;
+          await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
           sent++;
 
         } else if (type === 'thanks') {
           const msg = `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nAngalia kadi yako:\n${link}`;
-          const imgBuf = await generateNameCard(g, ev, 'thanks');
-          if (imgBuf) await sendWithImage(phone, msg, link, imgBuf, token);
-          else await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
+          await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
           sent++;
 
         } else if (custom_message) {
