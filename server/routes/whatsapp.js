@@ -142,20 +142,17 @@ async function generateNameCard(guest, ev, type) {
 }
 
 // ── Send message with image via ImgBB + Fonnte ───────────────
-// Strategy: upload to ImgBB → send TWO messages:
-//   1. The card image URL (so WhatsApp shows image preview)
-//   2. The text message with link
+// Strategy: upload to ImgBB → combine image URL + text in ONE message
+// WhatsApp shows link preview for the image URL automatically
 async function sendWithImage(phone, message, guestLink, imgBuf, token) {
   try {
     const imgUrl = await uploadToImgBB(imgBuf);
-    // Send image first — just the URL, WhatsApp will show preview
-    await fonntePost({ target: phone, message: imgUrl, delay: '1', countryCode: '255' }, token);
-    await new Promise(r => setTimeout(r, 1000));
-    // Then send the text
-    await fonntePost({ target: phone, message, delay: '1', countryCode: '255' }, token);
+    // Put image URL at TOP of message — WhatsApp renders it as image preview
+    const fullMsg = `${imgUrl}\n\n${message}`;
+    await fonntePost({ target: phone, message: fullMsg, delay: '2', countryCode: '255' }, token);
   } catch (e) {
     console.error('[sendWithImage fallback]', e.message);
-    // Fallback: text only
+    // Fallback: text + guest link only
     await fonntePost({ target: phone, message, delay: '2', countryCode: '255' }, token);
   }
 }
