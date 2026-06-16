@@ -449,10 +449,19 @@ function renderGuestsTable(guests) {
 
     const waBtn = document.createElement('button');
     waBtn.className = 'btn btn-outline btn-sm';
-    waBtn.title = 'Share via WhatsApp';
+    waBtn.title = 'Share via WhatsApp (manual)';
     waBtn.innerHTML = '<i data-lucide="message-circle" style="width:13px;height:13px"></i>';
     waBtn.addEventListener('click', () => shareGuestWhatsApp(g.qr_token, g.name, g.phone || ''));
     actionsDiv.appendChild(waBtn);
+
+    // Send card via Fonnte button
+    const sendCardBtn = document.createElement('button');
+    sendCardBtn.className = 'btn btn-sm';
+    sendCardBtn.style.cssText = 'background:#25D366;color:#fff;border:none';
+    sendCardBtn.title = 'Tuma Card via WhatsApp (Fonnte)';
+    sendCardBtn.innerHTML = '<i data-lucide="send" style="width:13px;height:13px"></i>';
+    sendCardBtn.addEventListener('click', () => sendSingleWhatsApp(gid(g), g.name, sendCardBtn));
+    actionsDiv.appendChild(sendCardBtn);
 
     const smsBtn = document.createElement('button');
     smsBtn.className = 'btn btn-outline btn-sm';
@@ -589,6 +598,45 @@ async function sendSingleSMS(id, name) {
     fetchGuests(search);
   } catch (e) {
     alert(`Failed to send SMS to ${name}: ${e.message}`);
+  }
+}
+
+// ── Send single guest WhatsApp (Fonnte) ───────────────────────
+async function sendSingleWhatsApp(id, name, btn) {
+  if (!state.currentEvent) return;
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="width:13px;height:13px"></i>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+  try {
+    await api('POST', '/whatsapp/send-one', {
+      guest_id: id,
+      event_id: gid(state.currentEvent)
+    });
+    if (btn) {
+      btn.style.background = '#166534';
+      btn.innerHTML = '<i data-lucide="check" style="width:13px;height:13px"></i>';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+    setTimeout(() => {
+      if (btn) {
+        btn.disabled = false;
+        btn.style.background = '#25D366';
+        btn.innerHTML = '<i data-lucide="send" style="width:13px;height:13px"></i>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }, 3000);
+    const search = $('#guest-search') ? $('#guest-search').value : '';
+    fetchGuests(search);
+  } catch (e) {
+    alert(`Imeshindwa kutuma kwa ${name}: ${e.message}`);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
   }
 }
 

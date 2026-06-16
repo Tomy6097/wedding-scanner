@@ -177,6 +177,39 @@ router.post('/test-image', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── POST /api/whatsapp/send-one — send to a single guest ─────
+router.post('/send-one', requireAdmin, async (req, res) => {
+  const { guest_id, event_id } = req.body;
+  if (!guest_id) return res.status(400).json({ error: 'guest_id required' });
+  try {
+    const g      = await Guest.findById(guest_id);
+    if (!g)      return res.status(404).json({ error: 'Guest not found' });
+    if (!g.phone || !g.phone.trim()) return res.status(400).json({ error: `${g.name} hana nambari ya simu` });
+
+    const ev     = await Event.findById(event_id || g.event_id);
+    if (!ev)     return res.status(404).json({ error: 'Event not found' });
+
+    const token  = await getToken();
+    const appUrl = await getAppUrl();
+    const phone  = cleanPhone(g.phone);
+    const link   = `${appUrl}/guest/${g.qr_token}`;
+    const code   = g.unique_id.substring(0, 8).toUpperCase();
+
+    const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: ${code}\n\nOnyesha QR code hii mlangoni.\nAsante!`;
+
+    await fonntePost({ target: phone, message: msg, delay: '1', countryCode: '255' }, token);
+
+    g.sms_sent    = true;
+    g.sms_sent_at = new Date();
+    await g.save();
+
+    res.json({ success: true, message: `Imetumwa kwa ${g.name}` });
+  } catch (err) {
+    console.error('[send-one]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── POST /api/whatsapp/send-invites ──────────────────────────
 router.post('/send-invites', requireAdmin, async (req, res) => {
   const { event_id, type, only_unsent, custom_message } = req.body;
