@@ -354,7 +354,7 @@ router.post('/sms/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone number required' });
   try {
-    await sendBeemSMS(phone, 'Test message from your Event Check-in System. SMS is working correctly!');
+    await sendBeemSMS(phone, 'Ujumbe wa majaribio kutoka mfumo wa usajili wa wageni. SMS inafanya kazi vizuri!');
     res.json({ success: true, message: 'Test SMS sent successfully!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -372,7 +372,7 @@ router.post('/:id/sms', requireAdmin, async (req, res) => {
     const lookupCode = guest.unique_id.substring(0, 8).toUpperCase();
     const baseUrl    = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
     const link       = `${baseUrl}/guest/${guest.qr_token}`;
-    const message    = `Dear ${guest.name}, you are invited to ${eventName}. Your QR invitation: ${link} Code: ${lookupCode}`;
+    const message    = `Habari ${guest.name},\n\nUnaalikwa rasmi kwenye tukio la "${eventName}".\n\nTiketi yako ya QR: ${link}\n\nNambari yako ya kuingia: ${lookupCode}\n\nOnyesha nambari hii au QR code mlangoni. Karibu sana!`;
 
     await sendBeemSMS(guest.phone, message);
     guest.sms_sent    = true;
@@ -405,13 +405,12 @@ router.post('/sms/bulk', requireAdmin, async (req, res) => {
       try {
         const lookupCode = guest.unique_id.substring(0, 8).toUpperCase();
         const link       = `${baseUrl}/guest/${guest.qr_token}`;
-        const message    = `Dear ${guest.name}, you are invited to ${eventName}. Your QR invitation: ${link} Code: ${lookupCode}`;
+        const message    = `Habari ${guest.name},\n\nUnaalikwa rasmi kwenye tukio la "${eventName}".\n\nTiketi yako ya QR: ${link}\n\nNambari yako ya kuingia: ${lookupCode}\n\nOnyesha nambari hii au QR code mlangoni. Karibu sana!`;
         await sendBeemSMS(guest.phone, message);
         guest.sms_sent    = true;
         guest.sms_sent_at = new Date();
         await guest.save();
         sent++;
-        // Small delay to avoid rate limiting
         await new Promise(r => setTimeout(r, 200));
       } catch (e) {
         failed++;
