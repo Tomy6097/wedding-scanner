@@ -1,23 +1,19 @@
 const express  = require('express');
 const https    = require('https');
+const http     = require('http');
 const QRCode   = require('qrcode');
 const Jimp     = require('jimp');
 const { Guest, Event, Settings } = require('../db');
 const router   = express.Router();
 
-const IMGBB_KEY = '33c31308c29e8917b836888ce76957f4';
+// ── EventFlow API config ──────────────────────────────────────
+const EVENTFLOW_API_KEY = 'ef_live_7f8bc928ba96948517759592f33a8ddd69fe6df9bd71b3b2';
+const EVENTFLOW_BASE    = '3bfe-102-205-251-44.ngrok-free.app';
 
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== 'admin')
     return res.status(403).json({ error: 'Admin access required' });
   next();
-}
-
-async function getToken() {
-  const s = await Settings.findOne({ key: 'fonnte_token' });
-  const t = s?.value?.trim();
-  if (!t) throw new Error('Fonnte token not configured in Settings');
-  return t;
 }
 
 async function getAppUrl() {
@@ -26,127 +22,90 @@ async function getAppUrl() {
 }
 
 function cleanPhone(raw) {
-  const p = (raw || '').replace(/\D/g, '');
-  if (p.length < 9) throw new Error(`Invalid phone: ${raw}`);
+  let p = (raw || '').replace(/\D/g, '');
+  if (!p) throw new Error(`Invalid phone: ${raw}`);
+  // Ensure international format with +
+  if (!p.startsWith('+')) p = '+' + p;
   return p;
 }
 
-// ── Upload image to ImgBB → public URL ───────────────────────
-async function uploadToImgBB(imageBuffer) {
-  const base64  = imageBuffer.toString('base64');
-  const payload = new URLSearchParams({ key: IMGBB_KEY, image: base64, expiration: '86400' }).toString();
-  const buf     = Buffer.from(payload, 'utf8');
+// ── Send via EventFlow template API ──────────────────────────
+function eventFlowSend(payload) {
   return new Promise((resolve, reject) => {
-    const opts = {
-      hostname: 'api.imgbb.com', port: 443, path: '/1/upload', method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': buf.length }
-    };
-    const req = https.request(opts, (res) => {
-      let data = '';
-      res.on('data', c => { data += c; });
-      res.on('end', () => {
-        try {
-          const j = JSON.parse(data);
-          if (j.success && j.data?.url) { console.log('[ImgBB]', j.data.url); resolve(j.data.url); }
-          else reject(new Error('ImgBB: ' + JSON.stringify(j)));
-        } catch (e) { reject(new Error('ImgBB parse: ' + data)); }
-      });
-    });
-    req.on('error', e => reject(new Error('ImgBB network: ' + e.message)));
-    req.write(buf);
-    req.end();
-  });
-}
+    const body = JSON.stringify(payload);
+    const isHttps = EVENTFLOW_BASE.startsWith('https://') || !EVENTFLOW_BASE.startsWith('http://');
+    const hostname = EVENTFLOW_BASE.replace(/^https?:\/\//, '');
 
-// ── Fonnte POST ───────────────────────────────────────────────
-function fonntePost(fields, token) {
-  return new Promise((resolve, reject) => {
-    const payload = new URLSearchParams(fields).toString();
-    const buf     = Buffer.from(payload, 'utf8');
-    const opts    = {
-      hostname: 'api.fonnte.com', port: 443, path: '/send', method: 'POST',
-      headers: { 'Authorization': token, 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': buf.length }
+    const options = {
+      hostname,
+      port: 443,
+      path: '/api/v1/external/whatsapp/send/template',
+      method: 'POST',
+      headers: {
+        'X-API-Key':      EVENTFLOW_API_KEY,
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        'ngrok-skip-browser-warning': 'true'
+      }
     };
-    const req = https.request(opts, (res) => {
+
+    const req = https.request(options, (res) => {
       let data = '';
       res.on('data', c => { data += c; });
       res.on('end', () => {
-        console.log('[Fonnte]', data);
+        console.log('[EventFlow]', res.statusCode, data);
         try {
           const j = JSON.parse(data);
-          if (j.status === true) resolve(j);
-          else reject(new Error(j.reason || j.message || JSON.stringify(j)));
-        } catch (e) { reject(new Error('Fonnte parse: ' + data)); }
+          if (j.success || res.statusCode === 202 || res.statusCode === 200) resolve(j);
+          else reject(new Error(j.error || j.message || JSON.stringify(j)));
+        } catch (e) { reject(new Error('EventFlow parse error: ' + data)); }
       });
     });
     req.on('error', e => reject(new Error('Network: ' + e.message)));
-    req.write(buf);
+    req.write(body);
     req.end();
   });
 }
 
+// ── Send via EventFlow text API (for custom messages) ─────────
+function eventFlowSendText(phone, message) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ to: phone, message });
+    const hostname = EVENTFLOW_BASE.replace(/^https?:\/\//, '');
+    const options = {
+      hostname,
+      port: 443,
+      path: '/api/v1/external/whatsapp/send/text',
+      method: 'POST',
+      headers: {
+        'X-API-Key':      EVENTFLOW_API_KEY,
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        'ngrok-skip-browser-warning': 'true'
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => {
+        console.log('[EventFlow text]', res.statusCode, data);
+        try {
+          const j = JSON.parse(data);
+          if (j.success || res.statusCode === 202 || res.statusCode === 200) resolve(j);
+          else reject(new Error(j.error || j.message || JSON.stringify(j)));
+        } catch (e) { reject(new Error('EventFlow parse error: ' + data)); }
+      });
+    });
+    req.on('error', e => reject(new Error('Network: ' + e.message)));
+    req.write(body);
+    req.end();
+  });
+}
+
+// ── Public text-only helper (kept for Beem fallback) ──────────
 async function sendFonnte(phone, message) {
-  const token = await getToken();
-  const p = cleanPhone(phone);
-  return fonntePost({ target: p, message, delay: '2', countryCode: '255' }, token);
-}
-
-// ── Generate QR card image ────────────────────────────────────
-async function generateQRCard(guest, ev, appUrl) {
-  const link  = `${appUrl}/guest/${guest.qr_token}`;
-  const qrBuf = await QRCode.toBuffer(link, { width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' } });
-  if (ev.card_image && ev.card_qr_x != null) {
-    const cardImg = await Jimp.read(Buffer.from(ev.card_image.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
-    const qrImg   = await Jimp.read(qrBuf);
-    const W = cardImg.bitmap.width, H = cardImg.bitmap.height;
-    const sz = Math.round((ev.card_qr_size || 20) / 100 * W);
-    qrImg.resize(sz, sz);
-    cardImg.composite(qrImg, Math.round(ev.card_qr_x / 100 * W - sz / 2), Math.round(ev.card_qr_y / 100 * H - sz / 2));
-
-    // Print guest name on card if position is set
-    if (ev.card_name_x != null && ev.card_name_y != null) {
-      const fontSize = Math.round(((ev.card_name_size || 5) / 100) * W);
-      let font;
-      try {
-        font = await Jimp.loadFont(fontSize >= 64 ? Jimp.FONT_SANS_64_BLACK : fontSize >= 32 ? Jimp.FONT_SANS_32_BLACK : fontSize >= 16 ? Jimp.FONT_SANS_16_BLACK : Jimp.FONT_SANS_14_BLACK);
-      } catch (_) { font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK); }
-      cardImg.print(font,
-        Math.round(ev.card_name_x / 100 * W - Jimp.measureText(font, guest.name) / 2),
-        Math.round(ev.card_name_y / 100 * H - Jimp.measureTextHeight(font, guest.name, W) / 2),
-        guest.name
-      );
-    }
-
-    return cardImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
-  }
-  const qrImg = await Jimp.read(qrBuf);
-  return qrImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
-}
-
-// ── Generate name card ────────────────────────────────────────
-async function generateNameCard(guest, ev, type) {
-  const src = type === 'invite' ? ev.invite_image : ev.thanks_image;
-  if (!src) return null;
-  const cardImg = await Jimp.read(Buffer.from(src.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
-  const W = cardImg.bitmap.width, H = cardImg.bitmap.height;
-  const nameX = (type === 'invite' ? ev.invite_name_x : ev.thanks_name_x) ?? 50;
-  const nameY = (type === 'invite' ? ev.invite_name_y : ev.thanks_name_y) ?? 50;
-  const nameSize = (type === 'invite' ? ev.invite_name_size : ev.thanks_name_size) ?? 5;
-  const fontSize = Math.round((nameSize / 100) * W);
-  let font;
-  try {
-    font = await Jimp.loadFont(fontSize >= 64 ? Jimp.FONT_SANS_64_BLACK : fontSize >= 32 ? Jimp.FONT_SANS_32_BLACK : fontSize >= 16 ? Jimp.FONT_SANS_16_BLACK : Jimp.FONT_SANS_14_BLACK);
-  } catch (_) { font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK); }
-  cardImg.print(font, Math.round(nameX / 100 * W - Jimp.measureText(font, guest.name) / 2), Math.round(nameY / 100 * H - Jimp.measureTextHeight(font, guest.name, W) / 2), guest.name);
-  return cardImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
-}
-
-// ── Send message with image via ImgBB + Fonnte ───────────────
-// ── Send text message with guest link via Fonnte ─────────────
-async function sendWithImage(phone, message, guestLink, imgBuf, token) {
-  // On free plan — just send the text message with the guest link
-  // The guest link opens the card page directly
-  await fonntePost({ target: phone, message, delay: '2', countryCode: '255' }, token);
+  // Fallback — now using EventFlow text endpoint
+  return eventFlowSendText(phone, message);
 }
 
 // ── POST /api/whatsapp/test ───────────────────────────────────
@@ -154,58 +113,22 @@ router.post('/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone required' });
   try {
-    await sendFonnte(phone, 'Test from TMJ Wedding Tech. WhatsApp is working!');
-    res.json({ success: true, message: 'Test message sent!' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ── POST /api/whatsapp/test-image ─────────────────────────────
-router.post('/test-image', requireAdmin, async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ error: 'Phone required' });
-  try {
-    const token = await getToken();
-    const p     = cleanPhone(phone);
-    const img   = new Jimp(400, 200, 0xffffffff);
-    const font  = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-    img.print(font, 40, 80, 'TMJ Wedding Tech');
-    const buf    = await img.quality(90).getBufferAsync(Jimp.MIME_JPEG);
-    const imgUrl = await uploadToImgBB(buf);
-    // Send image URL directly — WhatsApp shows it as photo
-    await fonntePost({ target: p, message: imgUrl, delay: '1', countryCode: '255' }, token);
-    res.json({ success: true, message: 'Image sent!', url: imgUrl });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ── POST /api/whatsapp/send-one — send to a single guest ─────
-router.post('/send-one', requireAdmin, async (req, res) => {
-  const { guest_id, event_id } = req.body;
-  if (!guest_id) return res.status(400).json({ error: 'guest_id required' });
-  try {
-    const g      = await Guest.findById(guest_id);
-    if (!g)      return res.status(404).json({ error: 'Guest not found' });
-    if (!g.phone || !g.phone.trim()) return res.status(400).json({ error: `${g.name} hana nambari ya simu` });
-
-    const ev     = await Event.findById(event_id || g.event_id);
-    if (!ev)     return res.status(404).json({ error: 'Event not found' });
-
-    const token  = await getToken();
-    const appUrl = await getAppUrl();
-    const phone  = cleanPhone(g.phone);
-    const link   = `${appUrl}/guest/${g.qr_token}`;
-    const code   = g.unique_id.substring(0, 8).toUpperCase();
-
-    const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: ${code}\n\nOnyesha QR code hii mlangoni.\nAsante!`;
-
-    await fonntePost({ target: phone, message: msg, delay: '1', countryCode: '255' }, token);
-
-    g.sms_sent    = true;
-    g.sms_sent_at = new Date();
-    await g.save();
-
-    res.json({ success: true, message: `Imetumwa kwa ${g.name}` });
+    const p = cleanPhone(phone);
+    await eventFlowSend({
+      to:       p,
+      template: 'eventflow_invite_sw',
+      params: {
+        guestName:  'Mgeni wa Majaribio',
+        eventName:  'TMJ Wedding Tech — Test',
+        eventDate:  new Date().toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }),
+        location:   'Dar es Salaam',
+        rsvpLink:   'https://wedding-scanner.onrender.com',
+        qrLink:     'https://wedding-scanner.onrender.com'
+      }
+    });
+    res.json({ success: true, message: 'Test invitation sent via EventFlow!' });
   } catch (err) {
-    console.error('[send-one]', err.message);
+    console.error('[/test]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -214,11 +137,18 @@ router.post('/send-one', requireAdmin, async (req, res) => {
 router.post('/send-invites', requireAdmin, async (req, res) => {
   const { event_id, type, only_unsent, custom_message } = req.body;
   if (!event_id) return res.status(400).json({ error: 'Event ID required' });
+
   try {
     const ev     = await Event.findById(event_id);
     if (!ev) return res.status(404).json({ error: 'Event not found' });
-    const token  = await getToken();
+
     const appUrl = await getAppUrl();
+
+    // Format event date nicely
+    const eventDateStr = ev.date
+      ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
+      : 'Tarehe itafahamishwa';
+    const eventLocation = ev.venue || 'Mahali patatangazwa';
 
     const filter = { event_id, phone: { $exists: true, $nin: [null, ''] } };
     if (type === 'qr' && only_unsent) filter.sms_sent = { $ne: true };
@@ -232,41 +162,74 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     for (const g of guests) {
       try {
         if (!g.phone || !g.phone.trim()) { failed++; continue; }
-        const phone  = cleanPhone(g.phone);
-        const link   = `${appUrl}/guest/${g.qr_token}`;
-        const code   = g.unique_id.substring(0, 8).toUpperCase();
+
+        const phone   = cleanPhone(g.phone);
+        const link    = `${appUrl}/guest/${g.qr_token}`;
+        const code    = g.unique_id.substring(0, 8).toUpperCase();
 
         if (type === 'qr') {
-          const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${ev.name}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: ${code}\n\nOnyesha QR code hii mlangoni.\nAsante!`;
-          await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
-          g.sms_sent = true; g.sms_sent_at = new Date();
+          // Send Swahili invitation template with QR link
+          await eventFlowSend({
+            to:       phone,
+            template: 'eventflow_invite_sw',
+            params: {
+              guestName:  g.name,
+              eventName:  ev.name,
+              eventDate:  eventDateStr,
+              location:   eventLocation,
+              rsvpLink:   link,
+              qrLink:     link
+            }
+          });
+          g.sms_sent    = true;
+          g.sms_sent_at = new Date();
           await g.save();
           sent++;
 
         } else if (type === 'invite') {
-          const msg = `Habari ${g.name},\n\nUnaalikwa rasmi kwenye *${ev.name}*.\n\nMwaliko wako:\n${link}`;
-          await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
+          await eventFlowSend({
+            to:       phone,
+            template: 'eventflow_invite_sw',
+            params: {
+              guestName:  g.name,
+              eventName:  ev.name,
+              eventDate:  eventDateStr,
+              location:   eventLocation,
+              rsvpLink:   link,
+              qrLink:     link
+            }
+          });
           sent++;
 
         } else if (type === 'thanks') {
-          const msg = `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nAngalia kadi yako:\n${link}`;
-          await fonntePost({ target: phone, message: msg, delay: '2', countryCode: '255' }, token);
+          // No thanks template yet — use text
+          const msg = `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nIlikuwa furaha kubwa kushiriki nawe. Mungu akubariki!\n\nAngalia kadi yako: ${link}`;
+          await eventFlowSendText(phone, msg);
           sent++;
 
         } else if (custom_message) {
-          await fonntePost({ target: phone, message: `Ndugu ${g.name}, ${custom_message}`, delay: '2', countryCode: '255' }, token);
+          await eventFlowSendText(phone, `Ndugu ${g.name}, ${custom_message}`);
           sent++;
-        } else { failed++; continue; }
 
-        await new Promise(r => setTimeout(r, 2500));
+        } else {
+          failed++;
+          continue;
+        }
+
+        // Delay between messages to avoid rate limiting
+        await new Promise(r => setTimeout(r, 1500));
       } catch (e) {
-        console.error(`[${g.name}]`, e.message);
+        console.error(`[send-invites ${g.name}]`, e.message);
         failed++;
         errors.push(`${g.name}: ${e.message}`);
       }
     }
+
     res.json({ success: true, sent, failed, errors: errors.slice(0, 10) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('[send-invites fatal]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = { router, sendFonnte };

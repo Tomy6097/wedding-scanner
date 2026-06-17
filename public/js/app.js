@@ -449,19 +449,10 @@ function renderGuestsTable(guests) {
 
     const waBtn = document.createElement('button');
     waBtn.className = 'btn btn-outline btn-sm';
-    waBtn.title = 'Share via WhatsApp (manual text)';
+    waBtn.title = 'Share via WhatsApp';
     waBtn.innerHTML = '<i data-lucide="message-circle" style="width:13px;height:13px"></i>';
     waBtn.addEventListener('click', () => shareGuestWhatsApp(g.qr_token, g.name, g.phone || ''));
     actionsDiv.appendChild(waBtn);
-
-    // Send card image via WhatsApp (no API — opens WhatsApp directly)
-    const sendCardBtn = document.createElement('button');
-    sendCardBtn.className = 'btn btn-sm';
-    sendCardBtn.style.cssText = 'background:#25D366;color:#fff;border:none';
-    sendCardBtn.title = 'Tuma Picha ya Card via WhatsApp';
-    sendCardBtn.innerHTML = '<i data-lucide="image" style="width:13px;height:13px"></i>';
-    sendCardBtn.addEventListener('click', () => shareCardImageWhatsApp(g));
-    actionsDiv.appendChild(sendCardBtn);
 
     const smsBtn = document.createElement('button');
     smsBtn.className = 'btn btn-outline btn-sm';
@@ -576,107 +567,15 @@ function shareGuestWhatsApp(token, name, phone) {
   const link       = `${window.location.origin}/guest/${token}`;
   const lookupCode = token.substring(0, 8).toUpperCase();
   const eventName  = state.currentEvent ? state.currentEvent.name : 'Our Event';
-  const msg = `Habari ${name},\n\nUmealikwa kwenye *${eventName}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: *${lookupCode}*\n\nOnyesha QR code hii mlangoni.\nAsante!`;
+  const msg = `💍 Dear ${name},\n\nYou are invited to ${eventName}! Here is your personal QR code invitation:\n\n${link}\n\nYour check-in code: *${lookupCode}*\n\nOpen the link and show the QR code at the entrance. If the QR can't be scanned, give your code: ${lookupCode}`;
   const ph  = (phone || '').replace(/\D/g, '');
   if (!ph) {
     navigator.clipboard.writeText(msg)
-      .then(() => alert(`${name} hana nambari.\n\nMessage imenakiliwa — paste kwenye WhatsApp manually.`))
-      .catch(() => prompt(`Nakili message hii:`, msg));
+      .then(() => alert(`No phone number for ${name}.\n\nMessage copied to clipboard — paste it in WhatsApp manually.`))
+      .catch(() => prompt(`No phone number for ${name}. Copy this message:`, msg));
     return;
   }
   window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-// ── Share card image via WhatsApp (no API) ────────────────────
-// Generates card image in browser → downloads it → opens WhatsApp
-async function shareCardImageWhatsApp(g) {
-  if (!state.currentEvent) return;
-  const ev = state.currentEvent;
-  const phone = (g.phone || '').replace(/\D/g, '');
-  const link  = `${window.location.origin}/guest/${g.qr_token}`;
-  const code  = (g.unique_id || '').substring(0, 8).toUpperCase();
-  const eventName = ev.name;
-  const msg = `Habari ${g.name},\n\nUmealikwa kwenye *${eventName}*!\n\nTiketi yako ya QR:\n${link}\n\nNambari ya kuingia: ${code}\n\nOnyesha QR code hii mlangoni.\nAsante!`;
-
-  try {
-    // Get guest QR data
-    const data = await api('GET', `/guests/${gid(g)}/qr`);
-
-    // Generate card image on canvas
-    let cardDataUrl;
-    if (ev.card_image && ev.card_qr_x != null) {
-      cardDataUrl = await generateGuestCard(
-        { name: g.name },
-        data.qrDataUrl,
-        {
-          image:      ev.card_image,
-          qr_x:       ev.card_qr_x,
-          qr_y:       ev.card_qr_y,
-          qr_size:    ev.card_qr_size || 20,
-          name_x:     ev.card_name_x    ?? null,
-          name_y:     ev.card_name_y    ?? null,
-          name_size:  ev.card_name_size  || 5,
-          name_color: ev.card_name_color || '#000000'
-        }
-      );
-    } else {
-      // Plain QR
-      cardDataUrl = data.qrDataUrl;
-    }
-
-    // Step 1: Download the image to device
-    const fileName = `card-${g.name.replace(/\s+/g,'-').toLowerCase()}.png`;
-    const a = document.createElement('a');
-    a.download = fileName;
-    a.href = cardDataUrl;
-    a.click();
-
-    // Step 2: After short delay, open WhatsApp with message
-    // User manually attaches the downloaded image
-    await new Promise(r => setTimeout(r, 800));
-    const waUrl = phone
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, '_blank');
-
-  } catch (e) {
-    // Fallback: just open WhatsApp with text
-    const waUrl = phone
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, '_blank');
-  }
-}
-
-// ── Share ALL cards via WhatsApp (batch) ──────────────────────
-let _batchSending = false;
-
-async function shareAllCardsWhatsApp() {
-  if (!state.currentEvent) { alert('Fungua event kwanza.'); return; }
-  if (_batchSending) { alert('Tayari inatuma, subiri...'); return; }
-
-  const guests = state.guests.filter(g => g.phone && g.phone.trim());
-  if (!guests.length) { alert('Hakuna wageni wenye nambari za simu.'); return; }
-
-  if (!confirm(`Itafungua WhatsApp kwa wageni ${guests.length} moja moja.\n\nKwa kila mmoja:\n1. Picha ya card itadownload\n2. WhatsApp itafunguka\n3. Bonyeza Send\n4. Rudi hapa kwa wa inayofuata\n\nEndelea?`)) return;
-
-  _batchSending = true;
-  const btn = $('#share-all-wa-btn');
-  if (btn) { btn.disabled = true; btn.textContent = `Inatuma 0/${guests.length}...`; }
-
-  let done = 0;
-  for (const g of guests) {
-    if (!_batchSending) break; // cancelled
-    if (btn) btn.textContent = `Inatuma ${done + 1}/${guests.length}: ${g.name}`;
-    await shareCardImageWhatsApp(g);
-    done++;
-    // Wait for user to send and come back — 4 second gap
-    await new Promise(r => setTimeout(r, 4000));
-  }
-
-  _batchSending = false;
-  if (btn) { btn.disabled = false; btn.textContent = 'Tuma Cards Zote via WhatsApp'; }
-  alert(`Imekamilika! Cards ${done} zimetumwa.`);
 }
 
 async function sendSingleSMS(id, name) {
@@ -690,45 +589,6 @@ async function sendSingleSMS(id, name) {
     fetchGuests(search);
   } catch (e) {
     alert(`Failed to send SMS to ${name}: ${e.message}`);
-  }
-}
-
-// ── Send single guest WhatsApp (Fonnte) ───────────────────────
-async function sendSingleWhatsApp(id, name, btn) {
-  if (!state.currentEvent) return;
-  const origHtml = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" style="width:13px;height:13px"></i>';
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  }
-  try {
-    await api('POST', '/whatsapp/send-one', {
-      guest_id: id,
-      event_id: gid(state.currentEvent)
-    });
-    if (btn) {
-      btn.style.background = '#166534';
-      btn.innerHTML = '<i data-lucide="check" style="width:13px;height:13px"></i>';
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-    setTimeout(() => {
-      if (btn) {
-        btn.disabled = false;
-        btn.style.background = '#25D366';
-        btn.innerHTML = '<i data-lucide="send" style="width:13px;height:13px"></i>';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      }
-    }, 3000);
-    const search = $('#guest-search') ? $('#guest-search').value : '';
-    fetchGuests(search);
-  } catch (e) {
-    alert(`Imeshindwa kutuma kwa ${name}: ${e.message}`);
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = origHtml;
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
   }
 }
 
@@ -3303,9 +3163,6 @@ function initAdmin() {
 
   const sendAllWaBtn = $('#send-all-wa-btn');
   if (sendAllWaBtn) sendAllWaBtn.addEventListener('click', sendAllWhatsApp);
-
-  const shareAllWaBtn = $('#share-all-wa-btn');
-  if (shareAllWaBtn) shareAllWaBtn.addEventListener('click', shareAllCardsWhatsApp);
 
   // Send invitation cards
   const sendInviteWaBtn  = $('#send-invite-wa-btn');
