@@ -1414,6 +1414,7 @@ async function fetchSettings() {
     set('beem-sender-id', s.beem_sender_id);
     set('app-url', s.app_url);
     set('fonnte-token', s.fonnte_token);
+    set('eventflow-url', s.eventflow_url);
   } catch (e) { console.error('Settings error:', e); }
 }
 
@@ -1423,7 +1424,8 @@ async function saveFonnteSettings() {
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
   try {
     const token = (document.getElementById('fonnte-token') || {}).value || '';
-    await api('POST', '/settings/bulk', { settings: { fonnte_token: token } });
+    const efUrl  = (document.getElementById('eventflow-url') || {}).value || '';
+    await api('POST', '/settings/bulk', { settings: { fonnte_token: token, eventflow_url: efUrl } });
     if (sucEl) { sucEl.textContent = 'WhatsApp settings saved!'; sucEl.className = 'alert alert-success'; sucEl.classList.remove('hidden'); setTimeout(() => sucEl.classList.add('hidden'), 4000); }
   } catch (e) { alert('Failed: ' + e.message); }
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Save WhatsApp Settings'; } }

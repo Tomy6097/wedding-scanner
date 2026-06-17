@@ -8,7 +8,14 @@ const router   = express.Router();
 
 // ── EventFlow API config ──────────────────────────────────────
 const EVENTFLOW_API_KEY = 'ef_live_7f8bc928ba96948517759592f33a8ddd69fe6df9bd71b3b2';
-const EVENTFLOW_BASE    = '3bfe-102-205-251-44.ngrok-free.app';
+const EVENTFLOW_BASE_DEFAULT = '5194-102-205-250-61.ngrok-free.app';
+
+async function getEventFlowBase() {
+  const s = await Settings.findOne({ key: 'eventflow_url' });
+  const url = s?.value?.trim();
+  if (url) return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  return EVENTFLOW_BASE_DEFAULT;
+}
 
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== 'admin')
@@ -30,12 +37,10 @@ function cleanPhone(raw) {
 }
 
 // ── Send via EventFlow template API ──────────────────────────
-function eventFlowSend(payload) {
+async function eventFlowSend(payload) {
+  const hostname = await getEventFlowBase();
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(payload);
-    const isHttps = EVENTFLOW_BASE.startsWith('https://') || !EVENTFLOW_BASE.startsWith('http://');
-    const hostname = EVENTFLOW_BASE.replace(/^https?:\/\//, '');
-
     const options = {
       hostname,
       port: 443,
@@ -48,7 +53,6 @@ function eventFlowSend(payload) {
         'ngrok-skip-browser-warning': 'true'
       }
     };
-
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', c => { data += c; });
@@ -67,11 +71,11 @@ function eventFlowSend(payload) {
   });
 }
 
-// ── Send via EventFlow text API (for custom messages) ─────────
-function eventFlowSendText(phone, message) {
+// ── Send via EventFlow text API ───────────────────────────────
+async function eventFlowSendText(phone, message) {
+  const hostname = await getEventFlowBase();
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({ to: phone, message });
-    const hostname = EVENTFLOW_BASE.replace(/^https?:\/\//, '');
     const options = {
       hostname,
       port: 443,

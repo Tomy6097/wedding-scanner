@@ -591,9 +591,14 @@
           </div>
 
           <div class="card">
-            <h3>WhatsApp (Fonnte)</h3>
-            <p class="hint-text">Connect your WhatsApp via <strong>fonnte.com</strong>. Link your device first, then paste your token here.</p>
-            <div class="form-group"><label>Fonnte API Token</label><input type="text" id="fonnte-token" placeholder="e.g. u8C3j3bFp4QmfN6UgRw3" /></div>
+            <h3>WhatsApp (EventFlow)</h3>
+            <p class="hint-text">Send WhatsApp invitations via EventFlow API. Update the URL below whenever the server URL changes.</p>
+            <div class="form-group">
+              <label>EventFlow Server URL</label>
+              <input type="text" id="eventflow-url" placeholder="e.g. https://xxxx-102-205-250-61.ngrok-free.app" />
+              <small class="hint-text">Update this when the ngrok URL changes</small>
+            </div>
+            <div class="form-group"><label>Fonnte API Token (backup)</label><input type="text" id="fonnte-token" placeholder="e.g. u8C3j3bFp4QmfN6UgRw3" /></div>
             <div class="form-group">
               <label>Test — send to this number</label>
               <div style="display:flex;gap:0.5rem">
