@@ -116,7 +116,7 @@ router.post('/test', requireAdmin, async (req, res) => {
     const p = cleanPhone(phone);
     await eventFlowSend({
       to:       p,
-      template: 'eventflow_invite_sw',
+      template: 'event_invitation',
       params: {
         guestName:  'Mgeni wa Majaribio',
         eventName:  'TMJ Wedding Tech — Test',
@@ -171,7 +171,7 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
           // Send Swahili invitation template with QR link
           await eventFlowSend({
             to:       phone,
-            template: 'eventflow_invite_sw',
+            template: 'event_invitation',
             params: {
               guestName:  g.name,
               eventName:  ev.name,
@@ -189,7 +189,7 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         } else if (type === 'invite') {
           await eventFlowSend({
             to:       phone,
-            template: 'eventflow_invite_sw',
+            template: 'event_invitation',
             params: {
               guestName:  g.name,
               eventName:  ev.name,
