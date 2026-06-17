@@ -8,7 +8,7 @@ const router   = express.Router();
 
 // ── EventFlow API config ──────────────────────────────────────
 const EVENTFLOW_API_KEY = 'ef_live_7f8bc928ba96948517759592f33a8ddd69fe6df9bd71b3b2';
-const EVENTFLOW_BASE_DEFAULT = 'eventflow-backend.onrender.com'; // production default
+const EVENTFLOW_BASE_DEFAULT = 'e31c-197-186-3-137.ngrok-free.app';
 
 async function getEventFlowBase() {
   const s = await Settings.findOne({ key: 'eventflow_url' });
