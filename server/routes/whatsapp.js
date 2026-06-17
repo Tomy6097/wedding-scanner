@@ -8,7 +8,7 @@ const router   = express.Router();
 
 // ── EventFlow API config ──────────────────────────────────────
 const EVENTFLOW_API_KEY = 'ef_live_7f8bc928ba96948517759592f33a8ddd69fe6df9bd71b3b2';
-const EVENTFLOW_BASE_DEFAULT = '5194-102-205-250-61.ngrok-free.app';
+const EVENTFLOW_BASE_DEFAULT = 'eventflow-backend.onrender.com'; // production default
 
 async function getEventFlowBase() {
   const s = await Settings.findOne({ key: 'eventflow_url' });
@@ -31,7 +31,6 @@ async function getAppUrl() {
 function cleanPhone(raw) {
   let p = (raw || '').replace(/\D/g, '');
   if (!p) throw new Error(`Invalid phone: ${raw}`);
-  // Ensure international format with +
   if (!p.startsWith('+')) p = '+' + p;
   return p;
 }
@@ -106,9 +105,8 @@ async function eventFlowSendText(phone, message) {
   });
 }
 
-// ── Public text-only helper (kept for Beem fallback) ──────────
+// ── Public text-only helper ───────────────────────────────────
 async function sendFonnte(phone, message) {
-  // Fallback — now using EventFlow text endpoint
   return eventFlowSendText(phone, message);
 }
 
@@ -125,9 +123,7 @@ router.post('/test', requireAdmin, async (req, res) => {
         guestName:  'Mgeni wa Majaribio',
         eventName:  'TMJ Wedding Tech — Test',
         eventDate:  new Date().toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }),
-        location:   'Dar es Salaam',
-        rsvpLink:   'https://wedding-scanner.onrender.com',
-        qrLink:     'https://wedding-scanner.onrender.com'
+        location:   'Dar es Salaam'
       }
     });
     res.json({ success: true, message: 'Test invitation sent via EventFlow!' });
@@ -148,7 +144,6 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
 
     const appUrl = await getAppUrl();
 
-    // Format event date nicely
     const eventDateStr = ev.date
       ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
       : 'Tarehe itafahamishwa';
@@ -167,22 +162,19 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
       try {
         if (!g.phone || !g.phone.trim()) { failed++; continue; }
 
-        const phone   = cleanPhone(g.phone);
-        const link    = `${appUrl}/guest/${g.qr_token}`;
-        const code    = g.unique_id.substring(0, 8).toUpperCase();
+        const phone = cleanPhone(g.phone);
+        const link  = `${appUrl}/guest/${g.qr_token}`;
 
         if (type === 'qr') {
-          // Send Swahili invitation template with QR link
+          // Append QR link to location so guests can access their ticket
           await eventFlowSend({
             to:       phone,
             template: 'event_invitation',
             params: {
-              guestName:  g.name,
-              eventName:  ev.name,
-              eventDate:  eventDateStr,
-              location:   eventLocation,
-              rsvpLink:   link,
-              qrLink:     link
+              guestName: g.name,
+              eventName: ev.name,
+              eventDate: eventDateStr,
+              location:  `${eventLocation}\n🔗 ${link}`
             }
           });
           g.sms_sent    = true;
@@ -195,18 +187,15 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
             to:       phone,
             template: 'event_invitation',
             params: {
-              guestName:  g.name,
-              eventName:  ev.name,
-              eventDate:  eventDateStr,
-              location:   eventLocation,
-              rsvpLink:   link,
-              qrLink:     link
+              guestName: g.name,
+              eventName: ev.name,
+              eventDate: eventDateStr,
+              location:  eventLocation
             }
           });
           sent++;
 
         } else if (type === 'thanks') {
-          // No thanks template yet — use text
           const msg = `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nIlikuwa furaha kubwa kushiriki nawe. Mungu akubariki!\n\nAngalia kadi yako: ${link}`;
           await eventFlowSendText(phone, msg);
           sent++;
@@ -220,7 +209,6 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
           continue;
         }
 
-        // Delay between messages to avoid rate limiting
         await new Promise(r => setTimeout(r, 1500));
       } catch (e) {
         console.error(`[send-invites ${g.name}]`, e.message);
