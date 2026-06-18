@@ -110,6 +110,36 @@ async function sendFonnte(phone, message) {
   return eventFlowSendText(phone, message);
 }
 
+// ── GET /api/whatsapp/logs — check delivery status ───────────
+router.get('/logs', requireAdmin, async (req, res) => {
+  try {
+    const hostname = await getEventFlowBase();
+    const phone    = req.query.phone || '';
+    const path     = `/api/v1/external/whatsapp/logs${phone ? '?phone=' + encodeURIComponent(phone) : ''}`;
+
+    const result = await new Promise((resolve, reject) => {
+      const opts = {
+        hostname, port: 443, path, method: 'GET',
+        headers: {
+          'X-API-Key': EVENTFLOW_API_KEY,
+          'ngrok-skip-browser-warning': 'true'
+        }
+      };
+      const req = https.request(opts, (r) => {
+        let data = '';
+        r.on('data', c => { data += c; });
+        r.on('end', () => {
+          try { resolve(JSON.parse(data)); }
+          catch (e) { reject(new Error('Parse error: ' + data)); }
+        });
+      });
+      req.on('error', e => reject(e));
+      req.end();
+    });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── POST /api/whatsapp/test ───────────────────────────────────
 router.post('/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;
