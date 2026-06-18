@@ -201,4 +201,30 @@ router.delete('/:id/thanks', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// GET /api/events/:id/whatsapp-cover — public image for WhatsApp template header
+// No auth required — WhatsApp servers must be able to fetch this URL directly.
+router.get('/:id/whatsapp-cover', async (req, res) => {
+  try {
+    const ev = await Event.findById(req.params.id);
+    if (!ev) return res.status(404).end();
+
+    // Prefer invite image, fall back to QR card image
+    const dataUrl = ev.invite_image || ev.card_image;
+    if (!dataUrl || !dataUrl.startsWith('data:image/')) return res.status(404).end();
+
+    const match = dataUrl.match(/^data:image\/([\w+]+);base64,(.+)$/s);
+    if (!match) return res.status(404).end();
+
+    const buf     = Buffer.from(match[2], 'base64');
+    const subtype = match[1] === 'jpg' ? 'jpeg' : match[1];
+
+    res.set('Content-Type', `image/${subtype}`);
+    res.set('Content-Length', buf.length);
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(buf);
+  } catch (err) {
+    res.status(500).end();
+  }
+});
+
 module.exports = router;

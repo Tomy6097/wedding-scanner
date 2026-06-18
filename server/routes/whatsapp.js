@@ -140,6 +140,37 @@ router.get('/logs', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Resolve a publicly reachable image URL for WhatsApp header ──
+// Builds the /whatsapp-cover URL from appUrl, does a quick reachability
+// check, and throws a clear error if it's not publicly accessible.
+async function getInviteImageUrl(eventId, appUrl) {
+  const ev = await Event.findById(eventId);
+  if (!ev?.invite_image && !ev?.card_image) {
+    throw new Error('Upload a card or invitation image first (Card Template tab)');
+  }
+
+  const url = `${appUrl.replace(/\/$/, '')}/api/events/${eventId}/whatsapp-cover`;
+
+  try {
+    const mod = url.startsWith('https') ? https : http;
+    await new Promise((resolve, reject) => {
+      const req = mod.get(url, { timeout: 8000 }, (res) => {
+        res.resume(); // consume response to free socket
+        if (res.statusCode === 200) resolve();
+        else reject(new Error(`HTTP ${res.statusCode}`));
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    });
+    return url;
+  } catch (e) {
+    console.warn('[WhatsApp] Public cover image not reachable at', url, '—', e.message);
+    throw new Error(
+      'WhatsApp image URL is not publicly reachable. Deploy the app or update App URL in Settings.'
+    );
+  }
+}
+
 // ── POST /api/whatsapp/test ───────────────────────────────────
 router.post('/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;
@@ -186,6 +217,12 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     const guests = await Guest.find(filter);
     if (!guests.length) return res.json({ success: true, sent: 0, failed: 0, message: 'Hakuna wageni wenye simu' });
 
+    // Resolve the public image URL once before looping — fail fast if not reachable
+    let imageUrl;
+    if (type === 'qr' || type === 'invite') {
+      imageUrl = await getInviteImageUrl(event_id, appUrl);
+    }
+
     let sent = 0, failed = 0, errors = [];
 
     for (const g of guests) {
@@ -196,7 +233,6 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         const link  = `${appUrl}/guest/${g.qr_token}`;
 
         if (type === 'qr') {
-          // Append QR link to location so guests can access their ticket
           await eventFlowSend({
             to:       phone,
             template: 'event_invitation',
@@ -204,7 +240,10 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
               guestName: g.name,
               eventName: ev.name,
               eventDate: eventDateStr,
-              location:  `${eventLocation}\n🔗 ${link}`
+              location:  eventLocation,
+              rsvpLink:  link,
+              qrLink:    link,
+              imageUrl,
             }
           });
           g.sms_sent    = true;
@@ -220,7 +259,10 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
               guestName: g.name,
               eventName: ev.name,
               eventDate: eventDateStr,
-              location:  eventLocation
+              location:  eventLocation,
+              rsvpLink:  link,
+              qrLink:    link,
+              imageUrl,
             }
           });
           sent++;
