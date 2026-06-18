@@ -16,8 +16,19 @@ const state = {
   scannerEventId: null     // event scanner is working on
 };
 
+// ── Runtime mode ─────────────────────────────────────────────
+const PREVIEW_MODE = /(?:[?&])preview(?:=1|=true)?(?:&|$)/i.test(window.location.search) || window.location.protocol === 'file:';
+const PREVIEW_EVENT = {
+  _id: 'preview-event',
+  name: 'Preview Event',
+  client_name: 'Local preview',
+  date: null,
+  venue: 'Preview only',
+  status: 'active'
+};
+
 // ── Socket.io ────────────────────────────────────────────────
-const socket = io();
+const socket = (!PREVIEW_MODE && typeof io === 'function') ? io() : null;
 
 // ── Helpers ──────────────────────────────────────────────────
 const $  = (sel, ctx = document) => ctx.querySelector(sel);
@@ -58,6 +69,21 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function previewQRDataUrl() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 100;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, 100, 100);
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 10; i++) {
+    for (let j = 0; j < 10; j++) {
+      if ((i + j) % 2 === 0) ctx.fillRect(i * 10, j * 10, 10, 10);
+    }
+  }
+  return c.toDataURL();
 }
 
 // ── Audio Feedback ───────────────────────────────────────────
@@ -101,6 +127,35 @@ function playSound(type) {
 
 // ── API ──────────────────────────────────────────────────────
 async function api(method, path, body) {
+  if (PREVIEW_MODE) {
+    if (method === 'GET' && path === '/auth/me') return { username: 'preview', role: 'admin' };
+    if (method === 'POST' && path === '/auth/login') return { username: (body && body.username) || 'preview', role: 'admin' };
+    if (path === '/auth/logout') return { ok: true };
+    if (method === 'GET' && path === '/events') return [PREVIEW_EVENT];
+    if (method === 'GET' && path === '/settings') return {};
+    if (method === 'GET' && path === '/users') return [];
+    if (method === 'GET' && path === '/bookings') return [];
+    if (method === 'GET' && path === '/dashboard') {
+      return {
+        summary: {
+          totalEvents: 1,
+          totalGuests: 0,
+          checkedIn: 0,
+          overallAttendance: 0,
+          totalScans: 0,
+          invalidScans: 0
+        },
+        eventStats: []
+      };
+    }
+    if (method === 'GET' && path.startsWith('/guests/stats')) return { total: 0, checkedIn: 0, remaining: 0 };
+    if (method === 'GET' && path.startsWith('/guests?')) return [];
+    if (method === 'GET' && path.startsWith('/activity')) return [];
+    if (method === 'GET' && path === '/events/sample-qr') return { qrDataUrl: previewQRDataUrl() };
+    if (method === 'GET') return [];
+    return { ok: true };
+  }
+
   const opts = {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -291,6 +346,11 @@ function backToEvents() {
   if (sectionEl) sectionEl.style.display = 'none';
 
   switchTab('tab-events');
+}
+
+function enterPreviewMode() {
+  openEvent(PREVIEW_EVENT);
+  switchTab('tab-card');
 }
 
 async function createEvent(data) {
@@ -782,11 +842,26 @@ async function loadSendTab() {
     // Update invite template status
     const inviteStatus = $('#invite-template-status');
     if (inviteStatus) {
-      inviteStatus.textContent = ev.invite_image
-        ? `Template set. ${withPhone} guests with phone numbers.`
-        : 'No invitation template set. Go to Card Template tab to upload one.';
-      inviteStatus.style.color = ev.invite_image ? 'var(--success)' : 'var(--gray-500)';
+      inviteStatus.innerHTML = withPhone > 0
+        ? `<span style="color:var(--success)">✅ Ready</span> — Uses <strong>eventflow_invite_sw</strong> WhatsApp template. ${withPhone} guest${withPhone !== 1 ? 's' : ''} with phone number${withPhone !== 1 ? 's' : ''}.`
+        : `<span style="color:var(--warning)">⚠️ No guests with phone numbers yet.</span> Add phone numbers to your guests first.`;
     }
+
+    // Populate invite guest picker list
+    renderInviteGuestPicker(guests.filter(g => g.phone && g.phone.trim()));
+
+    // Render invite card preview thumbnail if event has an invite_image
+    renderInviteSendPreview(ev);
+
+    // Fill WhatsApp message preview with real event details
+    const eventNameEl  = $('#invite-preview-event-name');
+    const eventDateEl  = $('#invite-preview-date');
+    const eventLocEl   = $('#invite-preview-location');
+    if (eventNameEl) eventNameEl.textContent = ev.name || '[Jina la Tukio]';
+    if (eventDateEl) eventDateEl.textContent = ev.date
+      ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '[Tarehe]';
+    if (eventLocEl)  eventLocEl.textContent  = ev.venue || '[Mahali]';
 
     // Update thanks template status
     const thanksStatus = $('#thanks-template-status');
@@ -1005,13 +1080,17 @@ async function initScannerPage() {
   });
 
   // Real-time stats update — only for current scanner event
-  socket.on('guest_checked_in', (guest) => {
-    if (state.scannerEventId && guest.event_id && String(guest.event_id) !== String(state.scannerEventId)) return;
-    fetchScannerStats();
-  });
+  if (socket) {
+    socket.on('guest_checked_in', (guest) => {
+      if (state.scannerEventId && guest.event_id && String(guest.event_id) !== String(state.scannerEventId)) return;
+      fetchScannerStats();
+    });
+  }
 
   // Keep-alive ping every 10 minutes
-  setInterval(() => { fetch('/ping').catch(() => {}); }, 10 * 60 * 1000);
+  if (!PREVIEW_MODE) {
+    setInterval(() => { fetch('/ping').catch(() => {}); }, 10 * 60 * 1000);
+  }
 }
 
 function renderScannerEventList(events) {
@@ -2146,6 +2225,8 @@ async function renderCardSample() {
 
 // Generate QR code data URL client-side using the server
 async function generateQRDataUrl(token) {
+  if (PREVIEW_MODE) return previewQRDataUrl();
+
   // Use a tiny 1x1 placeholder — real QR comes from server per guest
   // For preview, fetch a sample from server
   try {
@@ -2156,18 +2237,7 @@ async function generateQRDataUrl(token) {
     }
   } catch (e) { /* ignore */ }
   // Fallback: return a simple colored square
-  const c = document.createElement('canvas');
-  c.width = c.height = 100;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#1a1a2e';
-  ctx.fillRect(0, 0, 100, 100);
-  ctx.fillStyle = '#fff';
-  for (let i = 0; i < 10; i++) {
-    for (let j = 0; j < 10; j++) {
-      if ((i + j) % 2 === 0) ctx.fillRect(i * 10, j * 10, 10, 10);
-    }
-  }
-  return c.toDataURL();
+  return previewQRDataUrl();
 }
 
 async function saveCardTemplate() {
@@ -2495,6 +2565,191 @@ async function sendCustomSMS() {
   if (btn) { btn.disabled = false; btn.textContent = 'Send Custom SMS'; }
 }
 
+// ── Invite Guest Picker ───────────────────────────────────────
+function renderInviteGuestPicker(guests) {
+  const listEl   = $('#invite-guest-list');
+  const countEl  = $('#invite-selected-count');
+  const searchEl = $('#invite-guest-search');
+  if (!listEl) return;
+
+  // Store full list on the element for filtering
+  listEl._allGuests = guests;
+
+  function renderList(filter = '') {
+    const filtered = filter
+      ? guests.filter(g => g.name.toLowerCase().includes(filter.toLowerCase()) || (g.phone || '').includes(filter))
+      : guests;
+
+    if (!filtered.length) {
+      listEl.innerHTML = `<div style="padding:0.5rem;font-size:0.8rem;color:var(--gray-400)">No guests found</div>`;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(g => `
+      <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.65rem;cursor:pointer;font-size:0.83rem;border-bottom:1px solid var(--gray-100)" class="invite-guest-row">
+        <input type="checkbox" class="invite-guest-cb" value="${gid(g)}" style="accent-color:var(--primary)" />
+        <span style="flex:1;font-weight:500">${escHtml(g.name)}</span>
+        <span style="color:var(--gray-400);font-size:0.75rem">${escHtml(g.phone || '')}</span>
+      </label>`).join('');
+
+    // Re-attach change listeners to update count
+    listEl.querySelectorAll('.invite-guest-cb').forEach(cb => {
+      cb.addEventListener('change', updateInviteCount);
+    });
+    updateInviteCount();
+  }
+
+  function updateInviteCount() {
+    const checked = listEl.querySelectorAll('.invite-guest-cb:checked').length;
+    if (countEl) countEl.textContent = `${checked} selected`;
+  }
+
+  // Search filter
+  if (searchEl) {
+    searchEl.oninput = () => renderList(searchEl.value);
+  }
+
+  // Show/hide picker on radio change
+  document.querySelectorAll('input[name="invite-target"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const picker = $('#invite-guest-picker');
+      if (picker) picker.style.display = r.value === 'selected' ? 'block' : 'none';
+    });
+  });
+
+  renderList();
+}
+
+// ── Invite Send Preview ───────────────────────────────────────
+async function renderInviteSendPreview(ev) {
+  const wrap         = $('#invite-card-preview-wrap');
+  const thumbCanvas  = $('#invite-send-preview-canvas');
+  const modalCanvas  = $('#invite-preview-modal-canvas');
+  const fullBtn      = $('#invite-preview-fullscreen-btn');
+  const dlBtn        = $('#invite-preview-download-btn');
+  const modal        = $('#invite-preview-modal');
+  const modalOverlay = $('#invite-preview-modal-overlay');
+  const modalClose   = $('#invite-preview-modal-close');
+
+  if (!ev || !ev.invite_image) {
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+
+  // Draw sample card on thumbnail canvas
+  const drawn = await drawInvitePreviewOnCanvas(thumbCanvas, ev, 'Sample Guest', 340);
+  if (!drawn) { if (wrap) wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = 'block';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  // Full size button — open modal
+  if (fullBtn) {
+    fullBtn.onclick = async () => {
+      await drawInvitePreviewOnCanvas(modalCanvas, ev, 'Sample Guest', 480);
+      if (modal) { modal.classList.remove('hidden'); if (typeof lucide !== 'undefined') lucide.createIcons(); }
+    };
+  }
+
+  // Download sample
+  if (dlBtn) {
+    dlBtn.onclick = () => {
+      if (!thumbCanvas) return;
+      const link = document.createElement('a');
+      link.download = `invite-preview-${(ev.name || 'event').replace(/\s+/g, '-').toLowerCase()}.png`;
+      link.href = thumbCanvas.toDataURL('image/png');
+      link.click();
+    };
+  }
+
+  // Close modal
+  if (modalClose) modalClose.onclick = () => modal && modal.classList.add('hidden');
+  if (modalOverlay) modalOverlay.onclick = () => modal && modal.classList.add('hidden');
+}
+
+async function drawInvitePreviewOnCanvas(canvas, ev, sampleName, maxWidth = 400) {
+  if (!canvas || !ev.invite_image) return false;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale  = Math.min(maxWidth / img.naturalWidth, 1);
+      const W = Math.round(img.naturalWidth  * scale);
+      const H = Math.round(img.naturalHeight * scale);
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, W, H);
+
+      // Draw guest name if position is set
+      if (ev.invite_name_x != null && ev.invite_name_y != null) {
+        const fontSize = Math.round((ev.invite_name_size || 5) / 100 * W);
+        ctx.font      = `bold ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
+        ctx.fillStyle = ev.invite_name_color || '#000000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const x = (ev.invite_name_x / 100) * W;
+        const y = (ev.invite_name_y / 100) * H;
+        ctx.fillText(sampleName, x, y);
+      }
+      resolve(true);
+    };
+    img.onerror = () => resolve(false);
+    img.src = ev.invite_image;
+  });
+}
+
+async function uploadInviteSendImage() {
+  if (!state.currentEvent) return;
+  const fileInput = $('#invite-send-file');
+  const statusEl   = $('#invite-send-upload-status');
+  const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+  hideAlert(statusEl);
+  if (!file) {
+    showAlert(statusEl, 'Choose an image first');
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    showAlert(statusEl, 'Only image files are allowed');
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    showAlert(statusEl, 'Image too large. Maximum 2MB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const dataUrl = ev.target.result;
+      await api('POST', `/events/${gid(state.currentEvent)}/invite`, {
+        invite_image: dataUrl,
+        invite_name_x: state.currentEvent.invite_name_x ?? null,
+        invite_name_y: state.currentEvent.invite_name_y ?? null,
+        invite_name_size: state.currentEvent.invite_name_size || 5,
+        invite_name_color: state.currentEvent.invite_name_color || '#000000'
+      });
+
+      state.currentEvent.invite_image = dataUrl;
+      if (state.currentEvent.invite_name_x == null) state.currentEvent.invite_name_x = null;
+      if (state.currentEvent.invite_name_y == null) state.currentEvent.invite_name_y = null;
+      nameCardState.invite.imageDataUrl = dataUrl;
+      showAlert(statusEl, 'Invitation image uploaded for WhatsApp sending', 'success');
+      await loadSendTab();
+    } catch (err) {
+      showAlert(statusEl, err.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function getInviteTargetGuestIds() {
+  const selected = document.querySelector('input[name="invite-target"]:checked');
+  if (!selected || selected.value === 'all') return null; // null = all guests
+
+  const checked = [...document.querySelectorAll('.invite-guest-cb:checked')];
+  return checked.map(cb => cb.value);
+}
+
 // ── Send Card Broadcast (Invite / Thanks) ────────────────────
 async function sendCardBroadcast(type, channel) {
   if (!state.currentEvent) return;
@@ -2505,23 +2760,35 @@ async function sendCardBroadcast(type, channel) {
   const channelLabel = channel === 'wa' ? 'WhatsApp' : 'SMS';
 
   if (channel === 'wa') {
-    // Use Fonnte API to send card images
+    // Use EventFlow API to send via WhatsApp template
     const resultId = type === 'invite' ? 'invite-wa-result' : 'thanks-wa-result';
     const btnId    = type === 'invite' ? 'send-invite-wa-btn' : 'send-thanks-wa-btn';
     const resultEl = document.getElementById(resultId);
     const btn      = document.getElementById(btnId);
 
-    if (!confirm(`Tuma kadi za ${typeName} kwa WhatsApp?`)) return;
+    // Get selected guest IDs (null = all)
+    const guestIds = type === 'invite' ? getInviteTargetGuestIds() : null;
+    const targetLabel = guestIds
+      ? `wageni ${guestIds.length} waliochaguliwa`
+      : 'wageni wote wenye nambari za simu';
 
-    if (btn) { btn.disabled = true; btn.textContent = 'Inatuma...'; }
+    if (guestIds && guestIds.length === 0) {
+      alert('Tafadhali chagua angalau mgeni mmoja.');
+      return;
+    }
+
+    if (!confirm(`Tuma kadi za ${typeName} kwa WhatsApp kwa ${targetLabel}?`)) return;
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" style="width:14px;height:14px"></i> Inatuma...'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
     if (resultEl) resultEl.classList.add('hidden');
 
     try {
       const res = await api('POST', '/whatsapp/send-invites', {
         event_id: gid(ev),
-        type
+        type,
+        ...(guestIds ? { guest_ids: guestIds } : {})
       });
-      const msg = `Imetumwa: ${res.sent}${res.failed > 0 ? ` | Imeshindwa: ${res.failed}` : ''}`;
+      const msg = `✅ Imetumwa: ${res.sent}${res.failed > 0 ? ` | ❌ Imeshindwa: ${res.failed}` : ''}`;
       if (resultEl) {
         resultEl.textContent = msg;
         resultEl.className = 'alert ' + (res.failed === 0 ? 'alert-success' : 'alert-error');
@@ -2529,12 +2796,12 @@ async function sendCardBroadcast(type, channel) {
       }
     } catch (e) {
       if (resultEl) {
-        resultEl.textContent = 'Imeshindwa: ' + e.message;
+        resultEl.textContent = '❌ Imeshindwa: ' + e.message;
         resultEl.className = 'alert alert-error';
         resultEl.classList.remove('hidden');
       }
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = `Send via WhatsApp`; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="message-circle" style="width:14px;height:14px"></i> Send Invitations via WhatsApp'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
     }
     return;
   }
@@ -2544,7 +2811,7 @@ async function sendCardBroadcast(type, channel) {
     ? { image: ev.invite_image }
     : { image: ev.thanks_image };
 
-  if (!template.image) { alert('Tafadhali weka template kwenye Card Template tab kwanza.'); return; }
+  if (!template.image) { alert('Tafadhali upload invitation image kwenye Send Invitations au Card Template tab kwanza.'); return; }
 
   const guests = await api('GET', `/guests?event_id=${gid(ev)}`);
   const withPhone = guests.filter(g => g.phone && g.phone.trim());
@@ -2611,8 +2878,12 @@ async function init() {
   const user = await checkAuth();
   if (user) {
     state.user = user;
-    if (user.role === 'admin') initAdmin();
-    else initScannerPage();
+    if (user.role === 'admin') {
+      initAdmin();
+      if (PREVIEW_MODE) enterPreviewMode();
+    } else {
+      initScannerPage();
+    }
   } else {
     showPage('page-login');
   }
@@ -2630,8 +2901,12 @@ async function init() {
       try {
         const user = await login($('#username').value, $('#password').value);
         state.user = user;
-        if (user.role === 'admin') initAdmin();
-        else initScannerPage();
+        if (user.role === 'admin') {
+          initAdmin();
+          if (PREVIEW_MODE) enterPreviewMode();
+        } else {
+          initScannerPage();
+        }
       } catch (e) {
         showAlert(errEl, e.message);
       } finally {
@@ -3177,6 +3452,19 @@ function initAdmin() {
   if (sendThanksWaBtn) sendThanksWaBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'wa'));
   if (sendThanksSmsBtn) sendThanksSmsBtn.addEventListener('click', () => sendCardBroadcast('thanks', 'sms'));
 
+  const inviteSendFile = $('#invite-send-file');
+  const inviteSendUploadBtn = $('#invite-send-upload-btn');
+  if (inviteSendUploadBtn) inviteSendUploadBtn.addEventListener('click', uploadInviteSendImage);
+  if (inviteSendFile) {
+    inviteSendFile.addEventListener('change', () => {
+      const statusEl = $('#invite-send-upload-status');
+      hideAlert(statusEl);
+      if (inviteSendFile.files && inviteSendFile.files[0]) {
+        showAlert(statusEl, `Selected: ${inviteSendFile.files[0].name}`, 'success');
+      }
+    });
+  }
+
   // Download broadcast CSV
   const dlBroadcastBtn = $('#download-broadcast-csv-btn');
   if (dlBroadcastBtn) {
@@ -3307,25 +3595,29 @@ function initAdmin() {
   }
 
   // ── Socket.io — Real-time Updates ───────────────────────
-  socket.on('guest_checked_in', (guest) => {
-    // Only update if this guest belongs to the currently open event
-    if (!state.currentEvent) return;
-    if (guest.event_id && String(guest.event_id) !== String(gid(state.currentEvent))) return;
-    addRecentCheckin(guest);
-    refreshGuestRow(guest);
-    fetchStats();
-  });
+  if (socket) {
+    socket.on('guest_checked_in', (guest) => {
+      // Only update if this guest belongs to the currently open event
+      if (!state.currentEvent) return;
+      if (guest.event_id && String(guest.event_id) !== String(gid(state.currentEvent))) return;
+      addRecentCheckin(guest);
+      refreshGuestRow(guest);
+      fetchStats();
+    });
 
-  socket.on('guest_reset', (data) => {
-    if (!state.currentEvent) return;
-    if (data && data.event_id && String(data.event_id) !== String(gid(state.currentEvent))) return;
-    const search = $('#guest-search') ? $('#guest-search').value : '';
-    fetchGuests(search);
-    fetchStats();
-  });
+    socket.on('guest_reset', (data) => {
+      if (!state.currentEvent) return;
+      if (data && data.event_id && String(data.event_id) !== String(gid(state.currentEvent))) return;
+      const search = $('#guest-search') ? $('#guest-search').value : '';
+      fetchGuests(search);
+      fetchStats();
+    });
+  }
 
   // ── Keep-alive ping every 10 minutes ────────────────────
-  setInterval(() => { fetch('/ping').catch(() => {}); }, 10 * 60 * 1000);
+  if (!PREVIEW_MODE) {
+    setInterval(() => { fetch('/ping').catch(() => {}); }, 10 * 60 * 1000);
+  }
 }
 
 // ── PWA ──────────────────────────────────────────────────────
