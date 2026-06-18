@@ -166,12 +166,31 @@ router.get('/view/:token', async (req, res) => {
       name: guest.name, phone: guest.phone,
       unique_id: guest.unique_id, status: guest.status,
       table_number: guest.table_number,
+      rsvp_status: guest.rsvp_status || 'pending',
       guest_number: guestNumber, total_guests: totalGuests,
       qrDataUrl, eventName,
       cardTemplate, inviteTemplate, thanksTemplate,
       eventDate: ev ? ev.date : null,
       eventVenue: ev ? ev.venue : null
     });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// Public RSVP — no auth required, guest accepts or declines via their link
+router.post('/rsvp/:token', async (req, res) => {
+  try {
+    const { status } = req.body; // 'accepted' | 'declined'
+    if (!['accepted', 'declined'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid RSVP status' });
+    }
+    const guest = await Guest.findOne({ qr_token: req.params.token });
+    if (!guest) return res.status(404).json({ error: 'Guest not found' });
+
+    guest.rsvp_status = status;
+    guest.rsvp_at     = new Date();
+    await guest.save();
+
+    res.json({ success: true, rsvp_status: guest.rsvp_status, name: guest.name });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 

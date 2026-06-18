@@ -90,7 +90,9 @@ const guestSchema = new mongoose.Schema({
   checked_in_at: { type: Date, default: null },
   checked_in_by: { type: String, default: null },
   sms_sent:      { type: Boolean, default: false },
-  sms_sent_at:   { type: Date, default: null }
+  sms_sent_at:   { type: Date, default: null },
+  rsvp_status:   { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+  rsvp_at:       { type: Date, default: null }
 }, { timestamps: true });
 
 // ── Settings ──────────────────────────────────────────────────

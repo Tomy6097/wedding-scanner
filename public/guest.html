@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sw">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Invitation</title>
+  <title>Mwaliko Wako</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -11,97 +11,169 @@
     body {
       font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
       min-height: 100vh;
-      background: #1a1a2e;
-      display: flex; align-items: center; justify-content: center;
-      padding: 1rem;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 1.5rem 1rem 3rem;
     }
-    .container { width: 100%; max-width: 380px; }
+    .container { width: 100%; max-width: 400px; }
+
+    /* ── Cards ── */
     .card {
-      background: #fff; border-radius: 16px;
-      overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      background: #fff; border-radius: 20px;
+      overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.35);
       margin-bottom: 1rem;
     }
     .card-img-wrap { position: relative; width: 100%; }
+    .card-img-wrap canvas,
     .card-img-wrap img.template { width: 100%; display: block; }
-    .card-img-wrap canvas { width: 100%; display: block; }
-    .plain-qr { padding: 1.5rem; text-align: center; }
-    .plain-qr img { width: 200px; height: 200px; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .guest-info { padding: 1rem 1.25rem; border-top: 1px solid #f0f0f0; }
-    .guest-name { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; }
-    .guest-meta { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
-    .status-badge {
-      display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px;
-      font-size: 0.75rem; font-weight: 600; margin-top: 0.5rem;
-      background: #d1fae5; color: #065f46;
+    .plain-qr { padding: 1.75rem; text-align: center; background: #fafafa; }
+    .plain-qr img { width: 180px; height: 180px; border-radius: 12px; border: 1px solid #e5e7eb; }
+
+    /* ── Guest info ── */
+    .guest-info { padding: 1.1rem 1.25rem 0.75rem; }
+    .guest-name { font-size: 1.15rem; font-weight: 800; color: #1a1a2e; }
+    .guest-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; line-height: 1.5; }
+    .event-detail { display: flex; gap: 0.35rem; align-items: center; font-size: 0.82rem; color: #6b7280; margin-top: 0.3rem; }
+
+    /* ── Status badge ── */
+    .status-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.25rem 0.8rem; border-radius: 999px;
+      font-size: 0.73rem; font-weight: 700; letter-spacing: 0.02em;
     }
-    .status-badge.pending { background: #f3f4f6; color: #6b7280; }
-    .actions { padding: 0.75rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .badge-checkin-done  { background: #d1fae5; color: #065f46; }
+    .badge-checkin-pending { background: #f3f4f6; color: #6b7280; }
+    .badge-rsvp-accepted { background: #dbeafe; color: #1d4ed8; }
+    .badge-rsvp-declined { background: #fee2e2; color: #b91c1c; }
+    .badge-rsvp-pending  { background: #fef9c3; color: #92400e; }
+
+    /* ── RSVP section ── */
+    .rsvp-section { padding: 1rem 1.25rem 1.25rem; border-top: 1px solid #f3f4f6; }
+    .rsvp-title { font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .rsvp-btns { display: flex; gap: 0.6rem; }
+    .btn-accept {
+      flex: 1; padding: 0.75rem; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: #fff; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-decline {
+      flex: 1; padding: 0.75rem; border-radius: 12px;
+      border: 1.5px solid #e5e7eb; background: #fff;
+      color: #6b7280; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-accept:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-decline:hover { background: #f9fafb; }
+    .btn-accept:disabled, .btn-decline:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* RSVP confirmation */
+    .rsvp-confirmed {
+      text-align: center; padding: 1rem 1.25rem 1.5rem;
+      border-top: 1px solid #f3f4f6;
+    }
+    .rsvp-confirmed .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .rsvp-confirmed .msg { font-size: 1rem; font-weight: 700; color: #1a1a2e; }
+    .rsvp-confirmed .sub { font-size: 0.82rem; color: #6b7280; margin-top: 0.3rem; }
+
+    /* ── Action buttons ── */
+    .actions { padding: 0.5rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-      padding: 0.7rem 1rem; border-radius: 8px; border: none;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      padding: 0.72rem 1rem; border-radius: 10px; border: none;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
       text-decoration: none; transition: opacity 0.15s; width: 100%;
     }
     .btn:hover { opacity: 0.88; }
-    .btn-primary { background: #7c3aed; color: #fff; }
-    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+    .btn-primary { background: linear-gradient(135deg, #6366f1, #7c3aed); color: #fff; }
+    .btn-outline { background: #fff; color: #374151; border: 1.5px solid #e5e7eb; }
     .btn-wa { background: #25D366; color: #fff; }
+
+    /* ── Section labels ── */
     .section-title {
-      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.1em; color: rgba(255,255,255,0.4);
-      margin: 1rem 0 0.5rem; text-align: center;
+      font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.12em; color: rgba(255,255,255,0.35);
+      margin: 1.25rem 0 0.5rem; text-align: center;
     }
-    .loading { color: rgba(255,255,255,0.6); text-align: center; padding: 3rem 1rem; }
-    .error-msg { color: #fca5a5; text-align: center; padding: 2rem 1rem; }
+
+    /* ── Loading / error ── */
+    .loading { color: rgba(255,255,255,0.6); text-align: center; padding: 4rem 1rem; font-size: 0.95rem; }
+    .error-msg {
+      color: #fca5a5; text-align: center; padding: 2.5rem 1rem;
+      font-size: 0.9rem; line-height: 1.6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      /* keep white cards regardless */
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div id="loading" class="loading">Inapakia mwaliko wako...</div>
+    <div id="loading" class="loading">⏳ Inapakia mwaliko wako...</div>
+
     <div id="content" style="display:none">
 
       <!-- QR Check-in Card -->
       <div class="section-title" id="qr-section-title">QR Code ya Kuingia</div>
       <div class="card" id="qr-card">
         <div class="card-img-wrap" id="qr-card-wrap"></div>
+
         <div class="guest-info">
           <div class="guest-name" id="guest-name-el"></div>
-          <div class="guest-meta" id="guest-meta-el"></div>
-          <div id="status-badge-el"></div>
+          <div id="event-details-el"></div>
+          <div class="status-row" id="status-row-el"></div>
         </div>
+
+        <!-- RSVP section -->
+        <div class="rsvp-section" id="rsvp-section">
+          <div class="rsvp-title">Je, unakuja? Thibitisha hapa</div>
+          <div class="rsvp-btns">
+            <button class="btn-accept" id="btn-accept" onclick="submitRsvp('accepted')">
+              ✅ Nakuja
+            </button>
+            <button class="btn-decline" id="btn-decline" onclick="submitRsvp('declined')">
+              ❌ Siwezi Kuja
+            </button>
+          </div>
+        </div>
+
+        <!-- RSVP confirmed state (hidden until accepted/declined) -->
+        <div class="rsvp-confirmed" id="rsvp-confirmed" style="display:none"></div>
+
         <div class="actions">
-          <button class="btn btn-primary" onclick="downloadQRCard()">Hifadhi QR Code</button>
-          <button class="btn btn-wa" onclick="shareWhatsApp('qr')">Shiriki WhatsApp</button>
+          <button class="btn btn-primary" onclick="downloadQRCard()">⬇ Hifadhi QR Code</button>
+          <button class="btn btn-wa" onclick="shareWhatsApp('qr')">📲 Shiriki WhatsApp</button>
         </div>
       </div>
 
-      <!-- Kadi ya Mwaliko (if set) -->
+      <!-- Invitation Card (if template is set) -->
       <div id="invite-section" style="display:none">
         <div class="section-title">Kadi ya Mwaliko</div>
         <div class="card">
           <div class="card-img-wrap" id="invite-card-wrap"></div>
           <div class="actions">
-            <button class="btn btn-primary" onclick="downloadCard('invite')">Hifadhi Mwaliko</button>
-            <button class="btn btn-wa" onclick="shareWhatsApp('invite')">Shiriki WhatsApp</button>
-            <button class="btn btn-outline" onclick="shareViaSMS('invite')">Tuma SMS</button>
+            <button class="btn btn-primary" onclick="downloadCard('invite')">⬇ Hifadhi Mwaliko</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('invite')">📲 Shiriki WhatsApp</button>
           </div>
         </div>
       </div>
 
-      <!-- Kadi ya Shukrani (if set) -->
+      <!-- Thank You Card (if template is set) -->
       <div id="thanks-section" style="display:none">
         <div class="section-title">Kadi ya Shukrani</div>
         <div class="card">
           <div class="card-img-wrap" id="thanks-card-wrap"></div>
           <div class="actions">
-            <button class="btn btn-primary" onclick="downloadCard('thanks')">Save Kadi ya Shukrani</button>
-            <button class="btn btn-wa" onclick="shareWhatsApp('thanks')">Shiriki WhatsApp</button>
-            <button class="btn btn-outline" onclick="shareViaSMS('thanks')">Tuma SMS</button>
+            <button class="btn btn-primary" onclick="downloadCard('thanks')">⬇ Hifadhi Kadi</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('thanks')">📲 Shiriki WhatsApp</button>
           </div>
         </div>
       </div>
 
     </div>
+
     <div id="error-div" class="error-msg" style="display:none"></div>
   </div>
 
@@ -110,10 +182,10 @@
     let _data = null;
     let _canvases = {};
 
-    // Scroll to top
     if (history.scrollRestoration) history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
 
+    // ── Load guest data ────────────────────────────────────────
     async function load() {
       try {
         const res  = await fetch(`/api/guests/view/${token}`);
@@ -129,19 +201,28 @@
       }
     }
 
+    // ── Render ─────────────────────────────────────────────────
     function render(data) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
 
-      // Guest info
+      // Name
       document.getElementById('guest-name-el').textContent = data.name;
-      const meta = [data.table_number ? 'Table: ' + data.table_number : null,
-                    data.eventName].filter(Boolean).join(' · ');
-      document.getElementById('guest-meta-el').textContent = meta;
-      const badge = document.getElementById('status-badge-el');
-      badge.innerHTML = data.status === 'used'
-        ? '<span class="status-badge">Ameingia</span>'
-        : '<span class="status-badge pending">Bado hajaingia</span>';
+
+      // Event details
+      const detailsEl = document.getElementById('event-details-el');
+      const parts = [];
+      if (data.eventName) parts.push('📅 ' + data.eventName);
+      if (data.eventDate) parts.push(new Date(data.eventDate).toLocaleDateString('sw', { day:'numeric', month:'long', year:'numeric' }));
+      if (data.eventVenue) parts.push('📍 ' + data.eventVenue);
+      if (data.table_number) parts.push('🪑 Meza: ' + data.table_number);
+      detailsEl.innerHTML = parts.map(p => `<div class="event-detail">${p}</div>`).join('');
+
+      // Status badges
+      renderStatusBadges(data.status, data.rsvp_status);
+
+      // RSVP section
+      renderRsvpSection(data.rsvp_status);
 
       // QR card
       buildQRCard(data);
@@ -159,11 +240,85 @@
       }
     }
 
+    function renderStatusBadges(checkInStatus, rsvpStatus) {
+      const row = document.getElementById('status-row-el');
+      const checkinBadge = checkInStatus === 'used'
+        ? `<span class="badge badge-checkin-done">✅ Ameingia</span>`
+        : `<span class="badge badge-checkin-pending">⏳ Bado hajaingia</span>`;
+
+      let rsvpBadge = '';
+      if (rsvpStatus === 'accepted') {
+        rsvpBadge = `<span class="badge badge-rsvp-accepted">👍 Amekubali</span>`;
+      } else if (rsvpStatus === 'declined') {
+        rsvpBadge = `<span class="badge badge-rsvp-declined">👎 Amekataa</span>`;
+      } else {
+        rsvpBadge = `<span class="badge badge-rsvp-pending">⏳ RSVP Inasubiri</span>`;
+      }
+
+      row.innerHTML = checkinBadge + rsvpBadge;
+    }
+
+    function renderRsvpSection(rsvpStatus) {
+      const section   = document.getElementById('rsvp-section');
+      const confirmed = document.getElementById('rsvp-confirmed');
+
+      if (rsvpStatus === 'accepted') {
+        section.style.display = 'none';
+        confirmed.style.display = 'block';
+        confirmed.innerHTML = `
+          <div class="icon">🎉</div>
+          <div class="msg">Umekubali Mwaliko!</div>
+          <div class="sub">Asante sana. Tutakuona kwenye tukio. Onyesha QR code hii mlangoni.</div>`;
+      } else if (rsvpStatus === 'declined') {
+        section.style.display = 'none';
+        confirmed.style.display = 'block';
+        confirmed.innerHTML = `
+          <div class="icon">😢</div>
+          <div class="msg">Umekataa Mwaliko</div>
+          <div class="sub">Tumepokea jibu lako. Tutakukumbuka kwenye tukio lijalo.</div>`;
+      } else {
+        section.style.display = 'block';
+        confirmed.style.display = 'none';
+      }
+    }
+
+    // ── RSVP submit ────────────────────────────────────────────
+    async function submitRsvp(status) {
+      const btnAccept  = document.getElementById('btn-accept');
+      const btnDecline = document.getElementById('btn-decline');
+      btnAccept.disabled  = true;
+      btnDecline.disabled = true;
+      btnAccept.textContent  = status === 'accepted' ? '⏳ Inatuma...' : '✅ Nakuja';
+      btnDecline.textContent = status === 'declined' ? '⏳ Inatuma...' : '❌ Siwezi Kuja';
+
+      try {
+        const res  = await fetch(`/api/guests/rsvp/${token}`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Hitilafu');
+
+        // Update in-memory data and re-render status + rsvp section
+        _data.rsvp_status = data.rsvp_status;
+        renderStatusBadges(_data.status, data.rsvp_status);
+        renderRsvpSection(data.rsvp_status);
+      } catch (e) {
+        btnAccept.disabled  = false;
+        btnDecline.disabled = false;
+        btnAccept.textContent  = '✅ Nakuja';
+        btnDecline.textContent = '❌ Siwezi Kuja';
+        alert('Hitilafu: ' + e.message + '. Jaribu tena.');
+      }
+    }
+
+    // ── QR card builder ────────────────────────────────────────
     function buildQRCard(data) {
       const wrap = document.getElementById('qr-card-wrap');
       if (data.cardTemplate && data.cardTemplate.image && data.cardTemplate.qr_x != null) {
-        const canvas = document.createElement('canvas');
-        const ctx    = canvas.getContext('2d');
+        const canvas  = document.createElement('canvas');
+        const ctx     = canvas.getContext('2d');
         const cardImg = new Image();
         cardImg.onload = () => {
           canvas.width  = cardImg.naturalWidth;
@@ -174,20 +329,17 @@
             const W   = canvas.width;
             const H   = canvas.height;
             const qrW = (data.cardTemplate.qr_size / 100) * W;
-            const qrX = (data.cardTemplate.qr_x / 100) * W - qrW / 2;
-            const qrY = (data.cardTemplate.qr_y / 100) * H - qrW / 2;
+            const qrX = (data.cardTemplate.qr_x  / 100) * W - qrW / 2;
+            const qrY = (data.cardTemplate.qr_y  / 100) * H - qrW / 2;
             ctx.drawImage(qrImg, qrX, qrY, qrW, qrW);
-
-            // Draw guest name if position is set
             if (data.cardTemplate.name_x != null && data.cardTemplate.name_y != null) {
-              const fontSize = Math.round((data.cardTemplate.name_size / 100) * W);
-              ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+              const fs = Math.round((data.cardTemplate.name_size / 100) * W);
+              ctx.font         = `bold ${fs}px 'Segoe UI', sans-serif`;
               ctx.fillStyle    = data.cardTemplate.name_color || '#000000';
               ctx.textAlign    = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillText(data.name, (data.cardTemplate.name_x / 100) * W, (data.cardTemplate.name_y / 100) * H);
             }
-
             _canvases['qr'] = canvas;
           };
           qrImg.src = data.qrDataUrl;
@@ -200,8 +352,9 @@
       }
     }
 
+    // ── Named card builder ─────────────────────────────────────
     function buildNameCard(type, template, guestName) {
-      const wrap = document.getElementById(`${type}-card-wrap`);
+      const wrap   = document.getElementById(`${type}-card-wrap`);
       const canvas = document.createElement('canvas');
       const ctx    = canvas.getContext('2d');
       const img    = new Image();
@@ -209,32 +362,30 @@
         canvas.width  = img.naturalWidth;
         canvas.height = img.naturalHeight;
         ctx.drawImage(img, 0, 0);
-        // Draw guest name
-        const fontSize = Math.round((template.name_size / 100) * img.naturalWidth);
-        ctx.font      = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-        ctx.fillStyle = template.name_color || '#000000';
-        ctx.textAlign = 'center';
+        const fs = Math.round((template.name_size / 100) * img.naturalWidth);
+        ctx.font         = `bold ${fs}px 'Segoe UI', sans-serif`;
+        ctx.fillStyle    = template.name_color || '#000000';
+        ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
-        const x = (template.name_x / 100) * img.naturalWidth;
-        const y = (template.name_y / 100) * img.naturalHeight;
-        ctx.fillText(guestName, x, y);
+        ctx.fillText(guestName, (template.name_x / 100) * img.naturalWidth, (template.name_y / 100) * img.naturalHeight);
         _canvases[type] = canvas;
       };
       img.src = template.image;
       wrap.appendChild(canvas);
     }
 
+    // ── Downloads ──────────────────────────────────────────────
     function downloadQRCard() {
       const canvas = _canvases['qr'];
+      const name   = (_data.name || 'guest').replace(/\s+/g, '-').toLowerCase();
       if (canvas) {
         const a = document.createElement('a');
-        a.download = `qr-${_data.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+        a.download = `qr-${name}.png`;
         a.href = canvas.toDataURL('image/png');
         a.click();
       } else {
-        // Plain QR — download the QR image directly
         const a = document.createElement('a');
-        a.download = `qr-${_data.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+        a.download = `qr-${name}.png`;
         a.href = _data.qrDataUrl;
         a.click();
       }
@@ -244,34 +395,24 @@
       const canvas = _canvases[type];
       if (!canvas) return;
       const a = document.createElement('a');
-      a.download = `${type}-${_data.name.replace(/\s+/g,'-').toLowerCase()}.png`;
+      a.download = `${type}-${(_data.name || 'guest').replace(/\s+/g, '-').toLowerCase()}.png`;
       a.href = canvas.toDataURL('image/png');
       a.click();
     }
 
+    // ── WhatsApp share ─────────────────────────────────────────
     function shareWhatsApp(type) {
+      const pageUrl    = window.location.href;
       const lookupCode = (_data.unique_id || '').substring(0, 8).toUpperCase();
       let msg;
       if (type === 'qr') {
-        msg = `Habari ${_data.name}, umealikwa kwenye *${_data.eventName}!\n\nYour check-in QR code: ${window.location.href}\n\nCode: ${lookupCode}`;
+        msg = `Habari ${_data.name}! 🎉\n\nUmealikwa kwenye *${_data.eventName}*.\n\nAngalia mwaliko wako na QR code hapa:\n${pageUrl}\n\nCode yako: *${lookupCode}*\n\nOnyesha QR code mlangoni. Karibu sana! 🎊`;
       } else if (type === 'invite') {
-        msg = `Dear ${_data.name}, you are cordially invited to ${_data.eventName}!\n\nView your invitation: ${window.location.href}`;
+        msg = `Habari ${_data.name}! 🎉\n\nUnaalikwa rasmi kwenye *${_data.eventName}*.\n\nTazama kadi yako ya mwaliko: ${pageUrl}`;
       } else {
-        msg = `Dear ${_data.name}, thank you for attending ${_data.eventName}! It was a pleasure having you with us.`;
+        msg = `Habari ${_data.name}! 💐\n\nAsante sana kwa kuja kwenye *${_data.eventName}*. Ilikuwa furaha kubwa! 🙏`;
       }
       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    function shareViaSMS(type) {
-      const lookupCode = (_data.unique_id || '').substring(0, 8).toUpperCase();
-      let msg;
-      if (type === 'invite') {
-        msg = `Habari ${_data.name}, umealikwa kwenye *${_data.eventName}. View: ${window.location.href}`;
-      } else {
-        msg = `Dear ${_data.name}, thank you for attending ${_data.eventName}!`;
-      }
-      const phone = (_data.phone || '').replace(/\D/g, '');
-      window.open(`sms:${phone}?body=${encodeURIComponent(msg)}`, '_self');
     }
 
     load();
