@@ -387,11 +387,17 @@ router.post('/:id/sms', requireAdmin, async (req, res) => {
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
     if (!guest.phone) return res.status(400).json({ error: 'Guest has no phone number' });
 
-    const eventName  = await getEventName(guest.event_id);
+    const ev         = await Event.findById(guest.event_id);
+    const eventName  = ev ? ev.name : await getEventName(guest.event_id);
+    const venue      = ev?.venue || null;
+    const eventDate  = ev?.date ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
     const lookupCode = guest.unique_id.substring(0, 8).toUpperCase();
     const baseUrl    = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
     const link       = `${baseUrl}/guest/${guest.qr_token}`;
-    const message    = `Habari ${guest.name},\n\nUnaalikwa rasmi kwenye tukio la "${eventName}".\n\nTiketi yako ya QR: ${link}\n\nNambari yako ya kuingia: ${lookupCode}\n\nOnyesha nambari hii au QR code mlangoni. Karibu sana!`;
+    let message = `Habari ${guest.name},\n\nUnaalikwa rasmi kwenye tukio la "${eventName}".`;
+    if (eventDate) message += `\nTarehe: ${eventDate}`;
+    if (venue)     message += `\nMahali: ${venue}`;
+    message += `\n\nTiketi yako ya QR: ${link}\nNambari yako ya kuingia: ${lookupCode}\n\nOnyesha nambari hii au QR code mlangoni. Karibu sana!`;
 
     await sendBeemSMS(guest.phone, message);
     guest.sms_sent    = true;
@@ -413,10 +419,12 @@ router.post('/sms/bulk', requireAdmin, async (req, res) => {
     const filter = { event_id, phone: { $ne: null } };
     if (only_unsent) filter.sms_sent = { $ne: true };
     const guests = await Guest.find(filter);
-
     if (!guests.length) return res.json({ success: true, sent: 0, failed: 0, message: 'No guests to send to' });
 
-    const eventName = await getEventName(event_id);
+    const ev        = await Event.findById(event_id);
+    const eventName = ev ? ev.name : await getEventName(event_id);
+    const venue     = ev?.venue || null;
+    const eventDate = ev?.date ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
     const baseUrl   = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
     let sent = 0, failed = 0, errors = [];
 
@@ -424,7 +432,10 @@ router.post('/sms/bulk', requireAdmin, async (req, res) => {
       try {
         const lookupCode = guest.unique_id.substring(0, 8).toUpperCase();
         const link       = `${baseUrl}/guest/${guest.qr_token}`;
-        const message    = `Habari ${guest.name},\n\nUnaalikwa rasmi kwenye tukio la "${eventName}".\n\nTiketi yako ya QR: ${link}\n\nNambari yako ya kuingia: ${lookupCode}\n\nOnyesha nambari hii au QR code mlangoni. Karibu sana!`;
+        let message = `Habari ${guest.name},\n\nUnaalikwa rasmi kwenye tukio la "${eventName}".`;
+        if (eventDate) message += `\nTarehe: ${eventDate}`;
+        if (venue)     message += `\nMahali: ${venue}`;
+        message += `\n\nTiketi yako ya QR: ${link}\nNambari yako ya kuingia: ${lookupCode}\n\nOnyesha nambari hii au QR code mlangoni. Karibu sana!`;
         await sendBeemSMS(guest.phone, message);
         guest.sms_sent    = true;
         guest.sms_sent_at = new Date();
@@ -436,7 +447,6 @@ router.post('/sms/bulk', requireAdmin, async (req, res) => {
         errors.push(`${guest.name}: ${e.message}`);
       }
     }
-
     res.json({ success: true, sent, failed, errors: errors.slice(0, 5) });
   } catch (err) {
     res.status(500).json({ error: err.message });
