@@ -184,12 +184,14 @@
           <div class="stat-card stat-percent"><div class="stat-icon"><i data-lucide="percent"></i></div><div class="stat-value" id="dash-attendance">0%</div><div class="stat-label">Attendance</div></div>
           <div class="stat-card"><div class="stat-icon"><i data-lucide="scan-line"></i></div><div class="stat-value" id="dash-total-scans">0</div><div class="stat-label">Total Scans</div></div>
           <div class="stat-card"><div class="stat-icon"><i data-lucide="alert-circle"></i></div><div class="stat-value" id="dash-invalid-scans">0</div><div class="stat-label">Invalid Scans</div></div>
+          <div class="stat-card" style="border-left:3px solid #25D366"><div class="stat-icon" style="color:#25D366"><i data-lucide="message-circle"></i></div><div class="stat-value" id="dash-wa-sent">—</div><div class="stat-label">WA Received</div></div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-icon" style="color:#f59e0b"><i data-lucide="clock"></i></div><div class="stat-value" id="dash-wa-unsent">—</div><div class="stat-label">WA Pending</div></div>
         </div>
         <h3 class="section-subtitle">Per Event</h3>
         <div style="overflow-x:auto;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white)">
           <table class="guests-table">
-            <thead><tr><th>Event</th><th>Client</th><th>Date</th><th>Guests</th><th>Checked In</th><th>Attendance</th><th>Status</th></tr></thead>
-            <tbody id="dash-event-tbody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody>
+            <thead><tr><th>Event</th><th>Client</th><th>Date</th><th>Guests</th><th>Checked In</th><th>Attendance</th><th>WA Sent</th><th>Status</th></tr></thead>
+            <tbody id="dash-event-tbody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
           </table>
         </div>
         <h3 class="section-subtitle" style="margin-top:1.5rem">Recent Check-ins</h3>
@@ -223,6 +225,8 @@
           <div class="stat-card stat-checkedin"><div class="stat-icon"><i data-lucide="check-circle"></i></div><div class="stat-value" id="stat-checkedin">0</div><div class="stat-label">Checked In</div></div>
           <div class="stat-card stat-remaining"><div class="stat-icon"><i data-lucide="clock"></i></div><div class="stat-value" id="stat-remaining">0</div><div class="stat-label">Remaining</div></div>
           <div class="stat-card stat-percent"><div class="stat-icon"><i data-lucide="percent"></i></div><div class="stat-value" id="stat-percent">0%</div><div class="stat-label">Attendance</div></div>
+          <div class="stat-card" style="border-left:3px solid #25D366"><div class="stat-icon" style="color:#25D366"><i data-lucide="message-circle"></i></div><div class="stat-value" id="stat-wa-sent">—</div><div class="stat-label">WA Received</div></div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-icon" style="color:#f59e0b"><i data-lucide="clock"></i></div><div class="stat-value" id="stat-wa-unsent">—</div><div class="stat-label">WA Pending</div></div>
         </div>
         <div class="progress-section">
           <div class="progress-label"><span>Check-in Progress</span><span id="progress-text">0 / 0</span></div>
@@ -247,7 +251,7 @@
         </div>
         <div class="guests-table-wrap">
           <table class="guests-table">
-            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th><th>Type</th><th>Code</th><th>Status</th><th>SMS</th><th>Actions</th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Table</th><th>Type</th><th>Code</th><th>Status</th><th>WhatsApp</th><th>Actions</th></tr></thead>
             <tbody id="guests-tbody"><tr><td colspan="9" class="empty-state">Loading...</td></tr></tbody>
           </table>
         </div>

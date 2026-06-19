@@ -403,9 +403,18 @@ async function deleteEvent(id, name) {
 async function fetchStats() {
   if (!state.currentEvent) return;
   try {
-    const stats = await api('GET', `/guests/stats?event_id=${gid(state.currentEvent)}`);
+    const [stats, waStatus] = await Promise.all([
+      api('GET', `/guests/stats?event_id=${gid(state.currentEvent)}`),
+      api('GET', `/whatsapp/status/${gid(state.currentEvent)}`).catch(() => null)
+    ]);
     state.stats = stats;
     updateStatsUI(stats);
+
+    // WhatsApp stats in Overview
+    const waSentEl   = $('#stat-wa-sent');
+    const waUnsentEl = $('#stat-wa-unsent');
+    if (waSentEl)   waSentEl.textContent   = waStatus?.data?.wa_sent   ?? '—';
+    if (waUnsentEl) waUnsentEl.textContent = waStatus?.data?.wa_unsent ?? '—';
   } catch (e) { console.error('Stats error:', e); }
 }
 
@@ -485,7 +494,14 @@ function renderGuestsTable(guests) {
         </span>
         ${g.status === 'used' && g.checked_in_at ? `<div style="font-size:0.75rem;color:var(--gray-400)">${formatDateTime(g.checked_in_at)}</div>` : ''}
       </td>
-      <td>${g.sms_sent ? '<span style="color:var(--gray-500);font-size:0.75rem">Sent</span>' : '<span style="color:var(--gray-300)">—</span>'}</td>
+      <td>
+        ${g.wa_sent
+          ? `<span style="color:#25D366;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:0.2rem"><i data-lucide="check-circle" style="width:11px;height:11px"></i> Received</span>${g.wa_sent_at ? `<div style="font-size:0.68rem;color:var(--gray-400)">${formatDateTime(g.wa_sent_at)}</div>` : ''}`
+          : g.wa_failed
+            ? `<button class="btn btn-ghost btn-sm" style="color:var(--error);font-size:0.72rem;padding:0.15rem 0.4rem" title="Tuma tena" onclick="resendSingleGuest('${gid(g)}','${escHtml(g.name)}')"><i data-lucide="refresh-cw" style="width:11px;height:11px"></i> Retry</button>`
+            : `<button class="btn btn-ghost btn-sm" style="color:var(--warning);font-size:0.72rem;padding:0.15rem 0.4rem" title="Tuma mwaliko" onclick="resendSingleGuest('${gid(g)}','${escHtml(g.name)}')"><i data-lucide="send" style="width:11px;height:11px"></i> Send</button>`
+        }
+      </td>
       <td class="table-actions-cell"></td>`;
 
     // Build actions cell safely
@@ -908,7 +924,29 @@ async function loadSendTab() {
   }
 }
 
-// ── Resend to unsent guests ───────────────────────────────────
+// ── Resend to a single guest ──────────────────────────────────
+async function resendSingleGuest(guestId, guestName) {
+  if (!state.currentEvent) return;
+  if (!confirm(`Tuma mwaliko wa WhatsApp kwa ${guestName}?`)) return;
+  try {
+    const res = await api('POST', '/whatsapp/send-invites', {
+      event_id: gid(state.currentEvent),
+      type: 'invite',
+      guest_ids: [guestId]
+    });
+    const ok = res.sent > 0;
+    alert(ok
+      ? `✅ Imetumwa kwa ${guestName}!`
+      : `⚠️ Imeshindwa: ${res.errors?.[0] || 'Nambari haipo WhatsApp'}`
+    );
+    // Refresh table to update WA status icon
+    const search = $('#guest-search') ? $('#guest-search').value : '';
+    await fetchGuests(search);
+    await loadSendTab();
+  } catch (e) {
+    alert('Imeshindwa: ' + e.message);
+  }
+}
 async function resendUnsent() {
   if (!state.currentEvent) return;
   const ev       = state.currentEvent;
@@ -1778,13 +1816,46 @@ async function fetchDashboard() {
     set('dash-total-scans',   s.totalScans);
     set('dash-invalid-scans', s.invalidScans);
 
+    // WA stats across all events — sum per-event data or load from status endpoint
+    try {
+      const events = await api('GET', '/events');
+      let totalWaSent = 0, totalWaUnsent = 0;
+      await Promise.all(events.map(async ev => {
+        try {
+          const wa = await api('GET', `/whatsapp/status/${gid(ev)}`);
+          totalWaSent   += wa.data?.wa_sent   || 0;
+          totalWaUnsent += wa.data?.wa_unsent || 0;
+        } catch {}
+      }));
+      set('dash-wa-sent',   totalWaSent);
+      set('dash-wa-unsent', totalWaUnsent);
+    } catch {}
+
     // Per-event table
     const tbody = $('#dash-event-tbody');
     if (tbody) {
       if (!data.eventStats.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No events yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No events yet</td></tr>';
       } else {
-        tbody.innerHTML = data.eventStats.map(e => `
+        // Load WA stats per event
+        const waMap = {};
+        await Promise.all(data.eventStats.map(async e => {
+          try {
+            const wa = await api('GET', `/whatsapp/status/${e._id || e.id}`);
+            waMap[e._id || e.id] = wa.data;
+          } catch { waMap[e._id || e.id] = null; }
+        }));
+
+        tbody.innerHTML = data.eventStats.map(e => {
+          const wa     = waMap[e._id || e.id];
+          const waSent = wa ? wa.wa_sent : '—';
+          const waUnsent = wa ? wa.wa_unsent : '—';
+          const waBadge  = wa
+            ? wa.wa_unsent > 0
+              ? `<span style="color:#25D366;font-weight:700">${waSent}</span> <span style="color:#f59e0b;font-size:0.75rem">(${waUnsent} pending)</span>`
+              : `<span style="color:#25D366;font-weight:700">✅ ${waSent}</span>`
+            : '—';
+          return `
           <tr>
             <td><strong>${escHtml(e.name)}</strong></td>
             <td>${e.client ? escHtml(e.client) : '—'}</td>
@@ -1799,8 +1870,10 @@ async function fetchDashboard() {
                 <span style="font-size:0.8rem;color:var(--gray-500)">${e.attendance}%</span>
               </div>
             </td>
+            <td>${waBadge}</td>
             <td><span class="badge ${e.status==='active'?'badge-unused':'badge-used'}">${escHtml(e.status)}</span></td>
-          </tr>`).join('');
+          </tr>`;
+        }).join('');
       }
     }
 
