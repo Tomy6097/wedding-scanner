@@ -178,7 +178,13 @@
   </div>
 
   <script>
-    const token = window.location.pathname.split('/guest/')[1];
+    // Extract token from any of:
+    //   /guest/:token   /rsvp/:token   /qr/:token   /accept/:token
+    const _pathParts = window.location.pathname.split('/').filter(Boolean);
+    const token = _pathParts[_pathParts.length - 1]; // always last segment
+
+    // If came via /accept/:token — auto-accept RSVP after load
+    const _autoAccept = window.location.pathname.startsWith('/accept/');
     let _data = null;
     let _canvases = {};
 
@@ -193,6 +199,11 @@
         if (!res.ok) throw new Error(data.error || 'Not found');
         _data = data;
         render(data);
+
+        // Auto-accept if guest tapped the Accept button link in WhatsApp
+        if (_autoAccept && data.rsvp_status === 'pending') {
+          await submitRsvp('accepted');
+        }
       } catch (e) {
         document.getElementById('loading').style.display = 'none';
         const errDiv = document.getElementById('error-div');

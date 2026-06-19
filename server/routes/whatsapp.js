@@ -63,10 +63,27 @@ function efPost(path, payload, token) {
 }
 
 async function sendTemplate(phone, params, guestImageUrl) {
+  // Always use eventflow_invite_sw — the only confirmed working template.
+  // It requires: imageUrl (IMAGE header) + body params + rsvpLink + qrLink buttons.
+  const appUrl = await getAppUrl();
+
+  // Build the stable /go/ redirect URLs so buttons work regardless of frontend domain
+  const efBase = 'https://eventflow-backend-614505894752.us-central1.run.app';
+  const rsvpLink = params.rsvpToken ? `${efBase}/go/rsvp/${params.rsvpToken}` : '';
+  const qrLink   = params.qrToken   ? `${efBase}/go/qr/${params.qrToken}`     : '';
+
   return efPost('/api/v1/external/whatsapp/send/template', {
-    to: phone,
-    template: 'event_invitation',
-    params: { ...params, imageUrl: guestImageUrl || '' }
+    to:       phone,
+    template: 'eventflow_invite_sw',
+    params: {
+      guestName: params.guestName,
+      eventName: params.eventName,
+      eventDate: params.eventDate,
+      location:  params.location,
+      rsvpLink,
+      qrLink,
+      imageUrl:  guestImageUrl || ''
+    }
   });
 }
 
@@ -107,19 +124,25 @@ router.post('/test', requireAdmin, async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone required' });
   try {
-    const p  = cleanPhone(phone);
-    const ev = await Event.findOne().sort({ createdAt: -1 });
+    const p      = cleanPhone(phone);
+    const ev     = await Event.findOne().sort({ createdAt: -1 });
     const appUrl = await getAppUrl();
-    // Use event cover image URL for test
+
+    // Create a dummy guest token for test buttons
+    const testToken    = 'test-preview-token';
     const testImageUrl = ev ? `${appUrl}/api/events/${ev._id}/whatsapp-cover` : '';
+
     await sendTemplate(p, {
-      guestName: 'Mgeni wa Majaribio',
-      eventName: ev?.name || 'TMJ Wedding Tech',
-      eventDate: ev?.date
+      guestName:  'Mgeni wa Majaribio',
+      eventName:  ev?.name || 'TMJ Wedding Tech',
+      eventDate:  ev?.date
         ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
         : new Date().toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }),
-      location: ev?.venue || 'Dar es Salaam'
+      location:   ev?.venue || 'Dar es Salaam',
+      rsvpToken:  testToken,
+      qrToken:    testToken
     }, testImageUrl);
+
     res.json({ success: true, message: 'Test sent!' });
   } catch (err) {
     console.error('[test]', err.message || err);
@@ -162,13 +185,16 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         const guestLink = `${appUrl}/guest/${g.qr_token}`;
 
         if (type === 'qr' || type === 'invite') {
-          // Per-guest card image with their specific QR code
+          // Per-guest card image with their specific QR code baked in
           const guestImageUrl = `${appUrl}/api/guests/${g._id}/whatsapp-cover`;
           await sendTemplate(phone, {
             guestName: g.name,
             eventName: ev.name,
             eventDate,
-            location
+            location,
+            // qr_token is the unique UUID — used as the URL suffix for the /go/ redirect buttons
+            rsvpToken: g.qr_token,
+            qrToken:   g.qr_token
           }, guestImageUrl);
           if (type === 'qr') {
             g.sms_sent    = true;

@@ -66,10 +66,12 @@ app.use('/api/bookings',  bookingRoutes);
 app.use('/api/whatsapp',  whatsappRoutes);
 
 // ── Public guest page route ──────────────────────────────────
-// Serves the SPA for /guest/:token — frontend handles the display
-app.get('/guest/:token', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'guest.html'));
-});
+// Serves guest.html for all public guest-facing URLs.
+// The frontend JS reads the token from window.location.pathname.
+app.get('/guest/:token',  (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'guest.html')));
+app.get('/rsvp/:token',   (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'guest.html')));
+app.get('/qr/:token',     (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'guest.html')));
+app.get('/accept/:token', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'guest.html')));
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
