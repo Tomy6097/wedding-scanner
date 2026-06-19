@@ -387,9 +387,9 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
 
         await new Promise(r => setTimeout(r, 1500));
       } catch (e) {
-        console.error(`[send-invites ${g.name}]`, e.message);
+        console.error(`[send-invites ${g.name}]`, e.message || e);
         failed++;
-        errors.push(`${g.name}: ${e.message}`);
+        errors.push(`${g.name}: ${e.message || JSON.stringify(e)}`);
       }
     }
 
