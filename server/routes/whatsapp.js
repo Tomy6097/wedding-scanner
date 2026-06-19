@@ -91,43 +91,6 @@ function cleanPhone(raw) {
   return '+' + p;
 }
 
-async function getInviteImageUrl(eventId, appUrl) {
-  const ev = await Event.findById(eventId);
-  if (!ev?.invite_image && !ev?.card_image) {
-    throw new Error('Upload a card or invitation image first (Card Template tab)');
-  }
-  const url = `${appUrl.replace(/\/$/, '')}/api/events/${eventId}/whatsapp-cover`;
-  try {
-    const mod = url.startsWith('https') ? https : http;
-    await new Promise((resolve, reject) => {
-      const req = mod.get(url, { timeout: 8000 }, (res) => {
-        res.resume(); // consume response to free socket
-        if (res.statusCode === 200) resolve();
-        else reject(new Error(`HTTP ${res.statusCode}`));
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    });
-    return url;
-  } catch (e) {
-    console.warn('[WhatsApp] Public cover image not reachable at', url, '—', e.message);
-
-    // Fallback for localhost / private deployments: upload the stored data URL
-    // to a temporary public host so WhatsApp can fetch it.
-    const dataUrl = ev?.invite_image || ev?.card_image;
-    if (dataUrl) {
-      console.warn('[WhatsApp] Public cover image not reachable at', url, '— uploading to a temporary public host');
-      try {
-        return await uploadDataUrlToPublicHost(dataUrl, `event-${eventId}.png`);
-      } catch (uploadErr) {
-        console.warn('[WhatsApp] Temporary upload failed:', uploadErr.message);
-      }
-    }
-
-    throw new Error('WhatsApp image URL is not publicly reachable. Deploy the app or update App URL in Settings.');
-  }
-}
-
 // ── Send via EventFlow template API ──────────────────────────
 async function eventFlowSend(payload) {
   const hostname = await getEventFlowBase();
