@@ -62,11 +62,11 @@ function efPost(path, payload, token) {
   });
 }
 
-async function sendTemplate(phone, params) {
+async function sendTemplate(phone, params, guestImageUrl) {
   return efPost('/api/v1/external/whatsapp/send/template', {
     to: phone,
     template: 'event_invitation',
-    params
+    params: { ...params, imageUrl: guestImageUrl || '' }
   });
 }
 
@@ -109,6 +109,9 @@ router.post('/test', requireAdmin, async (req, res) => {
   try {
     const p  = cleanPhone(phone);
     const ev = await Event.findOne().sort({ createdAt: -1 });
+    const appUrl = await getAppUrl();
+    // Use event cover image URL for test
+    const testImageUrl = ev ? `${appUrl}/api/events/${ev._id}/whatsapp-cover` : '';
     await sendTemplate(p, {
       guestName: 'Mgeni wa Majaribio',
       eventName: ev?.name || 'TMJ Wedding Tech',
@@ -116,7 +119,7 @@ router.post('/test', requireAdmin, async (req, res) => {
         ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
         : new Date().toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }),
       location: ev?.venue || 'Dar es Salaam'
-    });
+    }, testImageUrl);
     res.json({ success: true, message: 'Test sent!' });
   } catch (err) {
     console.error('[test]', err.message || err);
@@ -159,12 +162,14 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         const guestLink = `${appUrl}/guest/${g.qr_token}`;
 
         if (type === 'qr' || type === 'invite') {
+          // Per-guest card image with their specific QR code
+          const guestImageUrl = `${appUrl}/api/guests/${g._id}/whatsapp-cover`;
           await sendTemplate(phone, {
             guestName: g.name,
             eventName: ev.name,
             eventDate,
             location
-          });
+          }, guestImageUrl);
           if (type === 'qr') {
             g.sms_sent    = true;
             g.sms_sent_at = new Date();
