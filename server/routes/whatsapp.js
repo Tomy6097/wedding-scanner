@@ -269,30 +269,28 @@ router.post('/test', requireAdmin, async (req, res) => {
   const { phone, event_id } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone required' });
   try {
-    const p = cleanPhone(phone);
+    const p      = cleanPhone(phone);
     const appUrl = await getAppUrl();
-    const ev = event_id
+    const ev     = event_id
       ? await Event.findById(event_id)
       : await Event.findOne().sort({ createdAt: -1 });
-    const imageUrl = ev
-      ? await getInviteImageUrl(ev._id, appUrl)
-      : undefined;
+
     await eventFlowSend({
       to:       p,
       template: 'event_invitation',
       params: {
-        guestName:  'Mgeni wa Majaribio',
-        eventName:  ev?.name || 'TMJ Wedding Tech — Test',
-        eventDate:  ev?.date
+        guestName: 'Mgeni wa Majaribio',
+        eventName: ev?.name || 'TMJ Wedding Tech — Test',
+        eventDate: ev?.date
           ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
           : new Date().toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }),
-        location:   ev?.venue || 'Dar es Salaam',
+        location: ev?.venue || 'Dar es Salaam',
       }
     });
     res.json({ success: true, message: 'Test invitation sent via EventFlow!' });
   } catch (err) {
-    console.error('[/test]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[/test]', err.message || err);
+    res.status(500).json({ error: String(err.message || err) });
   }
 });
 
@@ -395,8 +393,8 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
 
     res.json({ success: true, sent, failed, errors: errors.slice(0, 10) });
   } catch (err) {
-    console.error('[send-invites fatal]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[send-invites fatal]', err.message || err);
+    res.status(500).json({ error: String(err.message || err) });
   }
 });
 
