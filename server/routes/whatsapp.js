@@ -279,7 +279,7 @@ router.post('/test', requireAdmin, async (req, res) => {
       : undefined;
     await eventFlowSend({
       to:       p,
-      template: 'eventflow_invite_sw',
+      template: 'event_invitation',
       params: {
         guestName:  'Mgeni wa Majaribio',
         eventName:  ev?.name || 'TMJ Wedding Tech — Test',
@@ -287,9 +287,6 @@ router.post('/test', requireAdmin, async (req, res) => {
           ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
           : new Date().toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' }),
         location:   ev?.venue || 'Dar es Salaam',
-        rsvpLink:   'test-guest-token',
-        qrLink:     'test-guest-token',
-        ...(imageUrl ? { imageUrl } : {}),
       }
     });
     res.json({ success: true, message: 'Test invitation sent via EventFlow!' });
@@ -346,15 +343,12 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         if (type === 'qr') {
           await eventFlowSend({
             to:       phone,
-            template: 'eventflow_invite_sw',
+            template: 'event_invitation',
             params: {
-              guestName:  g.name,
-              eventName:  ev.name,
-              eventDate:  eventDateStr,
-              location:   eventLocation,
-              rsvpLink:   linkSuffix,
-              qrLink:     linkSuffix,
-              imageUrl:   guestImageUrl,
+              guestName: g.name,
+              eventName: ev.name,
+              eventDate: eventDateStr,
+              location:  eventLocation
             }
           });
           g.sms_sent    = true;
@@ -365,15 +359,12 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         } else if (type === 'invite') {
           await eventFlowSend({
             to:       phone,
-            template: 'eventflow_invite_sw',
+            template: 'event_invitation',
             params: {
-              guestName:  g.name,
-              eventName:  ev.name,
-              eventDate:  eventDateStr,
-              location:   eventLocation,
-              rsvpLink:   linkSuffix,
-              qrLink:     linkSuffix,
-              imageUrl:   guestImageUrl,
+              guestName: g.name,
+              eventName: ev.name,
+              eventDate: eventDateStr,
+              location:  eventLocation
             }
           });
           sent++;
