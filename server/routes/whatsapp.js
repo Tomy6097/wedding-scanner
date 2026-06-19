@@ -329,9 +329,7 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     if (!guests.length) return res.json({ success: true, sent: 0, failed: 0, message: 'Hakuna wageni wenye simu' });
 
     let imageUrl;
-    if (type === 'qr' || type === 'invite') {
-      imageUrl = await getInviteImageUrl(event_id, appUrl);
-    }
+    // imageUrl is now per-guest — see below in the loop
 
     let sent = 0, failed = 0, errors = [];
 
@@ -341,6 +339,9 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
 
         const phone = cleanPhone(g.phone);
         const linkSuffix = g.qr_token;
+
+        // Per-guest image URL — generates card with QR for this specific guest
+        const guestImageUrl = `${appUrl}/api/guests/${g._id}/whatsapp-cover`;
 
         if (type === 'qr') {
           await eventFlowSend({
@@ -353,7 +354,7 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
               location:   eventLocation,
               rsvpLink:   linkSuffix,
               qrLink:     linkSuffix,
-              imageUrl,
+              imageUrl:   guestImageUrl,
             }
           });
           g.sms_sent    = true;
@@ -372,7 +373,7 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
               location:   eventLocation,
               rsvpLink:   linkSuffix,
               qrLink:     linkSuffix,
-              imageUrl,
+              imageUrl:   guestImageUrl,
             }
           });
           sent++;
