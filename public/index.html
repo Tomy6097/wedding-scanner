@@ -325,17 +325,8 @@
             <p class="hint-text" style="margin-top:0.4rem">Requires Beem Africa API keys in Settings</p>
           </div>
 
-          <!-- WhatsApp Broadcast -->
-          <div class="card">
-            <h3>Send via WhatsApp (Fonnte)</h3>
-            <p class="hint-text">Sends automatically to each guest's phone. Requires Fonnte token in Settings.</p>
-            <div id="wa-send-stats" style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.65rem;margin-bottom:0.75rem;font-size:0.8rem;color:var(--gray-500)">Loading...</div>
-            <div class="form-group" style="margin-top:0.5rem">
-              <label><input type="checkbox" id="wa-only-unsent" checked /> Only send to guests who haven't received WhatsApp yet</label>
-            </div>
-            <div id="wa-send-result" class="alert hidden"></div>
-            <button class="btn btn-whatsapp btn-full" id="send-all-wa-btn">Send QR E-Ticket via WhatsApp</button>
-          </div>
+          <!-- WhatsApp Broadcast — REMOVED: use "Send Invitation Cards" below instead -->
+          <!-- Keeping only the Invitation Cards section to avoid duplicate sends -->
 
           <!-- CSV Broadcast fallback -->
           <div class="card">

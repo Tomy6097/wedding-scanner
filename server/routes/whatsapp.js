@@ -151,9 +151,20 @@ router.post('/test', requireAdmin, async (req, res) => {
 });
 
 // ── POST /api/whatsapp/send-invites ──────────────────────────
+// In-flight lock — prevents double-sends from double-clicks or socket re-fires
+const _sendLocks = new Set();
+
 router.post('/send-invites', requireAdmin, async (req, res) => {
   const { event_id, type, only_unsent, custom_message, guest_ids } = req.body;
   if (!event_id) return res.status(400).json({ error: 'Event ID required' });
+
+  // Deduplicate: same event + type can only run once at a time
+  const lockKey = `${event_id}:${type}:${JSON.stringify(guest_ids || [])}`;
+  if (_sendLocks.has(lockKey)) {
+    return res.status(429).json({ error: 'Send already in progress for this batch — please wait' });
+  }
+  _sendLocks.add(lockKey);
+
   try {
     const ev     = await Event.findById(event_id);
     if (!ev) return res.status(404).json({ error: 'Event not found' });
@@ -176,7 +187,7 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     const guests = await Guest.find(filter);
     if (!guests.length) return res.json({ success: true, sent: 0, failed: 0, message: 'Hakuna wageni wenye simu' });
 
-    let sent = 0, failed = 0, errors = [];
+    let sent = 0, failed = 0, not_on_whatsapp = 0, errors = [];
 
     for (const g of guests) {
       try {
@@ -187,21 +198,27 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         if (type === 'qr' || type === 'invite') {
           // Per-guest card image with their specific QR code baked in
           const guestImageUrl = `${appUrl}/api/guests/${g._id}/whatsapp-cover`;
-          await sendTemplate(phone, {
+          const result = await sendTemplate(phone, {
             guestName: g.name,
             eventName: ev.name,
             eventDate,
             location,
-            // qr_token is the unique UUID — used as the URL suffix for the /go/ redirect buttons
             rsvpToken: g.qr_token,
             qrToken:   g.qr_token
           }, guestImageUrl);
-          if (type === 'qr') {
-            g.sms_sent    = true;
-            g.sms_sent_at = new Date();
-            await g.save();
+
+          // GhalaRails returns status:'failed' when the number is not on WhatsApp
+          if (result?.data?.status === 'failed' || result?.data?.error) {
+            not_on_whatsapp++;
+            errors.push(`${g.name} (+${phone}): nambari hii haipo WhatsApp`);
+          } else {
+            if (type === 'qr') {
+              g.sms_sent    = true;
+              g.sms_sent_at = new Date();
+              await g.save();
+            }
+            sent++;
           }
-          sent++;
 
         } else if (type === 'thanks') {
           await sendText(phone, `Habari ${g.name},\n\nAsante sana kwa kuja kwenye *${ev.name}*!\n\nIlikuwa furaha kubwa kushiriki nawe. Mungu akubariki!\n\nAngalia kadi yako: ${guestLink}`);
@@ -220,10 +237,12 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
         errors.push(`${g.name}: ${String(e.message || e)}`);
       }
     }
-    res.json({ success: true, sent, failed, errors: errors.slice(0, 10) });
+    res.json({ success: true, sent, failed, not_on_whatsapp, errors: errors.slice(0, 10) });
   } catch (err) {
     console.error('[send-invites fatal]', err.message || err);
     res.status(500).json({ error: String(err.message || err) });
+  } finally {
+    _sendLocks.delete(lockKey);
   }
 });
 

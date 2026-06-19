@@ -901,24 +901,10 @@ async function sendAllSMS() {
 }
 
 async function sendAllWhatsApp() {
-  if (!state.currentEvent) return;
-  const eventId = gid(state.currentEvent);
-  const onlyUnsent = document.getElementById('wa-only-unsent') ? document.getElementById('wa-only-unsent').checked : true;
-  const resultEl = document.getElementById('wa-send-result');
-  const btn = document.getElementById('send-all-wa-btn');
-  if (!confirm('Tuma QR e-ticket kwa WhatsApp kwa wageni wote' + (onlyUnsent ? ' ambao hawajapata bado' : '') + '?')) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Inatuma...'; }
-  if (resultEl) resultEl.classList.add('hidden');
-  try {
-    const res = await api('POST', '/whatsapp/send-invites', { event_id: eventId, type: 'qr', only_unsent: onlyUnsent });
-    const msg = 'Imetumwa: ' + res.sent + (res.failed > 0 ? ' | Imeshindwa: ' + res.failed : '');
-    if (resultEl) { resultEl.textContent = msg; resultEl.className = 'alert ' + (res.failed === 0 ? 'alert-success' : 'alert-error'); resultEl.classList.remove('hidden'); }
-    loadSendTab();
-  } catch (e) {
-    if (resultEl) { resultEl.textContent = 'Imeshindwa: ' + e.message; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); }
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Tuma QR E-Ticket via WhatsApp'; }
-  }
+  // This button has been removed — use "Send Invitation Cards" section instead.
+  // Kept to avoid reference errors from any cached JS.
+  console.warn('[sendAllWhatsApp] deprecated — use sendCardBroadcast instead');
+}
 }
 
 // ── CSV Bulk Import ──────────────────────────────────────────
@@ -2788,7 +2774,7 @@ async function sendCardBroadcast(type, channel) {
         type,
         ...(guestIds ? { guest_ids: guestIds } : {})
       });
-      const msg = `✅ Imetumwa: ${res.sent}${res.failed > 0 ? ` | ❌ Imeshindwa: ${res.failed}` : ''}`;
+      const msg = `✅ Imetumwa: ${res.sent}${res.failed > 0 ? ` | ❌ Imeshindwa: ${res.failed}` : ''}${res.not_on_whatsapp > 0 ? ` | ⚠️ Haipo WhatsApp: ${res.not_on_whatsapp}` : ''}`;
       if (resultEl) {
         resultEl.textContent = msg;
         resultEl.className = 'alert ' + (res.failed === 0 ? 'alert-success' : 'alert-error');
