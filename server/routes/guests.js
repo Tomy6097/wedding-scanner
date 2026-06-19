@@ -262,11 +262,18 @@ router.post('/bulk', requireAdmin, async (req, res) => {
 
 // Scan QR — strictly validates event_id
 router.post('/scan', requireAuth, async (req, res) => {
-  const { token, event_id } = req.body;
+  let { token, event_id } = req.body;
   if (!token) return res.status(400).json({ result: 'invalid', message: 'No token provided' });
+
+  // Extract token from full URL if scanner scanned a link
+  // e.g. https://wedding-scanner.onrender.com/guest/UUID → UUID
+  token = token.trim();
+  if (token.includes('/guest/')) {
+    token = token.split('/guest/').pop().split('?')[0].trim();
+  }
+
   try {
-    // Find guest by token only first
-    const guest = await Guest.findOne({ qr_token: token.trim() });
+    const guest = await Guest.findOne({ qr_token: token });
 
     if (!guest) {
       await Activity.create({ action: 'invalid', scanned_by: req.session.user.username, token_used: token.trim().substring(0, 20), event_id: event_id || null });
