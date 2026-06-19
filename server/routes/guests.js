@@ -512,31 +512,36 @@ router.get('/:id/whatsapp-cover', async (req, res) => {
     const guest = await Guest.findById(req.params.id);
     if (!guest) return res.status(404).end();
 
-    const ev      = await Event.findById(guest.event_id);
-    const appUrl  = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
-    const link    = `${appUrl}/guest/${guest.qr_token}`;
+    const ev     = await Event.findById(guest.event_id);
+    const appUrl = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
+    const link   = `${appUrl}/guest/${guest.qr_token}`;
 
     // Generate QR buffer
     const qrBuf = await QRCode.toBuffer(link, { width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' } });
 
     // If event has card template — overlay QR + name
     if (ev?.card_image && ev.card_qr_x != null) {
-      const Jimp = require('jimp');
+      const Jimp    = require('jimp');
       const cardImg = await Jimp.read(Buffer.from(ev.card_image.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
       const qrImg   = await Jimp.read(qrBuf);
       const W = cardImg.bitmap.width, H = cardImg.bitmap.height;
       const sz = Math.round((ev.card_qr_size || 20) / 100 * W);
       qrImg.resize(sz, sz);
-      cardImg.composite(qrImg, Math.round(ev.card_qr_x / 100 * W - sz / 2), Math.round(ev.card_qr_y / 100 * H - sz / 2));
-
+      cardImg.composite(qrImg,
+        Math.round(ev.card_qr_x / 100 * W - sz / 2),
+        Math.round(ev.card_qr_y / 100 * H - sz / 2)
+      );
       if (ev.card_name_x != null && ev.card_name_y != null) {
         const fontSize = Math.round(((ev.card_name_size || 5) / 100) * W);
         let font;
         try { font = await Jimp.loadFont(fontSize >= 32 ? Jimp.FONT_SANS_32_BLACK : Jimp.FONT_SANS_16_BLACK); }
         catch (_) { font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK); }
-        cardImg.print(font, Math.round(ev.card_name_x / 100 * W - Jimp.measureText(font, guest.name) / 2), Math.round(ev.card_name_y / 100 * H - Jimp.measureTextHeight(font, guest.name, W) / 2), guest.name);
+        cardImg.print(font,
+          Math.round(ev.card_name_x / 100 * W - Jimp.measureText(font, guest.name) / 2),
+          Math.round(ev.card_name_y / 100 * H - Jimp.measureTextHeight(font, guest.name, W) / 2),
+          guest.name
+        );
       }
-
       const buf = await cardImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
       res.set('Content-Type', 'image/jpeg');
       res.set('Content-Length', buf.length);
@@ -544,13 +549,16 @@ router.get('/:id/whatsapp-cover', async (req, res) => {
       return res.send(buf);
     }
 
-    // Fallback — plain QR
-    res.set('Content-Type', 'image/png');
-    res.set('Content-Length', qrBuf.length);
+    // Fallback — plain QR as JPEG
+    const Jimp   = require('jimp');
+    const qrImg  = await Jimp.read(qrBuf);
+    const jpgBuf = await qrImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
+    res.set('Content-Type', 'image/jpeg');
+    res.set('Content-Length', jpgBuf.length);
     res.set('Cache-Control', 'public, max-age=3600');
-    res.send(qrBuf);
+    res.send(jpgBuf);
   } catch (err) {
-    console.error('whatsapp-cover error:', err.message);
+    console.error('whatsapp-cover error:', err.message, err.stack);
     res.status(500).end();
   }
 });
