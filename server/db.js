@@ -91,6 +91,11 @@ const guestSchema = new mongoose.Schema({
   checked_in_by: { type: String, default: null },
   sms_sent:      { type: Boolean, default: false },
   sms_sent_at:   { type: Date, default: null },
+  // WhatsApp invitation delivery tracking
+  wa_sent:       { type: Boolean, default: false },
+  wa_sent_at:    { type: Date, default: null },
+  wa_failed:     { type: Boolean, default: false },
+  wa_message_id: { type: String, default: null },  // GhalaRails message_id
   rsvp_status:   { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
   rsvp_at:       { type: Date, default: null }
 }, { timestamps: true });

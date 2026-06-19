@@ -839,12 +839,44 @@ async function loadSendTab() {
         <div class="sms-stat-row"><span>Not sent yet:</span><strong>${notSent}</strong></div>`;
     }
 
-    // Update invite template status
-    const inviteStatus = $('#invite-template-status');
-    if (inviteStatus) {
-      inviteStatus.innerHTML = withPhone > 0
-        ? `<span style="color:var(--success)">✅ Ready</span> — Uses <strong>eventflow_invite_sw</strong> WhatsApp template. ${withPhone} guest${withPhone !== 1 ? 's' : ''} with phone number${withPhone !== 1 ? 's' : ''}.`
-        : `<span style="color:var(--warning)">⚠️ No guests with phone numbers yet.</span> Add phone numbers to your guests first.`;
+    // ── WhatsApp delivery stats ──────────────────────────────
+    try {
+      const waStatus = await api('GET', `/whatsapp/status/${eventId}`);
+      const d = waStatus.data || {};
+      const inviteStatus = $('#invite-template-status');
+      if (inviteStatus) {
+        const pct = d.with_phone > 0 ? Math.round((d.wa_sent / d.with_phone) * 100) : 0;
+        inviteStatus.innerHTML =
+          `<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:0.4rem">
+            <span style="color:var(--success);font-weight:700">✅ ${d.wa_sent} tum${d.wa_sent === 1 ? 'wa' : 'iwa'}</span>
+            <span style="color:var(--warning);font-weight:700">⏳ ${d.wa_unsent} hawajapata</span>
+            ${d.wa_failed > 0 ? `<span style="color:var(--error);font-weight:700">❌ ${d.wa_failed} imeshindwa</span>` : ''}
+          </div>
+          <div style="background:var(--gray-200);border-radius:4px;height:6px;overflow:hidden;margin-bottom:0.35rem">
+            <div style="background:var(--success);height:100%;width:${pct}%;transition:width 0.4s"></div>
+          </div>
+          <span style="font-size:0.75rem;color:var(--gray-500)">${d.with_phone} mgeni${d.with_phone !== 1 ? 's' : ''} wana nambari · Template: <strong>eventflow_invite_sw</strong></span>`;
+      }
+
+      // Show/hide resend section based on unsent count
+      const resendSection = $('#wa-resend-section');
+      if (resendSection) {
+        if (d.wa_unsent > 0) {
+          resendSection.style.display = 'block';
+          const countEl = $('#wa-resend-count');
+          if (countEl) countEl.textContent = d.wa_unsent;
+          const failedEl = $('#wa-resend-failed');
+          if (failedEl) failedEl.style.display = d.wa_failed > 0 ? 'inline' : 'none';
+          if (failedEl) failedEl.textContent = ` (${d.wa_failed} zilishindwa)`;
+        } else {
+          resendSection.style.display = 'none';
+        }
+      }
+    } catch (e) {
+      const inviteStatus = $('#invite-template-status');
+      if (inviteStatus && withPhone > 0) {
+        inviteStatus.innerHTML = `<span style="color:var(--success)">✅ Ready</span> — Uses <strong>eventflow_invite_sw</strong> WhatsApp template. ${withPhone} guest${withPhone !== 1 ? 's' : ''} with phone number${withPhone !== 1 ? 's' : ''}.`;
+      }
     }
 
     // Populate invite guest picker list
@@ -873,6 +905,36 @@ async function loadSendTab() {
     }
   } catch (e) {
     console.error('loadSendTab error:', e);
+  }
+}
+
+// ── Resend to unsent guests ───────────────────────────────────
+async function resendUnsent() {
+  if (!state.currentEvent) return;
+  const ev       = state.currentEvent;
+  const btn      = $('#wa-resend-btn');
+  const resultEl = $('#wa-resend-result');
+  const count    = $('#wa-resend-count')?.textContent || '?';
+
+  if (!confirm(`Tuma tena mwaliko kwa wageni ${count} ambao hawajapata? Muda inategemea idadi ya wageni.`)) return;
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" style="width:14px;height:14px"></i> Inatuma...'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+  if (resultEl) resultEl.classList.add('hidden');
+
+  try {
+    const res = await api('POST', '/whatsapp/resend-unsent', { event_id: gid(ev) });
+    const msg = `✅ Imetumwa: ${res.sent}${res.failed > 0 ? ` | ❌ Imeshindwa: ${res.failed}` : ''}${res.not_on_whatsapp > 0 ? ` | ⚠️ Haipo WhatsApp: ${res.not_on_whatsapp}` : ''}`;
+    if (resultEl) {
+      resultEl.textContent = msg;
+      resultEl.className   = 'alert ' + (res.failed === 0 && res.not_on_whatsapp === 0 ? 'alert-success' : 'alert-error');
+      resultEl.classList.remove('hidden');
+    }
+    // Reload stats to reflect new sent counts
+    await loadSendTab();
+  } catch (e) {
+    if (resultEl) { resultEl.textContent = '❌ Imeshindwa: ' + e.message; resultEl.className = 'alert alert-error'; resultEl.classList.remove('hidden'); }
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="send" style="width:14px;height:14px"></i> Tuma Tena kwa Hawajapata'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
   }
 }
 
@@ -3426,6 +3488,10 @@ function initAdmin() {
 
   const sendAllWaBtn = $('#send-all-wa-btn');
   if (sendAllWaBtn) sendAllWaBtn.addEventListener('click', sendAllWhatsApp);
+
+  // Resend to unsent guests
+  const waResendBtn = $('#wa-resend-btn');
+  if (waResendBtn) waResendBtn.addEventListener('click', resendUnsent);
 
   // Send invitation cards
   const sendInviteWaBtn  = $('#send-invite-wa-btn');

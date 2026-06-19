@@ -179,8 +179,9 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     if (guest_ids?.length) {
       const { Types } = require('mongoose');
       filter._id = { $in: guest_ids.map(id => new Types.ObjectId(id)) };
-    } else if (type === 'qr' && only_unsent) {
-      filter.sms_sent = { $ne: true };
+    } else if (only_unsent) {
+      // only_unsent targets guests where WhatsApp was never successfully sent
+      filter.$or = [{ wa_sent: { $ne: true } }];
     }
     if (type === 'thanks') filter.status = 'used';
 
@@ -210,13 +211,19 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
           // GhalaRails returns status:'failed' when the number is not on WhatsApp
           if (result?.data?.status === 'failed' || result?.data?.error) {
             not_on_whatsapp++;
-            errors.push(`${g.name} (+${phone}): nambari hii haipo WhatsApp`);
+            g.wa_failed = true;
+            await g.save();
+            errors.push(`${g.name} (${phone}): nambari hii haipo WhatsApp`);
           } else {
+            g.wa_sent      = true;
+            g.wa_sent_at   = new Date();
+            g.wa_failed    = false;
+            g.wa_message_id = String(result?.data?.messageId ?? '');
             if (type === 'qr') {
               g.sms_sent    = true;
               g.sms_sent_at = new Date();
-              await g.save();
             }
+            await g.save();
             sent++;
           }
 
@@ -243,6 +250,133 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
     res.status(500).json({ error: String(err.message || err) });
   } finally {
     _sendLocks.delete(lockKey);
+  }
+});
+
+// ── GET /api/whatsapp/unsent/:event_id ───────────────────────
+// Returns guests who have a phone but wa_sent is not true
+router.get('/unsent/:event_id', requireAdmin, async (req, res) => {
+  try {
+    const guests = await Guest.find({
+      event_id: req.params.event_id,
+      phone:    { $exists: true, $nin: [null, ''] },
+      $or: [{ wa_sent: { $ne: true } }]
+    }).select('name phone wa_sent wa_sent_at wa_failed wa_message_id rsvp_status');
+
+    const total     = await Guest.countDocuments({ event_id: req.params.event_id, phone: { $exists: true, $nin: [null, ''] } });
+    const sent      = await Guest.countDocuments({ event_id: req.params.event_id, wa_sent: true });
+    const failed    = await Guest.countDocuments({ event_id: req.params.event_id, wa_failed: true });
+
+    res.json({
+      success: true,
+      data: {
+        total_with_phone: total,
+        wa_sent:          sent,
+        wa_unsent:        guests.length,
+        wa_failed:        failed,
+        guests
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// ── POST /api/whatsapp/resend-unsent ─────────────────────────
+// Resend invitation to all guests who haven't received it yet (wa_sent != true)
+router.post('/resend-unsent', requireAdmin, async (req, res) => {
+  const { event_id } = req.body;
+  if (!event_id) return res.status(400).json({ error: 'event_id required' });
+
+  const lockKey = `${event_id}:resend-unsent`;
+  if (_sendLocks.has(lockKey)) {
+    return res.status(429).json({ error: 'Resend already in progress — please wait' });
+  }
+  _sendLocks.add(lockKey);
+
+  try {
+    const ev = await Event.findById(event_id);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const appUrl = await getAppUrl();
+
+    const eventDate = ev.date
+      ? new Date(ev.date).toLocaleDateString('sw', { day: 'numeric', month: 'long', year: 'numeric' })
+      : 'Tarehe itafahamishwa';
+    const location = ev.venue || 'Mahali patatangazwa';
+
+    // Target: has phone, wa_sent is NOT true
+    const guests = await Guest.find({
+      event_id,
+      phone: { $exists: true, $nin: [null, ''] },
+      $or: [{ wa_sent: { $ne: true } }]
+    });
+
+    if (!guests.length) {
+      return res.json({ success: true, sent: 0, failed: 0, message: 'Wageni wote wameshapata ujumbe' });
+    }
+
+    let sent = 0, failed = 0, not_on_whatsapp = 0, errors = [];
+
+    for (const g of guests) {
+      try {
+        const phone         = cleanPhone(g.phone);
+        const guestImageUrl = `${appUrl}/api/guests/${g._id}/whatsapp-cover`;
+
+        const result = await sendTemplate(phone, {
+          guestName: g.name,
+          eventName: ev.name,
+          eventDate,
+          location,
+          rsvpToken: g.qr_token,
+          qrToken:   g.qr_token
+        }, guestImageUrl);
+
+        if (result?.data?.status === 'failed' || result?.data?.error) {
+          not_on_whatsapp++;
+          g.wa_failed = true;
+          await g.save();
+          errors.push(`${g.name} (${phone}): nambari hii haipo WhatsApp`);
+        } else {
+          g.wa_sent       = true;
+          g.wa_sent_at    = new Date();
+          g.wa_failed     = false;
+          g.wa_message_id = String(result?.data?.messageId ?? '');
+          await g.save();
+          sent++;
+        }
+
+        await new Promise(r => setTimeout(r, 1500));
+      } catch (e) {
+        console.error(`[resend ${g.name}]`, e.message || e);
+        failed++;
+        errors.push(`${g.name}: ${String(e.message || e)}`);
+      }
+    }
+
+    res.json({ success: true, sent, failed, not_on_whatsapp, errors: errors.slice(0, 10) });
+  } catch (err) {
+    console.error('[resend-unsent fatal]', err.message || err);
+    res.status(500).json({ error: String(err.message || err) });
+  } finally {
+    _sendLocks.delete(lockKey);
+  }
+});
+
+// ── GET /api/whatsapp/status/:event_id ───────────────────────
+// Summary of WhatsApp delivery status for an event
+router.get('/status/:event_id', requireAdmin, async (req, res) => {
+  try {
+    const event_id = req.params.event_id;
+    const [total, sent, failed, withPhone] = await Promise.all([
+      Guest.countDocuments({ event_id }),
+      Guest.countDocuments({ event_id, wa_sent: true }),
+      Guest.countDocuments({ event_id, wa_failed: true }),
+      Guest.countDocuments({ event_id, phone: { $exists: true, $nin: [null, ''] } }),
+    ]);
+    const unsent = withPhone - sent;
+    res.json({ success: true, data: { total, with_phone: withPhone, wa_sent: sent, wa_failed: failed, wa_unsent: unsent } });
+  } catch (err) {
+    res.status(500).json({ error: String(err.message || err) });
   }
 });
 
