@@ -31,34 +31,55 @@ function cleanPhone(raw) {
   return '+' + p;
 }
 
-// ── EventFlow POST ────────────────────────────────────────────
+// ── EventFlow POST with retry on 429 ─────────────────────────
 function efPost(path, payload, token) {
   return new Promise(async (resolve, reject) => {
     const hostname = await getEventFlowBase();
     const body     = JSON.stringify(payload);
-    const opts     = {
-      hostname, port: 443, path, method: 'POST',
-      headers: {
-        'X-API-Key':      token || EVENTFLOW_API_KEY,
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(opts, (res) => {
-      let data = '';
-      res.on('data', c => { data += c; });
-      res.on('end', () => {
-        console.log('[EF]', res.statusCode, data.substring(0, 200));
-        try {
-          const j = JSON.parse(data);
-          if (res.statusCode === 200 || res.statusCode === 202 || j.success) resolve(j);
-          else reject(new Error(j.error || j.message || `HTTP ${res.statusCode}: ${data}`));
-        } catch (e) { reject(new Error('Parse error: ' + data.substring(0, 100))); }
+
+    async function attempt(retriesLeft) {
+      const opts = {
+        hostname, port: 443, path, method: 'POST',
+        headers: {
+          'X-API-Key':      token || EVENTFLOW_API_KEY,
+          'Content-Type':   'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      };
+
+      const req = https.request(opts, (res) => {
+        let data = '';
+        res.on('data', c => { data += c; });
+        res.on('end', async () => {
+          console.log('[EF]', res.statusCode, data.substring(0, 200));
+          try {
+            const j = JSON.parse(data);
+
+            // 429 — rate limited: wait and retry
+            if (res.statusCode === 429 && retriesLeft > 0) {
+              const wait = 60000; // wait 60s before retry
+              console.log(`[EF] 429 rate limited — waiting ${wait/1000}s then retrying (${retriesLeft} left)`);
+              await new Promise(r => setTimeout(r, wait));
+              return attempt(retriesLeft - 1);
+            }
+
+            if (res.statusCode === 200 || res.statusCode === 202 || j.success) {
+              resolve(j);
+            } else {
+              reject(new Error(j?.error?.message || j?.error || j?.message || `HTTP ${res.statusCode}: ${data}`));
+            }
+          } catch (e) {
+            reject(new Error('Parse error: ' + data.substring(0, 100)));
+          }
+        });
       });
-    });
-    req.on('error', e => reject(new Error('Network: ' + e.message)));
-    req.write(body);
-    req.end();
+
+      req.on('error', e => reject(new Error('Network: ' + e.message)));
+      req.write(body);
+      req.end();
+    }
+
+    attempt(3); // up to 3 retries on 429
   });
 }
 
@@ -237,17 +258,19 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
 
         } else { failed++; continue; }
 
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 3000)); // 3s gap — avoid rate limits
       } catch (e) {
-        console.error(`[send ${g.name}]`, e.message || e);
+        const errMsg = e instanceof Error ? e.message : String(e);
+        console.error(`[send ${g.name}]`, errMsg);
         failed++;
-        errors.push(`${g.name}: ${String(e.message || e)}`);
+        errors.push(`${g.name}: ${errMsg}`);
       }
     }
     res.json({ success: true, sent, failed, not_on_whatsapp, errors: errors.slice(0, 10) });
   } catch (err) {
-    console.error('[send-invites fatal]', err.message || err);
-    res.status(500).json({ error: String(err.message || err) });
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[send-invites fatal]', errMsg);
+    res.status(500).json({ error: errMsg });
   } finally {
     _sendLocks.delete(lockKey);
   }
@@ -345,18 +368,20 @@ router.post('/resend-unsent', requireAdmin, async (req, res) => {
           sent++;
         }
 
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 3000)); // 3s gap — avoid rate limits
       } catch (e) {
-        console.error(`[resend ${g.name}]`, e.message || e);
+        const errMsg = e instanceof Error ? e.message : String(e);
+        console.error(`[resend ${g.name}]`, errMsg);
         failed++;
-        errors.push(`${g.name}: ${String(e.message || e)}`);
+        errors.push(`${g.name}: ${errMsg}`);
       }
     }
 
     res.json({ success: true, sent, failed, not_on_whatsapp, errors: errors.slice(0, 10) });
   } catch (err) {
-    console.error('[resend-unsent fatal]', err.message || err);
-    res.status(500).json({ error: String(err.message || err) });
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[resend-unsent fatal]', errMsg);
+    res.status(500).json({ error: errMsg });
   } finally {
     _sendLocks.delete(lockKey);
   }
