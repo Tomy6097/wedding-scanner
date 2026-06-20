@@ -1343,6 +1343,11 @@ async function onScanSuccess(token) {
 
 function handleScanResult(result) {
   hideScanPerson2Button();
+  // Clear manual search results on any scan
+  const resultsEl = $('#manual-results');
+  if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.classList.add('hidden'); }
+  const inputEl = $('#manual-search-input');
+  if (inputEl) inputEl.value = '';
   if (result.result === 'double_first') {
     const g     = result.guest || {};
     const name  = g.name || '';
@@ -1562,8 +1567,11 @@ async function manualCheckIn(token) {
     if (state.scannerEventId) body.event_id = state.scannerEventId;
     const result = await api('POST', '/guests/scan', body);
     handleScanResult(result);
-    const query = $('#manual-search-input') ? $('#manual-search-input').value : '';
-    if (query) await manualSearch(query);
+    // Clear search input and results after check-in
+    const inputEl = $('#manual-search-input');
+    if (inputEl) inputEl.value = '';
+    const resultsEl = $('#manual-results');
+    if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.classList.add('hidden'); }
   } catch (e) {
     setScanResult('invalid', '<i data-lucide="alert-triangle"></i>', 'Error', e.message);
   }
@@ -3407,11 +3415,14 @@ function initAdmin() {
   // ── Add Guest Form ───────────────────────────────────────
   const addGuestForm = $('#add-guest-form');
   if (addGuestForm) {
+    let _addingGuest = false;
     addGuestForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (_addingGuest) return;
       if (!state.currentEvent) { alert('Please open an event first.'); return; }
-      const errEl = $('#add-guest-error');
-      const sucEl = $('#add-guest-success');
+      const errEl  = $('#add-guest-error');
+      const sucEl  = $('#add-guest-success');
+      const submitBtn = addGuestForm.querySelector('[type="submit"]');
       hideAlert(errEl);
       hideAlert(sucEl);
       const name  = $('#guest-name').value.trim();
@@ -3421,11 +3432,18 @@ function initAdmin() {
       const ticketType = ticketTypeEl ? ticketTypeEl.value : 'S';
       const eventId = gid(state.currentEvent);
 
+      if (!name) { showAlert(errEl, 'Guest name is required.'); return; }
+
+      _addingGuest = true;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Adding…'; }
+
       // Duplicate name check scoped to event
       try {
         const dup = await api('GET', `/guests/check-duplicate?name=${encodeURIComponent(name)}&event_id=${eventId}`);
         if (dup.exists) {
-          showAlert(errEl, `A guest named "${name}" already exists in this event. Please use a different name or check the guest list.`);
+          showAlert(errEl, `A guest named "${name}" already exists in this event.`);
+          _addingGuest = false;
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Add Guest'; }
           return;
         }
       } catch (e) { /* ignore duplicate check errors */ }
@@ -3438,6 +3456,9 @@ function initAdmin() {
         fetchStats();
       } catch (err) {
         showAlert(errEl, err.message);
+      } finally {
+        _addingGuest = false;
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Add Guest'; }
       }
     });
   }
