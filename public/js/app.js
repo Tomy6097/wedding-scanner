@@ -1161,9 +1161,18 @@ async function initScannerPage() {
   const manualBtn   = $('#manual-search-btn');
   const manualInput = $('#manual-search-input');
   if (manualBtn)   manualBtn.addEventListener('click', () => manualSearch(manualInput ? manualInput.value : ''));
-  if (manualInput) manualInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') manualSearch(e.target.value);
-  });
+  if (manualInput) {
+    manualInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') manualSearch(e.target.value);
+    });
+    manualInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (!val.trim()) {
+        const resultsEl = $('#manual-results');
+        if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.classList.add('hidden'); }
+      }
+    });
+  }
 
   // Real-time stats update — only for current scanner event
   if (socket) {
