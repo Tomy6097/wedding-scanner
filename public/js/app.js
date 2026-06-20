@@ -1162,15 +1162,19 @@ async function initScannerPage() {
   const manualInput = $('#manual-search-input');
   if (manualBtn)   manualBtn.addEventListener('click', () => manualSearch(manualInput ? manualInput.value : ''));
   if (manualInput) {
+    let manualSearchTimer;
     manualInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') manualSearch(e.target.value);
+      if (e.key === 'Enter') { clearTimeout(manualSearchTimer); manualSearch(e.target.value); }
     });
     manualInput.addEventListener('input', (e) => {
       const val = e.target.value;
+      clearTimeout(manualSearchTimer);
       if (!val.trim()) {
         const resultsEl = $('#manual-results');
         if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.classList.add('hidden'); }
+        return;
       }
+      manualSearchTimer = setTimeout(() => manualSearch(val), 300);
     });
   }
 
