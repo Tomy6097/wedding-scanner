@@ -1005,7 +1005,6 @@ async function sendAllWhatsApp() {
   // Kept to avoid reference errors from any cached JS.
   console.warn('[sendAllWhatsApp] deprecated — use sendCardBroadcast instead');
 }
-}
 
 // ── CSV Bulk Import ──────────────────────────────────────────
 function parseCSV(text) {
