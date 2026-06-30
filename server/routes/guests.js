@@ -166,6 +166,7 @@ router.get('/view/:token', async (req, res) => {
       name: guest.name, phone: guest.phone,
       unique_id: guest.unique_id, status: guest.status,
       table_number: guest.table_number,
+      ticket_type: guest.ticket_type || 'S',
       rsvp_status: guest.rsvp_status || 'pending',
       guest_number: guestNumber, total_guests: totalGuests,
       qrDataUrl, eventName,

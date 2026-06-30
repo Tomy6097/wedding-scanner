@@ -42,7 +42,18 @@
       padding: 0.25rem 0.8rem; border-radius: 999px;
       font-size: 0.73rem; font-weight: 700; letter-spacing: 0.02em;
     }
-    .badge-checkin-done  { background: #d1fae5; color: #065f46; }
+    .badge-single { background: #f1f5f9; color: #475569; }
+    .badge-double { background: #dbeafe; color: #1d4ed8; }
+
+    /* ── Ticket type banner ── */
+    .ticket-banner {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.55rem 1rem;
+      font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .ticket-banner.single { background: #f8fafc; color: #475569; border-bottom: 1px solid #f1f5f9; }
+    .ticket-banner.double { background: #eff6ff; color: #1d4ed8; border-bottom: 1px solid #dbeafe; }
     .badge-checkin-pending { background: #f3f4f6; color: #6b7280; }
     .badge-rsvp-accepted { background: #dbeafe; color: #1d4ed8; }
     .badge-rsvp-declined { background: #fee2e2; color: #b91c1c; }
@@ -118,6 +129,7 @@
       <!-- QR Check-in Card -->
       <div class="section-title" id="qr-section-title">QR Code ya Kuingia</div>
       <div class="card" id="qr-card">
+        <div id="ticket-type-banner"></div>
         <div class="card-img-wrap" id="qr-card-wrap"></div>
 
         <div class="guest-info">
@@ -216,6 +228,16 @@
     function render(data) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
+
+      // Ticket type banner
+      const bannerEl = document.getElementById('ticket-type-banner');
+      if (bannerEl) {
+        const isDouble = data.ticket_type === 'D';
+        bannerEl.className = `ticket-banner ${isDouble ? 'double' : 'single'}`;
+        bannerEl.innerHTML = isDouble
+          ? '🎟️🎟️ &nbsp;TIKETI YA WATU WAWILI &nbsp;(DOUBLE)'
+          : '🎟️ &nbsp;TIKETI YA MTU MMOJA &nbsp;(SINGLE)';
+      }
 
       // Name
       document.getElementById('guest-name-el').textContent = data.name;
