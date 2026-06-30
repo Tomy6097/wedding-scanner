@@ -523,22 +523,35 @@ router.get('/:id/whatsapp-cover', async (req, res) => {
     const ev     = await Event.findById(guest.event_id);
     const appUrl = process.env.APP_URL || 'https://wedding-scanner.onrender.com';
     const link   = `${appUrl}/guest/${guest.qr_token}`;
+    const Jimp   = require('jimp');
+
+    const isDouble   = guest.ticket_type === 'D';
+    const ticketLabel = isDouble ? 'DOUBLE' : 'SINGLE';
 
     // Generate QR buffer
     const qrBuf = await QRCode.toBuffer(link, { width: 300, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' } });
 
-    // If event has card template — overlay QR + name
+    // If event has card template — overlay QR + label + name
     if (ev?.card_image && ev.card_qr_x != null) {
-      const Jimp    = require('jimp');
       const cardImg = await Jimp.read(Buffer.from(ev.card_image.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
       const qrImg   = await Jimp.read(qrBuf);
       const W = cardImg.bitmap.width, H = cardImg.bitmap.height;
       const sz = Math.round((ev.card_qr_size || 20) / 100 * W);
       qrImg.resize(sz, sz);
-      cardImg.composite(qrImg,
-        Math.round(ev.card_qr_x / 100 * W - sz / 2),
-        Math.round(ev.card_qr_y / 100 * H - sz / 2)
-      );
+
+      const qrX = Math.round(ev.card_qr_x / 100 * W - sz / 2);
+      const qrY = Math.round(ev.card_qr_y / 100 * H - sz / 2);
+      cardImg.composite(qrImg, qrX, qrY);
+
+      // Print ticket type label above QR
+      try {
+        const labelFont = await Jimp.loadFont(Jimp.FONT_SANS_16_BLACK);
+        const labelW    = Jimp.measureText(labelFont, ticketLabel);
+        const labelX    = qrX + Math.round(sz / 2) - Math.round(labelW / 2);
+        const labelY    = Math.max(0, qrY - 22);
+        cardImg.print(labelFont, labelX, labelY, ticketLabel);
+      } catch (_) { /* skip if font fails */ }
+
       if (ev.card_name_x != null && ev.card_name_y != null) {
         const fontSize = Math.round(((ev.card_name_size || 5) / 100) * W);
         let font;
@@ -557,10 +570,18 @@ router.get('/:id/whatsapp-cover', async (req, res) => {
       return res.send(buf);
     }
 
-    // Fallback — plain QR as JPEG
-    const Jimp   = require('jimp');
-    const qrImg  = await Jimp.read(qrBuf);
-    const jpgBuf = await qrImg.quality(90).getBufferAsync(Jimp.MIME_JPEG);
+    // Fallback — plain QR with label above it
+    const labelFont = await Jimp.loadFont(Jimp.FONT_SANS_16_BLACK).catch(() => null);
+    const qrImg     = await Jimp.read(qrBuf);
+    const qrW       = qrImg.bitmap.width;
+    const labelH    = 28;
+    const combined  = new Jimp(qrW, qrW + labelH, 0xffffffff);
+    combined.composite(qrImg, 0, labelH);
+    if (labelFont) {
+      const lw = Jimp.measureText(labelFont, ticketLabel);
+      combined.print(labelFont, Math.round(qrW / 2 - lw / 2), 6, ticketLabel);
+    }
+    const jpgBuf = await combined.quality(90).getBufferAsync(Jimp.MIME_JPEG);
     res.set('Content-Type', 'image/jpeg');
     res.set('Content-Length', jpgBuf.length);
     res.set('Cache-Control', 'public, max-age=3600');
