@@ -678,7 +678,7 @@ async function viewGuestQR(id) {
     const ev = state.currentEvent;
     if (ev && ev.card_image && ev.card_qr_x != null) {
       const cardDataUrl = await generateGuestCard(
-        { name: guest.name },
+        { name: guest.name, ticket_type: guest.ticket_type || data.guest?.ticket_type || 'S' },
         data.qrDataUrl,
         {
           image:      ev.card_image,
@@ -2468,6 +2468,24 @@ function generateGuestCard(guest, qrDataUrl, cardTemplate) {
         const qrX = (cardTemplate.qr_x / 100) * W - qrW / 2;
         const qrY = (cardTemplate.qr_y / 100) * H - qrW / 2;
         ctx.drawImage(qrImg, qrX, qrY, qrW, qrW);
+
+        // Draw Single/Double label above QR
+        if (guest.ticket_type) {
+          const label    = guest.ticket_type === 'D' ? 'DOUBLE' : 'SINGLE';
+          const fontSize = Math.max(12, Math.round(qrW * 0.09));
+          ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+          ctx.textAlign    = 'center';
+          ctx.textBaseline = 'bottom';
+          // White background behind label
+          const textW = ctx.measureText(label).width;
+          const padX = 6, padY = 3;
+          const labelX = qrX + qrW / 2;
+          const labelY = qrY - 4;
+          ctx.fillStyle = guest.ticket_type === 'D' ? '#1d4ed8' : '#475569';
+          ctx.fillRect(labelX - textW / 2 - padX, labelY - fontSize - padY, textW + padX * 2, fontSize + padY * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(label, labelX, labelY);
+        }
 
         // Draw guest name if position is set
         if (cardTemplate.name_x != null && cardTemplate.name_y != null) {
