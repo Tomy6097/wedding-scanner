@@ -2694,7 +2694,7 @@ async function sendCustomSMS() {
 
   if (target === 'attended') targetGuests = targetGuests.filter(g => g.status === 'used');
   if (target === 'absent')   targetGuests = targetGuests.filter(g => g.status !== 'used');
-  if (target === 'failed')   targetGuests = targetGuests.filter(g => g.sms_failed === true);
+  if (target === 'failed')   targetGuests = targetGuests.filter(g => !g.sms_sent);
 
   if (!targetGuests.length) { showAlert(resultEl, 'No guests found for selected target', 'error'); return; }
 
