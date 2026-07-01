@@ -215,11 +215,19 @@ router.post('/send-invites', requireAdmin, async (req, res) => {
             qrToken:   g.qr_token
           }, guestImageUrl);
 
-          if (result?.data?.status === 'failed' || result?.data?.error) {
+          console.log('[WA result]', g.name, phone, JSON.stringify(result).substring(0, 200));
+
+          // Only mark as failed if there is an explicit failure signal
+          const isFailed = result?.data?.status === 'failed'
+            || result?.status === 'failed'
+            || result?.success === false
+            || (result?.data?.error && !result?.data?.messageId);
+
+          if (isFailed) {
             not_on_whatsapp++;
             g.wa_failed = true;
             await g.save();
-            errors.push(g.name + ' (' + phone + '): nambari hii haipo WhatsApp');
+            errors.push(g.name + ' (' + phone + '): ' + (result?.data?.error || result?.error || 'failed'));
           } else {
             g.wa_sent       = true;
             g.wa_sent_at    = new Date();
@@ -327,11 +335,18 @@ router.post('/resend-unsent', requireAdmin, async (req, res) => {
           qrToken:   g.qr_token
         }, guestImageUrl);
 
-        if (result?.data?.status === 'failed' || result?.data?.error) {
+        console.log('[WA resend result]', g.name, phone, JSON.stringify(result).substring(0, 200));
+
+        const isFailed = result?.data?.status === 'failed'
+          || result?.status === 'failed'
+          || result?.success === false
+          || (result?.data?.error && !result?.data?.messageId);
+
+        if (isFailed) {
           not_on_whatsapp++;
           g.wa_failed = true;
           await g.save();
-          errors.push(g.name + ' (' + phone + '): nambari hii haipo WhatsApp');
+          errors.push(g.name + ' (' + phone + '): ' + (result?.data?.error || result?.error || 'failed'));
         } else {
           g.wa_sent       = true;
           g.wa_sent_at    = new Date();
