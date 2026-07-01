@@ -370,8 +370,15 @@ router.post('/sms/custom', requireAdmin, async (req, res) => {
     if (!guest) return res.status(404).json({ error: 'Guest not found' });
     if (!guest.phone) return res.status(400).json({ error: 'Guest has no phone number' });
     await sendBeemSMS(guest.phone, message);
+    guest.sms_failed = false;
+    await guest.save();
     res.json({ success: true });
   } catch (err) {
+    // Mark as failed so we can retry later
+    try {
+      const guest = await Guest.findById(guest_id);
+      if (guest) { guest.sms_failed = true; await guest.save(); }
+    } catch (_) {}
     res.status(500).json({ error: err.message });
   }
 });

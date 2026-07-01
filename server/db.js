@@ -91,6 +91,7 @@ const guestSchema = new mongoose.Schema({
   checked_in_by: { type: String, default: null },
   sms_sent:      { type: Boolean, default: false },
   sms_sent_at:   { type: Date, default: null },
+  sms_failed:    { type: Boolean, default: false },
   // WhatsApp invitation delivery tracking
   wa_sent:       { type: Boolean, default: false },
   wa_sent_at:    { type: Date, default: null },

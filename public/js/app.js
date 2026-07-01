@@ -2694,6 +2694,7 @@ async function sendCustomSMS() {
 
   if (target === 'attended') targetGuests = targetGuests.filter(g => g.status === 'used');
   if (target === 'absent')   targetGuests = targetGuests.filter(g => g.status !== 'used');
+  if (target === 'failed')   targetGuests = targetGuests.filter(g => g.sms_failed === true);
 
   if (!targetGuests.length) { showAlert(resultEl, 'No guests found for selected target', 'error'); return; }
 
@@ -2712,7 +2713,7 @@ async function sendCustomSMS() {
         message: personalMsg
       });
       sent++;
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 500));
     } catch (e) {
       failed++;
       errors.push(`${g.name}: ${e.message}`);
