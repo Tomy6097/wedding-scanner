@@ -2,7 +2,7 @@
    Service Worker — Wedding Check-in PWA
    ============================================================ */
 
-const CACHE_NAME = 'wedding-checkin-v78';
+const CACHE_NAME = 'wedding-checkin-v79';
 
 const SHELL_FILES = [
   '/',

@@ -163,7 +163,24 @@ async function api(method, path, body) {
   };
   if (body) opts.body = JSON.stringify(body);
   const res  = await fetch(`/api${path}`, opts);
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    if (res.status === 401) {
+      // Session expired — redirect to login
+      state.user = null;
+      state.initialized = false;
+      showPage('page-login');
+      throw new Error('Session imeisha — ingia tena');
+    }
+    throw new Error('Server error ' + res.status);
+  }
   const data = await res.json();
+  if (res.status === 401) {
+    state.user = null;
+    state.initialized = false;
+    showPage('page-login');
+    throw new Error(data.error || 'Session imeisha — ingia tena');
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
