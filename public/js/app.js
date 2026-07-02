@@ -20,11 +20,12 @@ const state = {
 const PREVIEW_MODE = /(?:[?&])preview(?:=1|=true)?(?:&|$)/i.test(window.location.search) || window.location.protocol === 'file:';
 const PREVIEW_EVENT = {
   _id: 'preview-event',
-  name: 'Preview Event',
-  client_name: 'Local preview',
-  date: null,
+  title: 'Preview Event',
+  description: 'Local preview',
+  eventDate: null,
   venue: 'Preview only',
-  status: 'active'
+  status: 'ACTIVE',
+  settings: {}
 };
 
 // ── Socket.io ────────────────────────────────────────────────
@@ -36,6 +37,53 @@ const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
 /** Normalise MongoDB _id vs plain id */
 const gid = (g) => g._id || g.id;
+
+function toFrontendStatus(status) {
+  return String(status || '').toLowerCase();
+}
+
+function toBackendStatus(status) {
+  return String(status || '').toUpperCase();
+}
+
+function formatEventStatus(status) {
+  const normalized = String(status || '').toLowerCase();
+  const labels = {
+    draft: 'Draft',
+    published: 'Published',
+    active: 'Active',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  };
+  return labels[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function normalizeEvent(ev) {
+  if (!ev) return ev;
+  const settings = ev.settings && typeof ev.settings === 'object' ? ev.settings : {};
+  const eventDate = ev.eventDate || ev.date || ev.createdAt || null;
+  return {
+    ...ev,
+    _id: ev._id || ev.id,
+    id: ev.id || ev._id,
+    name: ev.name || ev.title || '',
+    title: ev.title || ev.name || '',
+    description: ev.description || '',
+    date: eventDate,
+    eventDate,
+    has_pin: Boolean(ev.has_pin ?? ev.hasPin ?? settings.pin ?? ev.pin),
+    pin: ev.pin ?? settings.pin ?? '',
+    status: toFrontendStatus(ev.status || 'DRAFT'),
+    total: ev.total ?? 0,
+    checkedIn: ev.checkedIn ?? 0,
+  };
+}
+
+function normalizeEventsResponse(payload) {
+  if (Array.isArray(payload)) return payload.map(normalizeEvent);
+  if (payload && Array.isArray(payload.data)) return payload.data.map(normalizeEvent);
+  return [];
+}
 
 function showPage(id) {
   $$('.page').forEach(p => { p.classList.add('hidden'); p.classList.remove('active'); });
@@ -131,7 +179,7 @@ async function api(method, path, body) {
     if (method === 'GET' && path === '/auth/me') return { username: 'preview', role: 'admin' };
     if (method === 'POST' && path === '/auth/login') return { username: (body && body.username) || 'preview', role: 'admin' };
     if (path === '/auth/logout') return { ok: true };
-    if (method === 'GET' && path === '/events') return [PREVIEW_EVENT];
+    if (method === 'GET' && path === '/events') return { data: [PREVIEW_EVENT], meta: { total: 1, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false } };
     if (method === 'GET' && path === '/settings') return {};
     if (method === 'GET' && path === '/users') return [];
     if (method === 'GET' && path === '/bookings') return [];
@@ -213,7 +261,7 @@ async function logout() {
 // ── Events (Admin) ───────────────────────────────────────────
 async function fetchEvents(filter = 'all') {
   try {
-    const events = await api('GET', '/events');
+    const events = normalizeEventsResponse(await api('GET', '/events'));
     const filtered = filter === 'all' ? events :
                      events.filter(ev => ev.status === filter);
     renderEventsGrid(filtered);
@@ -245,9 +293,9 @@ function renderEventsGrid(events) {
     tr.innerHTML = `
       <td>
         <div class="event-name-cell">${escHtml(ev.name)}</div>
-        ${ev.has_pin ? `<span style="font-size:0.7rem;color:var(--gray-400)">PIN protected</span>` : ''}
+        ${ev.has_pin ? `<span style="font-size:0.7rem;color:var(--gray-400)">PIN required</span>` : ''}
       </td>
-      <td class="event-client-cell">${ev.client_name ? escHtml(ev.client_name) : '—'}</td>
+      <td class="event-client-cell">${ev.description ? escHtml(ev.description) : '—'}</td>
       <td style="white-space:nowrap;font-size:0.82rem">${dateStr}</td>
       <td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.venue ? escHtml(ev.venue) : '—'}</td>
       <td style="font-weight:700">${total}</td>
@@ -262,7 +310,7 @@ function renderEventsGrid(events) {
       <td>
         <span class="badge ${ev.status === 'active' ? 'badge-unused' : 'badge-used'}"
           style="${ev.status === 'active' ? 'background:#dcfce7;color:#166534' : ''}">
-          ${ev.status === 'active' ? 'Active' : ev.status === 'completed' ? 'Completed' : escHtml(ev.status)}
+          ${escHtml(formatEventStatus(ev.status || 'draft'))}
         </span>
       </td>
       <td class="event-actions-cell"></td>`;
@@ -321,7 +369,7 @@ function renderEventsGrid(events) {
 }
 
 function openEvent(event) {
-  state.currentEvent = event;
+  state.currentEvent = normalizeEvent(event);
   state.recentCheckins = [];
 
   // Show event nav items in sidebar
@@ -330,7 +378,7 @@ function openEvent(event) {
 
   // Update current event label in sidebar
   const labelEl = $('#sidebar-event-label');
-  if (labelEl) labelEl.textContent = event.name;
+  if (labelEl) labelEl.textContent = state.currentEvent.name;
   const sectionEl = $('#event-nav-section');
   if (sectionEl) { sectionEl.style.display = 'block'; }
 
@@ -371,7 +419,16 @@ function enterPreviewMode() {
 }
 
 async function createEvent(data) {
-  return await api('POST', '/events', data);
+  const payload = {
+    title: data.title || data.name,
+    eventDate: data.eventDate || data.date,
+    endDate: data.endDate || undefined,
+    venue: data.venue || undefined,
+    categoryId: data.categoryId || undefined,
+    settings: data.settings || (data.pin ? { pin: data.pin } : undefined),
+  };
+  const res = await api('POST', '/events', payload);
+  return normalizeEvent(res.data || res);
 }
 
 function editEvent(event) {
@@ -379,11 +436,12 @@ function editEvent(event) {
   if (!modal) return;
   $('#event-modal-title').textContent = 'Edit Event';
   $('#event-modal-save').textContent  = 'Save Changes';
-  $('#ev-name').value   = event.name        || '';
-  $('#ev-client').value = event.client_name || '';
-  $('#ev-date').value   = event.date ? new Date(event.date).toISOString().split('T')[0] : '';
-  $('#ev-venue').value  = event.venue       || '';
-  if ($('#ev-pin')) $('#ev-pin').value = event.pin || '';
+  const normalized = normalizeEvent(event);
+  $('#ev-name').value   = normalized.name || '';
+  $('#ev-description').value = normalized.description || '';
+  $('#ev-date').value   = normalized.date ? new Date(normalized.date).toISOString().split('T')[0] : '';
+  $('#ev-venue').value  = normalized.venue || '';
+  if ($('#ev-pin')) $('#ev-pin').value = normalized.pin || '';
   modal.dataset.editId  = gid(event);
   hideAlert($('#event-modal-error'));
   modal.classList.remove('hidden');
@@ -396,7 +454,7 @@ async function toggleEventStatus(id, currentStatus, name) {
     : `Reactivate "${name}"? Scanners will see it again.`;
   if (!confirm(msg)) return;
   try {
-    await api('PUT', `/events/${id}`, { status: newStatus });
+    await api('PATCH', `/events/${id}`, { status: toBackendStatus(newStatus) });
     fetchEvents();
   } catch (e) {
     alert('Failed: ' + e.message);
@@ -1156,7 +1214,7 @@ async function initScannerPage() {
 
   // Fetch and render events for scanner
   try {
-    const events = await api('GET', '/events');
+    const events = normalizeEventsResponse(await api('GET', '/events'));
     renderScannerEventList(events);
   } catch (e) {
     const listEl = $('#scanner-event-list');
@@ -1230,7 +1288,7 @@ function renderScannerEventList(events) {
     card.innerHTML = `
       <div class="event-card-header">
         <div class="event-card-name">${escHtml(ev.name)}</div>
-        ${ev.client_name ? `<div class="event-card-client">${escHtml(ev.client_name)}</div>` : ''}
+        ${ev.description ? `<div class="event-card-client">${escHtml(ev.description)}</div>` : ''}
       </div>
       <div class="event-card-meta">
         ${dateStr ? `<span>${escHtml(dateStr)}</span>` : ''}
@@ -1855,7 +1913,7 @@ async function fetchDashboard() {
 
     // WA stats across all events — sum per-event data or load from status endpoint
     try {
-      const events = await api('GET', '/events');
+      const events = normalizeEventsResponse(await api('GET', '/events'));
       let totalWaSent = 0, totalWaUnsent = 0;
       await Promise.all(events.map(async ev => {
         try {
@@ -3140,17 +3198,6 @@ function initAdmin() {
     });
   });
 
-  fetchEvents();
-
-  // Event filter tabs
-  $$('.event-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('.event-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      fetchEvents(btn.dataset.filter);
-    });
-  });
-
   // Sidebar nav items
   $$('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -3208,7 +3255,7 @@ function initAdmin() {
       $('#event-modal-title').textContent = 'Create New Event';
       $('#event-modal-save').textContent  = 'Create Event';
       $('#ev-name').value   = '';
-      $('#ev-client').value = '';
+      if ($('#ev-description')) $('#ev-description').value = '';
       $('#ev-date').value   = '';
       $('#ev-venue').value  = '';
       if ($('#ev-pin')) $('#ev-pin').value = '';
@@ -3224,7 +3271,7 @@ function initAdmin() {
       const modal  = $('#event-modal');
       const errEl  = $('#event-modal-error');
       const name   = $('#ev-name').value.trim();
-      const client = $('#ev-client').value.trim();
+      const description = $('#ev-description') ? $('#ev-description').value.trim() : '';
       const date   = $('#ev-date').value;
       const venue  = $('#ev-venue').value.trim();
       const pin    = $('#ev-pin') ? $('#ev-pin').value.trim() : '';
@@ -3233,13 +3280,19 @@ function initAdmin() {
       try {
         const editId = modal.dataset.editId;
         if (editId) {
-          await api('PUT', `/events/${editId}`, { name, client_name: client, date, venue, pin: pin || null });
+          await api('PATCH', `/events/${editId}`, {
+            title: name,
+            description: description || undefined,
+            eventDate: date,
+            venue,
+            settings: pin ? { pin } : {},
+          });
           if (state.currentEvent && gid(state.currentEvent) === editId) {
-            state.currentEvent = { ...state.currentEvent, name, client_name: client, date, venue };
+            state.currentEvent = normalizeEvent({ ...state.currentEvent, title: name, description, eventDate: date, venue, settings: pin ? { pin } : {} });
             updateBreadcrumbs();
           }
         } else {
-          await createEvent({ name, client_name: client, date, venue, pin: pin || null });
+          await createEvent({ title: name, description: description || undefined, eventDate: date, venue, settings: pin ? { pin } : {} });
         }
         modal.classList.add('hidden');
         fetchEvents();

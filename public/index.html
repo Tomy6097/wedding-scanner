@@ -147,8 +147,11 @@
           <div style="display:flex;gap:0.5rem;align-items:center">
             <div class="event-filter-tabs" id="event-filter-tabs">
               <button class="event-filter-btn active" data-filter="all">All</button>
+              <button class="event-filter-btn" data-filter="draft">Draft</button>
+              <button class="event-filter-btn" data-filter="published">Published</button>
               <button class="event-filter-btn" data-filter="active">Active</button>
               <button class="event-filter-btn" data-filter="completed">Completed</button>
+              <button class="event-filter-btn" data-filter="cancelled">Cancelled</button>
             </div>
             <button class="btn btn-primary btn-sm" id="create-event-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> New Event</button>
           </div>
@@ -158,12 +161,12 @@
             <thead>
               <tr>
                 <th>Event Name</th>
-                <th>Client</th>
+                <th>Details</th>
                 <th>Date</th>
                 <th>Venue</th>
                 <th>Guests</th>
                 <th>Attendance</th>
-                <th>Status</th>
+                <th title="Draft, Published, Active, Completed, or Cancelled">Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -184,13 +187,13 @@
           <div class="stat-card stat-percent"><div class="stat-icon"><i data-lucide="percent"></i></div><div class="stat-value" id="dash-attendance">0%</div><div class="stat-label">Attendance</div></div>
           <div class="stat-card"><div class="stat-icon"><i data-lucide="scan-line"></i></div><div class="stat-value" id="dash-total-scans">0</div><div class="stat-label">Total Scans</div></div>
           <div class="stat-card"><div class="stat-icon"><i data-lucide="alert-circle"></i></div><div class="stat-value" id="dash-invalid-scans">0</div><div class="stat-label">Invalid Scans</div></div>
-          <div class="stat-card" style="border-left:3px solid #25D366"><div class="stat-icon" style="color:#25D366"><i data-lucide="message-circle"></i></div><div class="stat-value" id="dash-wa-sent">—</div><div class="stat-label">WA Received</div></div>
-          <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-icon" style="color:#f59e0b"><i data-lucide="clock"></i></div><div class="stat-value" id="dash-wa-unsent">—</div><div class="stat-label">WA Pending</div></div>
+          <div class="stat-card" style="border-left:3px solid #25D366"><div class="stat-icon" style="color:#25D366"><i data-lucide="message-circle"></i></div><div class="stat-value" id="dash-wa-sent">—</div><div class="stat-label">WhatsApp Sent</div></div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-icon" style="color:#f59e0b"><i data-lucide="clock"></i></div><div class="stat-value" id="dash-wa-unsent">—</div><div class="stat-label">WhatsApp Pending</div></div>
         </div>
         <h3 class="section-subtitle">Per Event</h3>
         <div style="overflow-x:auto;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white)">
           <table class="guests-table">
-            <thead><tr><th>Event</th><th>Client</th><th>Date</th><th>Guests</th><th>Checked In</th><th>Attendance</th><th>WA Sent</th><th>Status</th></tr></thead>
+            <thead><tr><th>Event</th><th>Details</th><th>Date</th><th>Guests</th><th>Checked In</th><th>Attendance</th><th>WhatsApp Sent</th><th>Status</th></tr></thead>
             <tbody id="dash-event-tbody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
           </table>
         </div>
@@ -225,8 +228,8 @@
           <div class="stat-card stat-checkedin"><div class="stat-icon"><i data-lucide="check-circle"></i></div><div class="stat-value" id="stat-checkedin">0</div><div class="stat-label">Checked In</div></div>
           <div class="stat-card stat-remaining"><div class="stat-icon"><i data-lucide="clock"></i></div><div class="stat-value" id="stat-remaining">0</div><div class="stat-label">Remaining</div></div>
           <div class="stat-card stat-percent"><div class="stat-icon"><i data-lucide="percent"></i></div><div class="stat-value" id="stat-percent">0%</div><div class="stat-label">Attendance</div></div>
-          <div class="stat-card" style="border-left:3px solid #25D366"><div class="stat-icon" style="color:#25D366"><i data-lucide="message-circle"></i></div><div class="stat-value" id="stat-wa-sent">—</div><div class="stat-label">WA Received</div></div>
-          <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-icon" style="color:#f59e0b"><i data-lucide="clock"></i></div><div class="stat-value" id="stat-wa-unsent">—</div><div class="stat-label">WA Pending</div></div>
+          <div class="stat-card" style="border-left:3px solid #25D366"><div class="stat-icon" style="color:#25D366"><i data-lucide="message-circle"></i></div><div class="stat-value" id="stat-wa-sent">—</div><div class="stat-label">WhatsApp Sent</div></div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-icon" style="color:#f59e0b"><i data-lucide="clock"></i></div><div class="stat-value" id="stat-wa-unsent">—</div><div class="stat-label">WhatsApp Pending</div></div>
         </div>
         <div class="progress-section">
           <div class="progress-label"><span>Check-in Progress</span><span id="progress-text">0 / 0</span></div>
@@ -757,7 +760,7 @@ Bonyeza hapa chini kuthibitisha kuja au kuona QR code yako ya kuingia.</div>
     <button class="modal-close" id="event-modal-close"><i data-lucide="x" style="width:14px;height:14px"></i></button>
     <h2 id="event-modal-title">Create New Event</h2>
     <div class="form-group"><label>Event Name *</label><input type="text" id="ev-name" placeholder="e.g. John & Jane's Wedding" /></div>
-    <div class="form-group"><label>Client Name</label><input type="text" id="ev-client" placeholder="e.g. John Smith" /></div>
+    <div class="form-group"><label>Event Details</label><textarea id="ev-description" rows="3" placeholder="Short notes about the event"></textarea></div>
     <div class="form-group"><label>Date</label><input type="date" id="ev-date" /></div>
     <div class="form-group"><label>Venue</label><input type="text" id="ev-venue" placeholder="e.g. Serena Hotel" /></div>
     <div class="form-group"><label>Scanner PIN <small style="color:var(--gray-400)">(optional)</small></label><input type="text" id="ev-pin" placeholder="e.g. 1234" maxlength="6" inputmode="numeric" /></div>
